@@ -1,0 +1,292 @@
+{
+"_comment": "Fixed base buffs of skills that live in mutator code (not in the skill tree). Only values read from code/constants (Ghidra pseudo-C + ISIL + tools/readconst.py), schema in docs/ENGINE.md §9.7. Keys = AbilityInfo.abilityName; keys starting with _ are ignored. Entry `source` is documentation only. Checked WITHOUT a hard-coded numeric buff in code (nothing to model here): Warcry (Berserk 4.0 is a tree node), Rebuke (-80% damage taken is not in code), Arcane Ascendance, Flame Ward, Death Seal, Eterra's Blessing, Healing Hands, Ring of Shields, Manifest Armor, Smoke Bomb, Fury Leap, forms (Spriggan, Swarmblade, Werebear, Reaper), Focus, Dread Shade, Sacrifice, Transplant, Teleport (all numbers come from tree fields, AbilityProperty or prefab data). Their tree buffs go through field_models.json (scope global).",
+"Holy Aura": {
+"ability_id": "holyAura",
+"confidence": "D",
+"source": "research/07l_holy_aura.md, research/data/game/holy_aura_model.json, ability_property_fields_c.json",
+"note": "Aura on caster and allies; M = 1 + effect bonus (AbilityProperty holyAura #0, for Paladin — \"Covenant of Light\"); enhanced cast ×2",
+"active_input": {
+"default": false,
+"key": "holy_aura_active_cast",
+"label": "Holy Aura: enhanced cast (buff window)"
+},
+"active_multiplier": 2.0,
+"effect_index": 0,
+"stats": [
+{
+"stat": "ElementalResistance",
+"mod": "added",
+"tags": "",
+"value": 0.15,
+"label": "base aura resistance"
+},
+{
+"stat": "Damage",
+"mod": "increased",
+"tags": "",
+"value": 0.3,
+"label": "base aura damage"
+}
+],
+"tree_lists": {
+"passive": "AuraMutator.statsToApply",
+"active": "HolyAuraMutator.statsToApply"
+},
+"ability_properties": [
+{
+"index": 1,
+"stat": "ManaRegen",
+"mod": "increased",
+"label": "mana regen (holyAuraIncManaRegen)",
+"active_k": true
+},
+{
+"index": 6,
+"stat": "HealthRegen",
+"mod": "added",
+"label": "health regen in active mode (holyAuraHealthRegenInActiveMode)",
+"active_only": true,
+"active_k": false
+},
+{
+"index": 9,
+"stat": "Movespeed",
+"mod": "increased",
+"label": "movement speed (holyAuraIncreasedMovespeed)",
+"active_k": true
+},
+{
+"index": 10,
+"stat": "StunAvoidance",
+"mod": "increased",
+"label": "stun avoidance (holyAuraIncreasedStunAvoidance)",
+"active_k": true
+}
+],
+"mode_passive": "passive aura",
+"mode_active": "enhanced cast"
+},
+"Symbols of Hope": {
+"ability_id": "sigilsOfHope",
+"effect_index": 1,
+"confidence": "D",
+"source": "SigilsOfHopeMutator..cctor (static defaultStats), SigilsOfHopeMutator.Mutate/AddStatToAura, SigilsOfHopeActiveMutator.Mutate; research/data/game/ability_property_fields_c.json (sigilsOfHope #1, #2)",
+"note": "Each symbol (up to 3 + additional, +1 every 2 s) grants the caster and allies in the area stat × number of symbols × M (M = 1 + sigilsOfHopeIncreasedEffect, for Paladin \"Covenant of Light\"). Activation spends all symbols: for 3 s −5% damage taken per symbol (+100 ward per symbol, ward is not modelled), the passive symbol stats disappear. Conversion to lightning, \"Self Only\" etc. (tree nodes) are not counted; the tree list statsToGrant goes through field_models.json without M.",
+"uptime": "symbols constantly (generation 1 every 2 s, limit 3); activation 3 s",
+"mode_passive": "symbols stand",
+"mode_active": "activation (symbols spent, 3 s)",
+"active_input": {
+"default": false,
+"key": "sigils_active_use",
+"label": "Symbols of Hope: activation (3 s after spending symbols)"
+},
+"stats": [
+{
+"stat": "HealthRegen",
+"mod": "increased",
+"tags": "",
+"value": 0.2,
+"label": "health regen from symbol",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator..cctor: Stat(SP 17 HealthRegen, increased = [0x184561C00] = 0.2)"
+},
+{
+"stat": "Damage",
+"mod": "added",
+"tags": "Fire|Melee",
+"value": 3.0,
+"label": "fire damage from symbol (melee)",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator..cctor: Stat(SP 0 Damage, AT 0x208, added = [0x184561C3C] = 3.0)"
+},
+{
+"stat": "Damage",
+"mod": "added",
+"tags": "Fire|Spell",
+"value": 3.0,
+"label": "fire damage from symbol (spells)",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator..cctor: Stat(SP 0, AT 0x108, added 3.0)"
+},
+{
+"stat": "Damage",
+"mod": "added",
+"tags": "Fire|Throwing",
+"value": 3.0,
+"label": "fire damage from symbol (throwing)",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator..cctor: Stat(SP 0, AT 0x408, added 3.0)"
+},
+{
+"stat": "Damage",
+"mod": "added",
+"tags": "Fire|Bow",
+"value": 3.0,
+"label": "fire damage from symbol (bow)",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator..cctor: Stat(SP 0, AT 0x808, added 3.0)"
+},
+{
+"stat": "DamageTaken",
+"mod": "more",
+"tags": "",
+"value": -0.05,
+"label": "less damage taken per spent symbol",
+"active_only": true,
+"no_m": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeActiveMutator.Mutate: MoreStat(SP 6 DamageTaken, sigils × [0x18471CEF4] = -0.05 × (1 − AbilityProperty #9)); not applied when canCastDivineFlare"
+}
+],
+"ability_properties": [
+{
+"index": 2,
+"stat": "HealthRegen",
+"mod": "added",
+"label": "health regen from symbol (sigilsOfHopeAddedHealthRegen)",
+"passive_only": true,
+"per_input": {
+"key": "sigils",
+"label": "Symbols of Hope",
+"default": 3,
+"max": 10,
+"short": "symbols"
+},
+"source": "SigilsOfHopeMutator.Mutate: AddedStat(SP 17, mgr+0x132c) via AddStatToAura (× symbols × M)"
+}
+]
+},
+"Enchant Weapon": {
+"ability_id": "enchantWeapon",
+"confidence": "D",
+"source": "EnchantWeaponPassiveMutator..ctor and EnchantWeaponMutator..ctor (Stat 0x280 more), EnchantWeaponMutator.Mutate (BuffCreatorOnCreation, duration)",
+"note": "Passive (always while skill on bar): 15% more damage (Elemental|Melee). Activation: 50% more same stat, replaces passive (one buff name), lasts (1 + inc) × (5 s + added) with 15 s cooldown. Field activeStatsMultiplier = 3.0 in Mutate not read. Tree lists: passive and active (there values ×2).",
+"uptime": "passive always; active 5 s from 15 s cooldown",
+"mode_passive": "passive",
+"mode_active": "activation",
+"active_input": {
+"default": false,
+"key": "enchant_weapon_active_cast",
+"label": "Enchant Weapon: activation (5 s after cast)"
+},
+"stats": [
+{
+"stat": "Damage",
+"mod": "more",
+"tags": "Elemental|Melee",
+"value": 0.15,
+"active_value": 0.5,
+"label": "bonus enchantment on weapon",
+"source": "EnchantWeaponPassiveMutator..ctor: Stat(0, 0x280, more = [0x18471CD50] = 0.15); EnchantWeaponMutator..ctor: more = [0x184561C04] = 0.5; +0x148 duration 5.0 (0x40A00000)"
+}
+],
+"tree_lists": {
+"passive": "EnchantWeaponPassiveMutator.statsToApply",
+"active": "EnchantWeaponMutator.statsToApply"
+}
+},
+"Firebrand": {
+"ability_id": "firebrand",
+"confidence": "D",
+"source": "FirebrandMutator.ModifyFirebrandStacks (AddedStat 5.0 at [0x18456202C]), FirebrandMutator.ApplyStackToPlayer, max stacks (4 + addedMaxStacks)",
+"note": "Each stack of Firebrand (4 s × (1 + inc), maximum 4 + additional) grants player +5 added fire damage melee. Conversion to lightning (node) changes tag to Melee|Lightning, not counted; spell damage per stack and other stack stats — in field_models.json.",
+"uptime": "4 s per stack, stacks refreshed by hits; input — number of stacks",
+"stats": [
+{
+"stat": "Damage",
+"mod": "added",
+"tags": "Melee|Fire",
+"value": 5.0,
+"label": "fire damage melee per stack",
+"per_input": {
+"key": "firebrand_stacks",
+"label": "Stacks of Firebrand",
+"default": 4,
+"max": 15,
+"short": "stacks"
+},
+"source": "FirebrandMutator.ModifyFirebrandStacks: Stats.AddedStat(SP 0, AT 0x208 (0x202 with lightningConversion), [0x18456202C] = 5.0)"
+}
+]
+},
+"Aura Of Decay": {
+"ability_id": "auraOfDecay",
+"confidence": "D",
+"source": "AuraOfDecayMutator.Mutate (MoreStat(SP 6, AT 0x1040, [0x18471CEA0]) into the BuffCreator stats; ISIL lines 11722-11741)",
+"note": "While the aura is on (skill toggle): −30% poison damage taken (DamageTaken more, DoT|Poison). Aura conversion (nodes) changes the tag to DoT|Cold / DoT|Physical / DoT|Fire, not counted. Skill properties #1 (Damage increased Poison), #14 (more DoT), #15 (more DoT taken) are missing from the passive data.",
+"uptime": "while aura is on",
+"stats": [
+{
+"stat": "DamageTaken",
+"mod": "more",
+"tags": "DoT|Poison",
+"value": -0.3,
+"label": "less poison damage with aura",
+"source": "AuraOfDecayMutator.Mutate: Stats.MoreStat(SP 6, AT 0x1040, [0x18471CEA0] = -0.3)"
+}
+]
+},
+"Dark Quiver": {
+"ability_id": "darkQuiver",
+"confidence": "D?",
+"source": "DarkQuiverMutator.applyStatsFromBlackArrow (Stat(0, 0, 0, increased = [0x184561C18] = 1.0))",
+"note": "Next bow attack after picking up black arrow: +100% increased damage (in code tag empty; Bow tag added because arrows spend only bow skills). This is conditional stat of specific attack, not permanent buff: input enables it for entire evaluation.",
+"uptime": "one attack per picked up arrow",
+"stats": [
+{
+"stat": "Damage",
+"mod": "increased",
+"tags": "Bow",
+"value": 1.0,
+"label": "damage of next bow attack (black arrow)",
+"when_input": {
+"key": "black_arrow_ready",
+"label": "Dark Quiver: attack picked up black arrow",
+"default": false
+},
+"source": "DarkQuiverMutator.applyStatsFromBlackArrow: Stats+Stat..ctor(SP 0, AT 0, added 0, increased 1.0)"
+}
+]
+}
+}
