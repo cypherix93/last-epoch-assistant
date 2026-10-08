@@ -103,7 +103,7 @@ Example `i18n` row: key `Item_Names.Unique_Name_3`, section `Item_Names`, `text 
 | `stat_properties` | every SP (0..133) and LocalSP (1001..1106) id with display rules from `coreDB.propertyList` (113 have them): name, alt_text, rounding/display flags, `is_indirect` | property | 151 |
 | `stat_property_alt_texts` | per (modifier type, tags, special tag) alternative descriptions of a property | (property, ord) | 162 |
 | `player_properties` | `coreDB.playerPropertyList`, the stats behind SP 98 lines (`tags` = idx), e.g. 91 "Chance to Gain 20 Ward on Melee Hit" | idx | 713 |
-| `ability_properties` | `coreDB.abilityPropertyList[].properties[]`, the stats behind SP 58 lines (`tags` = ability_index, `special_tag` = prop_index), e.g. (1, 1) "Projectiles for Fireball" | (ability_index, prop_index) | 2,344 (177 abilities) |
+| `ability_properties` | `coreDB.abilityPropertyList[].properties[]`, the stats behind SP 58 lines (`tags` = ability_index, `special_tag` = prop_index), e.g. (1, 1) "Projectiles for Fireball" | (ability_index, prop_index) | 2,344 (175 abilities with rows; 177 list entries, abilityID 0 and 803 empty) |
 | `idol_altar_properties` | the stats behind SP 130 lines | idx | 31 |
 | `conditional_properties` | descriptions behind SP 117 / 131..133 `special_tag` ("Damage to Stunned Enemies") | idx | 48 |
 
@@ -122,13 +122,13 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 
 | table | purpose | key | rows |
 |---|---|---|---|
-| `item_base_types` | base types (Helmet, Relic, Small Idol, Blessing, Idol Altar, Affix Shard, ...) with category, size, max affixes | base_type_id | 48 |
+| `item_base_types` | base types (Helmet, Relic, Small Idol, Blessing, Idol Altar, Affix Shard, ...) with category (NULL for 8 base types not listed by the loot-filter categories), size, max affixes | base_type_id | 48 |
 | `item_subtypes` | every base item (sub type) with level / class requirement, weapon stats, lens effect; implicits are mods (`implicit` / `blessing` / `idol_altar`) | (base_type_id, sub_type_id) | 1,558 |
 | `affixes` | prefixes and suffixes (incl. idol, set, corrupted, Weaver affixes): name, title, type, special type, roll target, class specificity, weighting | affix_id | 1,156 |
 | `affix_stats` | the stat lines of each affix (1 for single, 2 for multi affixes) | (affix_id, ord) | 1,696 |
 | `affix_tiers` | tiers with required level; the roll values are mods `affix_tier` | (affix_id, tier) | 6,238 |
 | `affix_can_roll_on` | base types an affix rolls on | (affix_id, base_type_id) | 2,539 |
-| `affix_reroll_chances` | per equipment type reroll chance / weighting | (affix_id, ord) | 201 |
+| `affix_reroll_chances` | per equipment type reroll chance / weighting | (affix_id, ord) | 218 |
 | `affix_display_categories` | the 45 crafting categories with their header | idx | 45 |
 | `uniques` | uniques and set items: name, lore, base/sub type, set, legendary potential fields, drop flags | unique_id | 486 |
 | `unique_subtypes` | all sub types of a unique | (unique_id, ord) | 486 |
@@ -136,7 +136,7 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | `unique_tooltip_entries` | tooltip line order: a mod (`ref_kind 'mod'`, ref_index = mods.source_ord) or a description | (unique_id, ord) | 2,459 |
 | `sets` | item sets (set 0 = none) with names; bonuses are mods `set_bonus` | set_id | 25 |
 | `set_tooltips` | set bonus descriptions with piece requirement | (set_id, ord) | 18 |
-| `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 |
+| `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 (`grid_index` ordering is unverified) |
 | `blessings` | blessing sub types with timeline, difficulty (0 normal, 1 empowered = grand) and slot list; the stat is mods `blessing` | sub_type_id | 224 |
 
 Example rows:
@@ -152,7 +152,7 @@ Example rows:
 
 | table | purpose | key | rows |
 |---|---|---|---|
-| `abilities` | every ability record (player skills, sub-abilities, minion and monster abilities): name, description, tags, mana cost, attack speed, flags; `ability_index` bridges to Maxroll and to SP 58/88 | ability_id | 1,228 (183 player) |
+| `abilities` | every ability record (player skills, sub-abilities, minion and monster abilities): name, description, tags, mana cost, attack speed, flags; `ability_index` bridges to Maxroll and to SP 58/88 | ability_id | 1,228 (182 distinct player; 183 list entries, vm53dx twice) |
 | `ability_components` | the prefab components (87 types: `DamageEnemyOnHit`, `ChanceToApplyAilmentsOnHit`, `CastAfterDuration`, ...) with full JSON | (ability_id, ord) | 2,516 |
 | `ability_links` | combo and shared-cooldown abilities | (ability_id, link_kind, ord) | 129 |
 | `ailments` | 148 ailments with duration, stacks, per-type base damage (`dmg_*`), damage types; buffs are mods `ailment_buff` | ailment_id | 148 |
@@ -406,5 +406,5 @@ SELECT key, value FROM meta ORDER BY key;
 - **Fetch time and source hashes**: copied from `data/raw/<version>/sources.lock.json`: `fetched_at`, one `letools_sha256:<section>/<file>` per LE Tools data file, `letools_sha256:i18n/en.json`, `maxroll_data_hash` (the 8-hex cache-busting hash), `maxroll_sha256`, `maxroll_etag`, `maxroll_last_modified`. Two databases with equal hashes were built from identical inputs.
 - **Build**: `meta.schema_version` (bumped on incompatible schema changes), `meta.build_tool_version` (`@le/db <version>`), `meta.loaded_steps` (which build steps succeeded; a full build has `world,items,skills,search,crosscheck`).
 - **Determinism**: the build iterates source collections in sorted key order and writes no timestamps other than `fetched_at`; rebuilding from the same raw data gives the same rows and the same `data/le.build-report.json`.
-- **Build report** (`data/le.build-report.json`, committed): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings and the cross-check mismatch count. `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
+- **Build report** (`data/le.build-report.json`, committed, regenerated by every full `yarn db:build`; expected-count checks live in each loader's `expected` export, 89 checks in 1.5.2): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings and the cross-check mismatch count. `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
 - **After a game patch**: `yarn fetch` then `yarn db:build`; review `git diff data/le.build-report.json`.

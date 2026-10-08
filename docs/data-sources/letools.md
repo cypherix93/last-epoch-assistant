@@ -63,7 +63,7 @@ Tables show nested objects up to three levels; deeper structures are noted in th
 |---|---|---|---|
 | `itemDB` | object | 24 | `itemList`: object{5}; `affixList`: object{4}; `uniqueList`: object{1}; `setBonusList`: array[25]; `relIncLevelAbilities`: object{195}; `relModAbilities`: object{509}; `relModAilments`: object{485}; `triggeredAbilities`: object{150}; `triggeredAilments`: object{389}; `fracturedUniques`: object{1}; `questRewards`: object{1}; `setNames`: object{24}; `monsterItemDrops`: array[341]; `oneShotCaches`: array[40]; `championDataList`: object{2}; `randomEncounterData`: object{11}; `sceneList`: object{385}; `minGridSize2x2`: boolean; `factionGamblerItems`: object{2}; `customDrops`: array[1]; `customPersonalItems`: array[1]; `bagContents`: object{5}; `altarGrids`: object{2}; `relatedAbilities`: object{509} |
 | `coreDB` | object | 10 | `propertyList`: array[113]; `coreAttributes`: object{5}; `playerPropertyList`: array[713]; `abilityPropertyList`: array[177]; `defaultProperty`: object{14}; `extraStatData`: object{1}; `idolAltarPropertyList`: object{2}; `corruptionOutcomeConfig`: object{2}; `conditionalDamagePropertyDescriptionKeys`: array[48]; `conditionalNonDamagePropertyDescriptionKeys`: array[48] |
-| `LEAbilities` | object | 11 | `abilityList`: object{1228}; `allAbilityIdList`: array[994]; `playerAbilityIdList`: array[183]; `ailmentList`: object{148}; `entityList`: object{96}; `ailmentTriggeredAbilities`: object{0}; `ailmentTriggeredAilments`: object{4}; `passivePointsFromQuests`: number; `attributePointsFromQuests`: number; `invocations`: object{1}; `runeIcons`: object{3} |
+| `LEAbilities` | object | 11 | `abilityList`: object{1228}; `allAbilityIdList`: array[994]; `playerAbilityIdList`: array[183] (182 distinct); `ailmentList`: object{148}; `entityList`: object{96}; `ailmentTriggeredAbilities`: object{0}; `ailmentTriggeredAilments`: object{4}; `passivePointsFromQuests`: number; `attributePointsFromQuests`: number; `invocations`: object{1}; `runeIcons`: object{3} |
 | `LESkillTrees` | object | 136 | 136 keys (`av75ch`, `wb8fo`, `eq5s`, `er6no`, ...); value: object |
 | `LESkillTreesUI` | object | 136 | 136 keys (`av75ch`, `wb8fo`, `eq5s`, `er6no`, ...); value: object |
 | `LECharTrees` | object | 1 | `trees`: array[5] |
@@ -2315,10 +2315,10 @@ _No records._
 | `affixProperties[].useGeneratedName` | number | 616 occurrences | values 0 | `0` | Title text is generated from the stat. |
 | `affixProperties[].disableAltText` | number | 616 occurrences | values 0 | `0` | Suppress alt tooltip. |
 | `rarityTier` | string | always | values "T4" | `"T4"` | Always "T4" in this data. |
-| `specificRerollChances[]` | object | 201 occurrences |  | `{"equipmentType":2,"rerollChance":0.5,"weighting":0.5}` | Per-equipment-type reroll overrides. |
-| `specificRerollChances[].equipmentType` | number | 201 occurrences | 2..33 (>12 distinct) | `2` | Base type id the override applies to. |
-| `specificRerollChances[].rerollChance` | number | 201 occurrences | values 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.75,0.8,0.9 | `0.5` | Chance for the drop to be re-rolled to another type. |
-| `specificRerollChances[].weighting` | number | 201 occurrences | values 0.100000024,0.19999999,0.25,0.3,0.39999998,0.5,0.6,0.7,0.8,0.9,1 | `0.5` | Roll weight. |
+| `specificRerollChances[]` | object | 218 occurrences |  | `{"equipmentType":2,"rerollChance":0.5,"weighting":0.5}` | Per-equipment-type reroll overrides. |
+| `specificRerollChances[].equipmentType` | number | 218 occurrences | 2..33 (>12 distinct) | `2` | Base type id the override applies to. |
+| `specificRerollChances[].rerollChance` | number | 218 occurrences | values 0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.75,0.8,0.9 | `0.5` | Chance for the drop to be re-rolled to another type. |
+| `specificRerollChances[].weighting` | number | 218 occurrences | values 0.100000024,0.19999999,0.25,0.3,0.39999998,0.5,0.6,0.7,0.8,0.9,1 | `0.5` | Roll weight. |
 
 Example (key `1`, record #1, trimmed):
 
@@ -4506,7 +4506,7 @@ Example (record #2, trimmed):
 
 - **Location:** `LEAbilities.playerAbilityIdList` (file: planner)
 - **Keying:** array of ability id strings
-- **Record count:** 183
+- **Record count:** 183 (182 distinct; `vm53dx` appears twice)
 
 | field | type | presence | range / values | example | meaning |
 |---|---|---|---|---|---|

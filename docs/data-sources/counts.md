@@ -24,7 +24,7 @@ All numbers were computed by `counts.js` (and `join_checks.js` for the id-set co
 | abilities (definition records) | 1,228 | 1,054 | LE Tools keyed by id string, Maxroll keyed by name; 84 Maxroll abilities are absent from Maxroll abilityList (no index). |
 | abilities with an `index` | 981 | 980 | LE `index` ranges 1..993; Maxroll abilityList has 992 slots, 980 non-null. |
 | allAbilityIdList (LE) / abilityList (MR) | 994 | 992 | LE list has 994 entries (index 0 null); Maxroll 992. |
-| player abilities | 183 | 184 | LE ids vs Maxroll names (via abilities[name].playerAbilityID): 174 ids shared; LE-only: null_Soul_Geyser, evade3wb, evade3sp, evade3sb, evade3rp, sw43_c, hs18gu_c, rb7_c; Maxroll-only: werebearevade1 and 2 entries with empty/no playerAbilityID. |
+| player abilities | 183 list entries (182 distinct) | 184 | LE ids vs Maxroll names (via abilities[name].playerAbilityID): 174 ids shared; LE-only: null_Soul_Geyser, evade3wb, evade3sp, evade3sb, evade3rp, sw43_c, hs18gu_c, rb7_c; Maxroll-only: werebearevade1 and 2 entries with empty/no playerAbilityID. |
 | ability prefab components | 2,516 | 915 | LE Tools keeps every prefab component (87 PascalCase `type` names); Maxroll keeps only the 6 gameplay-relevant ones (damageOnHit, chanceToApplyAilmentsOnHit, createAbilityObjectOnDeath, castAfterDuration, castAtRandomPointAfterDuration, damageWithBeam) on a smaller ability set (1054 vs 1228). |
 | entities (minion actors) | 96 | - | LE Tools only. |
 | ability skill trees (per-skill) | 136 | 136 | Identical id sets; Maxroll `skillTrees` additionally holds the 5 class trees + weaver (142 keys). |
@@ -38,7 +38,7 @@ All numbers were computed by `counts.js` (and `join_checks.js` for the id-set co
 | masteries (incl. base class) | 20 | 20 | 4 per class (index 0 = base class). |
 | stat properties (propertyList / properties) | 113 | 113 | Same order and same `property` ids (SP enum has 134 names; 113 have display rules). |
 | player properties | 713 | 712 | Maxroll lacks the last entry (index 712). |
-| ability properties | 177 | 177 | Identical abilityIDs in identical order; 2344 property rows each. |
+| ability properties | 177 | 177 | Identical abilityIDs in identical order; 2344 property rows each; 175 abilities carry rows (abilityID 0 and 803 have empty properties). |
 | idol altar properties | 31 | 31 |  |
 | conditional properties (damage / non-damage / Maxroll) | 48 / 48 | 48 | Maxroll merges both description forms into one record `{description, nonDamageDescription}` per index. |
 | stats (display rules) | - | 184 | Maxroll only (stat sheet / alt stat definitions). |
@@ -59,8 +59,19 @@ All numbers were computed by `counts.js` (and `join_checks.js` for the id-set co
 ## How to read the differences
 
 - **Identical content**: uniques, unique mods, tooltip descriptions, set bonuses, affixes (ids, tiers, stat lines), skill trees, nodes, node stats/requirements, class and Weaver tree nodes, properties, ability properties, idol altar properties, conditional properties. These can be imported once and cross-validated. Known tiny exceptions: 8 affixes with float32 noise (max abs difference 4e-8), 1,426 tree-node stat `value` fields that are `null` in LE Tools and `""` in Maxroll (1,335 + 91), and one node requirement (fl71ds node 17).
-- **Maxroll has more**: base types (+3: 11, 24 which LE Tools lists as disabled to roll, and 40), sub types (+13) and implicits (+7) attached to those extra types, timelines (+1: id 99, an empty placeholder), quests (145 vs the 36 that LE Tools tracks in its checklist), player abilities (184 vs 183; the id lists are not identical, see [ids.md](ids.md#3-ability-joins-the-one-id-family-that-needs-a-mapping)), stats display rules (184, Maxroll only).
+- **Maxroll has more**: base types (+3: 11, 24 which LE Tools lists as disabled to roll, and 40), sub types (+13) and implicits (+7) attached to those extra types, timelines (+1: id 99, an empty placeholder), quests (145 vs the 36 that LE Tools tracks in its checklist), player abilities (184 vs 183 list entries / 182 distinct; the id lists are not identical, see [ids.md](ids.md#3-ability-joins-the-one-id-family-that-needs-a-mapping)), stats display rules (184, Maxroll only).
 - **LE Tools has more**: ailments (148 vs 128: ids 129..150 are newer boss/monster ailments; additionally Maxroll's array has two placeholder copies of Ignite at the UNUSED ids), abilities (1,228 vs 1,054: LE Tools keeps every internal ability and all 87 prefab component types, Maxroll only 6), player properties (713 vs 712), UI buffs, entities, monster mods, dungeons, arena, factions, woven echoes, vaults, monolith rewards, scenes and the complete i18n table.
 - **Same data, different packaging**: LE Tools splits affixes into single/multi lists (616 + 540) and Maxroll merges them (1,156); LE Tools splits tree logic and UI layout (`LESkillTrees` / `LESkillTreesUI`, 3,956 layout children = one per node) while Maxroll keeps `transform` inline; LE Tools conditional properties are two key lists of 48, Maxroll one list of 48 records.
 - **Float noise**: affix tier roll ranges are equal in 1,148 of 1,156 affixes; the other 8 differ only by float32 artefacts in LE Tools (e.g. `0.29000002` vs `0.29`).
 - **Gaps in id spaces** (both sources): unique ids 0..488 with 3 absent; affix ids 0..1156 with id 1139 absent; ailment ids with 112 and 119 unused; base type ids 0..41 with 11, 24 (disabled) and 40 (unnamed) missing from LE Tools' equippable list.
+
+## Cross-check results (1.5.2)
+
+Summary of the LE Tools vs Maxroll value comparison, from `data/crosscheck-report.json` (individual rows are in `maxroll_crosscheck`, 31 rows in the 1.5.2 build):
+
+| kind | compared | real mismatches | notes |
+|---|---|---|---|
+| uniques | 486 | 0 | 28,774 fields compared |
+| ailments | 126 | 0 | 22 LE Tools-only ids (129-150) are an expected gap; Maxroll ailments carry no duration, so `ailment.duration` is skipped |
+| classes | 5 | 0 | 251 fields |
+| affixes | 1,156 | 1 | affix 910 `canRollOn`: LE Tools `[31]` vs Maxroll `[31,31]` (duplicate entry on the Maxroll side); 8 further rows are float32 noise and are ignored |
