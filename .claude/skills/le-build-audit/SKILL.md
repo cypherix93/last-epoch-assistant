@@ -22,14 +22,14 @@ Resolve every piece to ids before judging anything. Ask once for missing pieces 
 | Piece | How to resolve | Record |
 |---|---|---|
 | Class / mastery | `SELECT class_id, name FROM classes`; `SELECT mastery_index, name, description, passive_bonus_labels FROM masteries WHERE class_id = 3` | class_id, mastery_index |
-| Passives | `passive_tree(class_id)`; user's allocations by node name | node ids, points |
-| Skills (5) | `lookup` kind ability (player only), then `skill_tree(ability_id)` | ability_id, ability_index, tags, node points |
+| Passives | `passive_tree({"class_id":1})` (a class name also works); user's allocations by node name | node ids, points |
+| Skills (5) | `lookup({"name":...,"kinds":["ability"]})` (player abilities rank first), then `skill_tree({"ability_id":...})` | ability_id, ability_index, tags, node points |
 | Items | unique by name (`lookup`), rares by affix names -> affix ids + tiers + rolls | affix_id, tier, roll, base type |
 | Idols / altar | idol affixes (`affixes.rolls_on = 1`), altar sub type | affix ids, sub_type_id |
 | Blessings | `v_blessings` by name | sub_type_id (one per timeline) |
 | Level, attributes | user; check `abilities` attribute scaling | numbers |
 
-Tool calls for the ledger (MCP names; otherwise `yarn mcp:call <tool> '<json>'`):
+Tool calls for the ledger (MCP names; otherwise `yarn mcp:call <tool> '<json>'` in Bash; JSON containing `<`, `>`, `%`, `&` or `|` goes on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
 
 ```
 lookup({"name":"Calamity","kinds":["unique"]})
@@ -78,7 +78,7 @@ SELECT m.source_kind, m.source_id, m.property_name, m.tag_names, m.value_min, m.
 FROM mods m
 WHERE m.property = 0
   AND (m.tags & ~255 & ~8388872) <> 0
-  AND (m.source_kind, m.source_id) IN (VALUES ('affix_tier', '0'), ('unique_mod', '0'))
+  AND (m.source_kind, m.source_id) IN (VALUES ('affix_tier', '63'), ('affix_tier', '77'), ('unique_mod', '0'))
 ORDER BY m.source_kind, m.source_id;
 ```
 
@@ -95,7 +95,7 @@ Sources of recovery and their rates: health regen `(6 + 0.14 L + added)(1 + inc)
 ```sql
 SELECT property, property_name, tag_names, special_tag, count(*) AS lines, max(value_max) AS best
 FROM mods
-WHERE property IN (17, 38, 39, 40, 51, 92, 99, 93, 48, 49) AND (source_kind, source_id) IN (VALUES ('unique_mod', '0'), ('affix_tier', '0'))
+WHERE property IN (17, 38, 39, 40, 51, 92, 99, 93, 48, 49) AND (source_kind, source_id) IN (VALUES ('affix_tier', '1058'), ('affix_tier', '1010'), ('affix_tier', '106'))
 GROUP BY property, special_tag ORDER BY property;
 ```
 
@@ -126,13 +126,13 @@ For the main skill compute the marginal change from +10% of each pool (generic i
 
 ### Step 8: missing resistances
 
-From Step 3: list each type with `75 - shown`, expected shred from content, and the cheapest affix source on the user's open slots:
+From Step 3: list each type with `75 - shown`, expected shred from content, and the best craftable (T5) affix source on the user's open slots (T8 is the highest tier but Primordial only):
 
 ```sql
 SELECT m.property, a.name, a.affix_type_name, m.tier, m.value_min, m.value_max
 FROM affixes a
 JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT)
-WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107) AND m.tier = 1
+WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107) AND m.tier = 5
 ORDER BY m.property, m.value_max DESC;
 ```
 
@@ -141,7 +141,7 @@ Remember Vitality gives +1% necrotic and poison resistance per point, class tree
 ### Step 9: anti-synergies and traps
 
 1. Tag the build (damage types, delivery, mechanics): for example `conversion`, `ward`, `minion`, `ailment`, `crit`, `defense`, `trigger`, `idol`.
-2. Read the catalogue entries carrying those tags: `grep -n "Tags:.*ward" knowledge/interactions/catalogue.md` (or `knowledge("interactions/catalogue")` then scan), then every entry tagged `anti-synergy` that overlaps: `knowledge/interactions/catalogue.md#11-anti-synergies-and-traps`. Also scan `#7-double-dipping-and-what-does-not-double-dip` and `#6-defensive-conversions-and-conditional-defenses`.
+2. Read the catalogue entries carrying those tags: `grep -n "Tags:.*ward" knowledge/interactions/catalogue.md` (or `knowledge({"page":"interactions/catalogue"})` then scan), then every entry tagged `anti-synergy` that overlaps: `knowledge/interactions/catalogue.md#11-anti-synergies-and-traps`. Also scan `#7-double-dipping-and-what-does-not-double-dip` and `#6-defensive-conversions-and-conditional-defenses`.
 3. For each unique: look up `knowledge/interactions/unique-effects-index.md` (by name or uid), then the catalogue by uid.
 4. Mechanical checks that catch most real problems:
    - Dead stats (Step 2 query): melee/minion/bow lines on the wrong build.

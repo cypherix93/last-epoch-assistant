@@ -79,7 +79,7 @@ Rules for uncertainty:
 | What does unique U's special effect do? | `knowledge/interactions/unique-effects-index.md` (find by name or uid), then the catalogue |
 | Term definition | `knowledge/reference/glossary.md#terms` |
 
-Use the MCP `knowledge(page)` tool (or open the file) to read a page. Cite as `page#section`.
+Use the MCP `knowledge` tool (`{"page": "..."}`, or open the file) to read a page. Cite as `page#section`.
 
 ```
 knowledge({})                                             # list pages
@@ -105,7 +105,7 @@ yarn mcp:call knowledge '{"page":"interactions/catalogue"}'   # without MCP, fro
 
 ## Rules agents get wrong most (restated)
 
-1. **Increased vs more.** Increased adds into one pool; every *more* multiplies separately: `Stat = (base + ADE x added) x (1 + sum inc) x product(1 + more_i)`. Official check: more 5%, 30%, 10% on 14.5 gives 21.77, not 21.03. Skill-tree "increased damage" lines are almost always coded as **more** (429 more vs 38 increased); passive-tree and gear "increased" are increased. Never decide from tooltip wording. [damage-pipeline.md#5-increased-more-and-skill-trees] **D/G**
+1. **Increased vs more.** Increased adds into one pool; every *more* multiplies separately: `Stat = (base + ADE x added) x (1 + sum inc) x product(1 + more_i)`. Official check: more 5%, 30%, 10% on 14.5 gives 21.77, not 21.03. Skill-tree "increased damage" lines are almost always coded as **more** (429 more vs 38 increased in `skill_node_effects.json`, per `damage-pipeline.md`; the database stores node stats display-only, so this cannot be queried); passive-tree and gear "increased" are increased. Never decide from tooltip wording. [damage-pipeline.md#5-increased-more-and-skill-trees] **D/G**
 2. **Tag matching is a subset test.** A modifier applies only if every tag on it is present on the damage source; Elemental matches Fire, Cold, Lightning. Typed increased (fire) scales only the fire bucket; untyped scales all seven. Melee and Hit modifiers never scale ailments. [damage-pipeline.md#4-tag-matching] **D**
 3. **Ailment scaling.** Ailments have fixed base damage and ADE 0 (Ignite, Bleed, Poison); they scale from generic, type, DoT, Ailment-effect and the applying skill's tree/attribute modifiers, never from Hit/Melee/Bow/Throwing; speed and crit do not scale them; they cannot crit. [ailments.md#2-damage-of-a-stack] **G/D**
 4. **Resistance penetration by area level.** Enemies penetrate your resistances by 1% per area level (max 75% from area level 75), applied after the 75% cap. At area 75+, capped 75% resistance mitigates 0%; it only avoids the 1.75x penalty. [defenses.md#2-resistances] **G/D**

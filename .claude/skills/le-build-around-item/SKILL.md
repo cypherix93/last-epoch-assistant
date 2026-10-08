@@ -36,9 +36,14 @@ Do NOT use for:
 
 ## Tools
 
-MCP server `le-data`: `version()`, `schema()`, `search(query, kinds?, limit?)`, `get(kind, id)`, `lookup(name, kinds?)`, `find_mods({property?, property_name?, tags_any?, tags_all?, modifier_type?, source_kinds?, min_value?}, limit?)`, `skill_tree(ability_id)`, `passive_tree(class_id)`, `sql(query, params?)` (read-only), `knowledge(page?)`.
+MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query** and `.claude/skills/README.md`):
+- `version({})`, `schema({"table"?})`, `knowledge({"page"?})`
+- `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
+- `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
+- `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat.
+- `skill_tree({"ability_id": "<id>"})`, `passive_tree({"class_id": "<class>"})`, `sql({"query","params"?,"limit"?})` (read-only).
 
-Without MCP, run `yarn mcp:call <tool> '<json args>'` from the repo root, for example `yarn mcp:call lookup '{"name":"Culnivar"}'`. If a call rejects its arguments, read the tool's input schema with `schema()` or **le-data-query**; do not guess.
+Without MCP, run `yarn mcp:call <tool> '<json args>'` from the repo root in Bash, for example `yarn mcp:call lookup '{"name":"Culnivar"}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. On Windows the call goes through `cmd.exe`: JSON containing `<`, `>`, `%`, `&` or `|` (all the Q-recipes below) must go on stdin (`yarn mcp:call sql <<'JSON' ... JSON`) or `@file.json`, otherwise it can be silently corrupted (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
 
 **Empty or stub database.** A db built with `LE_DB_ALLOW_STUBS=1` has empty tables, but `meta` is still filled. Read `game_version` and `data_version` from `meta` anyway.
 
@@ -71,13 +76,13 @@ digraph flow {
 
 ### Phase A: Intake (steps 1-6)
 
-1. **Pin the data version.** Call `version()` (or `SELECT key, value FROM meta`). Record `game_version` and `data_version`; they go on the Build card. Check that the db has rows. If not, use the vendored-JSON fallback and note the vendored `gameVersion` (1.5.0).
+1. **Pin the data version.** Call `version({})` (or `SELECT key, value FROM meta`). Record `game_version` and `data_version`; they go on the Build card. Check that the db has rows. If not, use the vendored-JSON fallback and note the vendored `gameVersion` (1.5.0).
 2. **Parse what the player gave you.**
-   - A bare name: resolve it with `lookup(name, ["unique"])`, then `search(name)` for typos.
+   - A bare name: resolve it with `lookup({"name":"<name>","kinds":["unique"]})`; for typos fall back to `search({"query":"<name>","kinds":["unique"]})`.
    - A pasted tooltip: extract the name, item level, rarity, every affix line with its value, any tier markers (T1-T8), LP ("Legendary Potential"), WW ("Weaver's Will"), corrupted or sealed markers, and the class line ("Requires Mage").
    - A screenshot description: as for a pasted tooltip. Ask for any missing affix values only if they change the build; otherwise mark them as assumptions.
-   - A rare or exalted item (not a unique): resolve each affix line to an `affix_id` with `search(line, ["affix"])`, then tier it against `mods` rows (`source_kind = 'affix_tier'`). Its "enabling effect" is then the best-in-slot combination, and the rest of the procedure still applies.
-3. **Resolve the item and pull its mods.** Run `get("unique", id)`, or queries Q1-Q2 below. Record every mod with its property, tags, modifier type and roll range, and every tooltip line. Indirect lines (SP 98 PlayerProperty, SP 58 AbilityProperty) are pointers to coded effects. Record the PP or AP index (`tags`) and do not sum them as stats (`knowledge/mechanics/stat-model.md`, "Special properties").
+   - A rare or exalted item (not a unique): resolve each affix line to an `affix_id` with `search({"query":"<affix line>","kinds":["affix"]})`, then tier it against `mods` rows (`source_kind = 'affix_tier'`). Its "enabling effect" is then the best-in-slot combination, and the rest of the procedure still applies.
+3. **Resolve the item and pull its mods.** Run `get({"kind":"unique","id":<uid>})` (returns `unique`, `mods`, `tooltips`, `subtypes`, `set`), or queries Q1-Q2 below. Record every mod with its property, tags, modifier type and roll range, and every tooltip line. Indirect lines (SP 98 PlayerProperty, SP 58 AbilityProperty) are pointers to coded effects. Record the PP or AP index (`tags`) and do not sum them as stats (`knowledge/mechanics/stat-model.md`, "Special properties").
 4. **Read its model.** Find the row in `knowledge/interactions/unique-effects-index.md` (model column: PP/AP/C kinds). Read its `unique_effects.json` entry: the `effects[].formula`, `condition`, `trigger` and `confidence` fields. Then search `catalogue.md` for its uid and name. The code formula wins over the tooltip; record any D? flag.
 5. **Split the value.**
    - *Enabling effect*: the line that changes a rule (a conversion, trigger, resource loop, cap change or skill rewrite).
@@ -104,10 +109,10 @@ digraph flow {
 Generate **at least 5** candidate archetypes. Ask each question below and log the query you ran and what came back. A candidate that no query supports does not count.
 
 9. **Skills carrying the boosted tags.** Run Q4 with the stat stick's tag mask, `(tags & mask) = mask`, restricted to player skills with a tree. Then run Q5 for who can use each skill (class, mastery and unlock level).
-10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree(ability_id)`). Also run the global scan Q7 for nodes that mention the item's resource or trigger. Record nodes as `<tree>:<node> Name`. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
+10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree({"ability_id":"<id>"})`). Also run the global scan Q7 for nodes that mention the item's resource or trigger. Record nodes as `<tree>:<node> Name`. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
 11. **Catalogue chains.** Pick the tags that describe the enabling effect, using the tag set in `knowledge/interactions/README.md`. Read every catalogue entry that carries them. Then chain each one: converter + engine, engine + payoff. Look explicitly for at least one pairing that no catalogue entry names together. That is the novelty candidate.
-12. **Stack partners.** Find other sources of the same property or PP index: `find_mods({property: P})`, or Q8 and Q9 for PP indices. Cover uniques, set bonuses, affixes, idol affixes (Q11) and blessings (Q12). Count how many rare uniques each candidate would need.
-13. **Passive reach.** For each class that owns a candidate skill, find the passives that feed the property (Q13 or `passive_tree(class_id)`). Note the mastery gating (`mastery_requirement`).
+12. **Stack partners.** Find other sources of the same property or PP index: `find_mods({"filters":{"property":<P>},"limit":50})`, or Q8 and Q9 for PP indices. Cover uniques, set bonuses, affixes, idol affixes (Q11) and blessings (Q12). Count how many rare uniques each candidate would need.
+13. **Passive reach.** For each class that owns a candidate skill, find the passives that feed the property (Q13 or `passive_tree({"class_id":"<class>"})`). Note the mastery gating (`mastery_requirement`).
 14. **Natural defense layer.** For each candidate, name the defense its class and mastery bring: ward (Mage, Acolyte), block and armour (Sentinel), dodge (Rogue), endurance, minions as meat. Note whether that layer conflicts with the item, for example "mana before health" never protects ward. For the layer rules, use **le-defense-reasoning**.
 
 Archetype prompts, so you do not stop at the obvious one:
@@ -194,9 +199,16 @@ Worked example of the whole procedure, with real data values: `examples/culnivar
 
 ## Query cookbook
 
-These run through `sql(query, params)`. `?` marks a positional parameter. Each one also works with `yarn mcp:call sql '{"query":"...","params":[...]}'`.
+These run through `sql({"query": "...", "params": [...]})`. `?` marks a positional parameter; ids compared after `CAST(? AS TEXT)` must be passed as JSON **strings** (`"33"`): a JSON number binds as a real and casts to `'33.0'`, which matches nothing. The `<!-- params: -->` comment above each recipe gives example values (Culnivar's Claim, uid 33, as in `examples/culnivars-claim.md`). From the CLI, use stdin because the SQL contains `<`, `>`, `%` or `|`:
+
+```bash
+yarn mcp:call sql <<'JSON'
+{"query": "SELECT unique_id, name FROM v_unique_summary WHERE name LIKE '%' || ? || '%'", "params": ["Culnivar"]}
+JSON
+```
 
 Q1. Resolve a unique by name:
+<!-- params: ["Culnivar"] -->
 ```sql
 SELECT unique_id, name, base_type, sub_type, level_requirement, set_name, mods_text, tooltip_text
 FROM v_unique_summary
@@ -204,6 +216,7 @@ WHERE name LIKE '%' || ? || '%';
 ```
 
 Q2. Its stat lines, with indirect properties resolved:
+<!-- params: ["33"] -->
 ```sql
 SELECT source_ord, sub_ord, property, property_name, tags, tag_names, modifier_name, value_min, value_max, hidden
 FROM v_mods_named
@@ -212,6 +225,7 @@ ORDER BY source_ord, sub_ord;
 ```
 
 Q3. Slot, base, restrictions and legendary fields:
+<!-- params: [33] -->
 ```sql
 SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.is_legendary_capable,
        u.effective_level_for_lp, u.can_drop_randomly, bt.name AS slot, bt.category,
@@ -224,6 +238,7 @@ WHERE u.unique_id = ?;
 ```
 
 Q4. Player skills carrying every bit of a tag mask (for example 258 = Lightning|Spell):
+<!-- params: [258, 258] -->
 ```sql
 SELECT ability_id, name, tag_names, mana_cost, channel_cost, channelled, max_charges, charges_gained_per_second
 FROM abilities
@@ -232,6 +247,7 @@ ORDER BY mana_cost;
 ```
 
 Q5. Who can use a skill, and from when:
+<!-- params: ["lb23il"] -->
 ```sql
 SELECT c.name AS class, coalesce(ms.name, 'base class') AS mastery, ca.kind, ca.level
 FROM class_abilities ca
@@ -241,6 +257,7 @@ WHERE ca.ability_id = ?;
 ```
 
 Q6. Rule-changing nodes in one skill tree:
+<!-- params: ["lb23il"] -->
 ```sql
 SELECT tree_id || ':' || node_id AS node, name, max_points, requires, description, stats_text
 FROM v_skill_node_summary
@@ -251,6 +268,7 @@ ORDER BY node_id;
 ```
 
 Q7. Nodes in any skill tree that mention the item's resource or trigger word:
+<!-- params: ["mana"] -->
 ```sql
 SELECT tree_name, tree_id || ':' || node_id AS node, name, description
 FROM v_skill_node_summary
@@ -260,6 +278,7 @@ LIMIT 80;
 ```
 
 Q8. Every source of one stat property, strongest first (stack partners and benchmarks):
+<!-- params: [18] -->
 ```sql
 SELECT source_kind, source_id, source_name, tier, property_name, tag_names, modifier_name, value_min, value_max
 FROM v_mods_named
@@ -269,6 +288,7 @@ LIMIT 50;
 ```
 
 Q9. Every source of one PlayerProperty (SP 98, `tags` = PP index):
+<!-- params: [69] -->
 ```sql
 SELECT m.source_kind, m.source_id, m.source_name, pp.name AS player_property, m.value_min, m.value_max
 FROM v_mods_named m
@@ -277,6 +297,7 @@ WHERE m.property = 98 AND m.tags = ?;
 ```
 
 Q10. Affixes that roll on the item's base type (LP and legendary plan, plus the rare slots):
+<!-- params: [8] -->
 ```sql
 SELECT a.affix_id, a.name, a.affix_type_name, a.special_affix_type, a.tier_count, a.stats_text
 FROM v_affix_summary a
@@ -286,6 +307,7 @@ ORDER BY a.special_affix_type, a.affix_type_name, a.name;
 ```
 
 Q10b. Tier table of one affix (tier targets):
+<!-- params: ["330"] -->
 ```sql
 SELECT m.tier, t.required_level, m.source_ord, m.property_name, m.value_min, m.value_max
 FROM mods m
@@ -295,6 +317,7 @@ ORDER BY m.tier, m.source_ord;
 ```
 
 Q11. Idol affixes for a property, with class and shape:
+<!-- params: [18] -->
 ```sql
 SELECT a.affix_id, a.name, a.class_names, a.stats_text, a.rolls_on_text
 FROM v_affix_summary a
@@ -304,6 +327,7 @@ ORDER BY a.name;
 ```
 
 Q12. Blessings for a property, by timeline:
+<!-- params: [8] -->
 ```sql
 SELECT timeline_name, name, is_grand, slot_kind, property_name, tag_names, modifier_name, value_min, value_max
 FROM v_blessings
@@ -312,6 +336,7 @@ ORDER BY timeline_id, is_grand, name;
 ```
 
 Q13. Class passives that mention a stat (per class and mastery):
+<!-- params: ["ward", "ward"] -->
 ```sql
 SELECT c.name AS class, s.mastery, s.tree_id || ':' || s.node_id AS node, s.name, s.max_points,
        s.mastery_requirement, s.stats_text
@@ -323,6 +348,7 @@ ORDER BY c.name, s.mastery, s.mastery_requirement;
 ```
 
 Q14. Drawback clauses on the planned uniques (anti-synergy sweep; pass a JSON array of ids):
+<!-- params: ["[33, 368, 440]"] -->
 ```sql
 SELECT unique_id, name, tooltip_text
 FROM v_unique_summary
@@ -331,7 +357,8 @@ WHERE unique_id IN (SELECT value FROM json_each(?))
        OR tooltip_text LIKE '%less%' OR tooltip_text LIKE '%lose%');
 ```
 
-Q15. Abilities that a unique triggers or levels:
+Q15. Abilities that a unique triggers or levels (Melvern's Writ, uid 108, has relations; Culnivar's Claim has none):
+<!-- params: ["108"] -->
 ```sql
 SELECT r.relation, r.target_kind, r.target_id, a.name, r.value
 FROM relations r

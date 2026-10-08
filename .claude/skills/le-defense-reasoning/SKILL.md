@@ -19,10 +19,10 @@ Fix: character level, area level `a` (empowered monolith 100; normal timelines 6
 
 ### Step 1: collect defensive stats
 
-Tool shorthand (MCP names; otherwise `yarn mcp:call <tool> '<json>'`):
+Tool shorthand (MCP names; otherwise `yarn mcp:call <tool> '<json>'` in Bash, with JSON containing `<`, `>`, `%`, `&` or `|` sent on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
 
 ```
-find_mods({"filters":{"property_name":"Armour","source_kinds":["affix_tier"]},"limit":50})
+find_mods({"filters":{"property":10,"source_kinds":["affix_tier"]},"limit":50})                # Armor affix tiers (property_name is the display name "Armor")
 find_mods({"filters":{"property":30,"min_value":0.1},"limit":50})          # AllResistances sources
 passive_tree({"class_id":2})                                               # Sentinel passive nodes and stats
 get({"kind":"class","id":2})                                               # base endurance, regen, stun avoidance
@@ -71,7 +71,7 @@ What defensive affixes can roll on a slot (planning and "what am I missing"):
 
 ```sql
 SELECT m.property, coalesce(m.property_name, sp.name) AS stat, count(DISTINCT a.affix_id) AS affixes,
-       min(m.value_min) AS t8_low, max(m.value_max) AS t1_high
+       min(m.value_min) AS t1_low, max(m.value_max) AS t8_high
 FROM affixes a
 JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
 JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.name = 'Body Armor'
@@ -81,7 +81,7 @@ WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107, 10, 11, 29, 5
 GROUP BY m.property ORDER BY m.property;
 ```
 
-(Check the exact base type name with `SELECT base_type_id, name FROM item_base_types`; the slot name here is an example.)
+(T8 is the highest tier and the Primordial tier; T5 is the best craftable. Check the exact base type name with `SELECT base_type_id, name FROM item_base_types`; body armour is `Body Armor`, id 1, and the slot name here is an example.)
 
 Passive-tree and skill-tree defensive nodes are display-only text; read `stats_text`:
 

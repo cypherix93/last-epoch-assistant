@@ -17,15 +17,15 @@ Core principle: build a table of buckets (type x {base, added, increased, more})
 
 Write down before computing: skill (ability id), character level, attributes, equipped items with tiers/rolls, passive and skill-tree allocations, enemy (dummy, level-N monster, boss, area level, corruption). Missing inputs become explicit assumptions labelled **U**.
 
-Tool shorthand for the whole procedure (MCP names; without MCP use `yarn mcp:call <tool> '<json>'` from the repo root):
+Tool shorthand for the whole procedure (MCP names; without MCP use `yarn mcp:call <tool> '<json>'` from the repo root in Bash, and send JSON containing `<`, `>`, `%`, `&` or `|` on stdin, see **le-data-query**). `find_mods` arguments are always nested: `{"filters":{...},"limit":N}`.
 
 ```
 lookup({"name":"Fireball","kinds":["ability"]})                       -> ability_id fi9
-get({"kind":"ability","id":"fi9"})                                    -> tags, speed fields, parsed raw_json
+get({"kind":"ability","id":"fi9"})                                    -> {ability, components, links, attribute_scaling, level_scaling, properties}
 skill_tree({"ability_id":"fi9"})                                      -> every node with stats and requirements
-find_mods({"filters":{"property":0,"modifier_type":2,"source_kinds":["skill_node"]},"limit":100})
+find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})   -> 606 display-only node Damage lines
 find_mods({"filters":{"property_name":"Penetration","tags_any":["Fire"]},"limit":50})
-sql({"query":"SELECT ... FROM ability_components WHERE ability_id = 'fi9'"})
+sql({"query":"SELECT ord, component_type, json_extract(raw_json, '$.baseDamageStats.damage') AS damage FROM ability_components WHERE ability_id = 'fi9'"})
 knowledge({"page":"mechanics/damage-pipeline"})                       -> the formulas
 ```
 
@@ -111,7 +111,27 @@ Pitfalls while collecting:
 
 ### Step 5: skill-tree nodes
 
-Node stat lines usually have `modifier_type` NULL (display only). Get them with:
+Node stat lines are display-only: all 6,528 `skill_node` rows in `mods` have `modifier_type` NULL, so `find_mods` with `"modifier_type":2` and `"source_kinds":["skill_node"]` returns 0 rows. The values sit in `display` (`+8%`) and the wording in `label`; node-local stats use ids 5000+ with `property_name` NULL. To list a tree's damage lines use the node view, or `find_mods` with `modifier_type` set to `null` plus `property`/`property_name`:
+
+```
+find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})
+```
+
+(`total_matching` 606 in this build; `source_context` names the tree.) The same through SQL, restricted to one tree and to wording that mentions "more":
+
+```sql
+SELECT source_id, label, display, property_name
+FROM mods
+WHERE source_kind = 'skill_node' AND source_id LIKE 'fi9:%' AND property = 0
+ORDER BY source_id, source_ord;
+```
+
+```sql
+SELECT count(*) AS damage_lines, sum(label LIKE '%more%') AS label_says_more, sum(label LIKE '%increased%') AS label_says_increased
+FROM mods WHERE source_kind = 'skill_node' AND property = 0;
+```
+
+The second query returns 606, 20 and 12: the wording says "more" or "increased" on only 32 of 606 damage lines (most labels are just "Damage"), which is why wording cannot classify them. And the whole-tree view with `stats_text`:
 
 ```sql
 SELECT node_id, name, max_points, stats_text, description
@@ -120,7 +140,7 @@ WHERE tree_kind = 'skill' AND tree_name = 'Fireball' AND (stats_text LIKE '%amag
 ORDER BY node_id;
 ```
 
-Rules: damage in skill trees is almost always **more** (429 more, 79 added, 38 increased among damage stats), multiplied per node and scaled linearly by allocated points; speed and crit nodes are *increased*; "doubled when condition" and "non-X damage" nodes are special. The tooltip wording cannot tell you; classify as "more (assumed, **D** 429:38 prior)" and flag it. Nodes that add flat damage are still multiplied by ADE. [damage-pipeline.md#5-increased-more-and-skill-trees] **D**, [damage-pipeline.md#3-added-damage] **X**
+Rules: damage in skill trees is almost always **more**, multiplied per node and scaled linearly by allocated points; speed and crit nodes are *increased*; "doubled when condition" and "non-X damage" nodes are special. The per-stat type is not in the database (it lives in the decompiled `skill_node_effects.json`, summarised in `knowledge/mechanics/damage-pipeline.md#5-increased-more-and-skill-trees` as 429 more, 79 added and 38 increased damage stats, **D**; this count cannot be reproduced with SQL). The tooltip wording cannot tell you; classify as "more (assumed, **D** 429:38 prior from the knowledge page)" and flag it. Nodes that add flat damage are still multiplied by ADE. [damage-pipeline.md#5-increased-more-and-skill-trees] **D**, [damage-pipeline.md#3-added-damage] **X**
 
 Skill-local properties (5000+, `property_name` NULL) and mutator effects (projectile counts, "chance to ..."): read their text, model what the text says, and mark anything not expressible as undetermined (see the last section).
 
@@ -167,7 +187,7 @@ WHERE source_kind = 'ailment_buff' AND source_id IN ('42', '5', '17')
 ORDER BY source_id, source_ord;
 ```
 
-(42 FireResShred, 5 Shock, 17 Marked for Death; `ailments.max_instances` and the boss penalty are on [ailments.md#43-non-damaging-debuffs] **A**.)
+(42 Shred Fire Resistance, 5 Shock, 17 Marked For Death; `ailments.max_instances` and the boss penalty are on [ailments.md#43-non-damaging-debuffs] **A**.)
 
 ### Step 9: conversion
 

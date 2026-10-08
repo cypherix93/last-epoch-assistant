@@ -1,14 +1,14 @@
 # Worked example: "I dropped Culnivar's Claim"
 
-This walks through the procedure in `../SKILL.md`, step by step, with the queries an agent would issue and the values found. In this checkout the db was built with `LE_DB_ALLOW_STUBS=1`, so every table is empty. The values below therefore come from the vendored-JSON fallback (`vendor/lastepochbuilder/research/data/game/*.json`, `gameVersion` 1.5.0), as the skill directs. The example stops before full damage and EHP numbers, but each phase is shown concretely.
+This walks through the procedure in `../SKILL.md`, step by step, with the queries an agent would issue and the values found. Every value below was read from the built database (`data/le.sqlite`, game 1.5.2) with the tool calls and recipe queries shown, and re-checked against the db when this example was last revised. (On a stub or empty db the skill falls back to the vendored JSON in `vendor/lastepochbuilder/research/data/game/`, 1.5.0; this example does not need it.) Arguments are written in the MCP `tool({json})` form; Q-numbers refer to the Query cookbook in `../SKILL.md` and run via `sql` with the params given there. The example stops before full damage and EHP numbers, but each phase is shown concretely.
 
 ## Phase A: Intake
 
-**Step 1. Version.** `version()` returns `game_version` "Version 1.5.2" and `data_version` 1.5.2 (`meta` table), but `SELECT count(*) FROM uniques` returns 0. The fallback is vendored JSON 1.5.0. Both versions go on the Build card.
+**Step 1. Version.** `version({})` returns `meta.game_version` "Version 1.5.2" and `meta.data_version` "1.5.2"; `SELECT count(*) FROM uniques` returns 486, so the db is populated. Both versions go on the Build card.
 
-**Step 2. Parse.** The input was a bare name. `lookup("Culnivar's Claim", ["unique"])` resolves to uid 33 (fallback: `uniques.json`, `data[].uniqueID = 33`, `displayName "Culnivar's Claim"`).
+**Step 2. Parse.** The input was a bare name. `lookup({"name":"Culnivar's Claim","kinds":["unique"]})` resolves to uid 33 (`uniques.unique_id = 33`).
 
-**Step 3. Mods** (`get("unique", 33)` / Q2; fallback `uniques.json` `mods[]`):
+**Step 3. Mods** (`get({"kind":"unique","id":33})` returns `unique`, `mods`, `tooltips`, `subtypes`; or Q2):
 
 | # | Property (SP) | Tags | Type | Range | Rolls | Label |
 |---|---|---|---|---|---|---|
@@ -32,14 +32,14 @@ The catalogue search for "Culnivar" finds the entry "Mana-to-ward converters": "
 - Enabling effect: a full mana bar becomes a ward burst of `maxMana`, after which mana resets to 0.
 - Stat stick: tag mask 258, Lightning|Spell (90% increased damage, 90% increased crit chance, +16-24 added). It helps only skills tagged both Lightning and Spell. Minions and totems get none of it (`knowledge/mechanics/minions.md`, Summary 1).
 
-**Step 6. Restrictions** (Q3; fallback `uniques.json` + `items.json`):
-- Base type 8 is the one-handed sceptre. Sub type 5 is "Auric Sceptre", with implicits +38 melee damage and +38-48 spell damage (added) and attack rate 0.98.
-- The unique's `levelRequirement` is 50; the Auric Sceptre base has `levelRequirement` 52. Quote both, and confirm in game.
-- No class requirement (`classRequirement []`).
-- `legendaryType "LegendaryPotential"`: it can carry LP. Not primordial, not a set item, `canDropRandomly true`.
+**Step 6. Restrictions** (Q3, params `[33]`):
+- Base type 8 is Sceptre. Sub type 5 is "Auric Sceptre", with implicits +38 melee damage and +38-48 spell damage (added) and attack rate 0.98.
+- The unique's `level_requirement` is 50; the Auric Sceptre base has `level_requirement` 52. Quote both, and confirm in game.
+- No class requirement (`class_requirement_names` NULL).
+- The vendored JSON said `legendaryType "LegendaryPotential"`, but the db row has `is_legendary_capable = 0` and `can_drop_as_legendary = 0` (`droppable_legendary_affix_count` 1). Treat LP on this item as **U** and confirm in game before planning a legendary craft. Not primordial, not a set item, `can_drop_randomly = 1`.
 - Slot consequence: the off-hand is free, so a shield or catalyst fits. That matters for Paladin block and Mage catalysts.
-- Q10 (`affix_can_roll_on` for base 8) shows legendary-plan candidates on sceptres:
-  - 759 "Mana and Mana Spent Gained as Ward": T8 Mana 192-240, ManaSpentGainedAsWard 1.6-2 (A; the scale of SP 99 is D? in `ward-health-sustain.md`);
+- Q10 (params `[8]`; `affix_can_roll_on` for base 8) shows legendary-plan candidates on sceptres:
+  - 759 "Mana and Mana Spent Gained as Ward": T8 (the highest tier) Mana 192-240, ManaSpentGainedAsWard 1.6-2 (A; the scale of SP 99 is D? in `ward-health-sustain.md`);
   - corrupted 973 and 999. A corrupted copy cannot become legendary (`uniques-sets-legendary.md`), so choose one path.
 
 ## Phase B: Enabling-effect model
@@ -72,7 +72,7 @@ Verdict for the Build card: as a sustained ward source, Culnivar's Claim loses t
 
 ## Phase C: Divergent phase
 
-**Step 9.** Q4 with mask 258 (fallback `abilities.json`, `(tags & 258) == 258`, player skills with a tree). Selected rows, with costs from `manaCost`:
+**Step 9.** Q4 with params `[258, 258]` (player skills with a tree where `(tags & 258) = 258`) returns 8 rows. Selected rows, with `mana_cost`:
 - Lightning Blast `lb23il`, 3 mana (Mage)
 - Static `st47ic`, 15 mana, cd 4 (Mage)
 - Static Orb `so35a`, 38 mana (Sorcerer)
@@ -83,7 +83,7 @@ Verdict for the Build card: as a sustained ward source, Culnivar's Claim loses t
 
 Off-mask but relevant: Focus `vm53dx` (Spell|Buff, channelled, 0 cost) and Mana Strike `ms26` (Lightning|Melee, 0 cost, "restores 15 mana" on hit).
 
-**Step 10.** Q6 and `skill_tree` scans found these rule-changers:
+**Step 10.** Q6 (params `["lb23il"]`), Q7 and `skill_tree({"ability_id":"lb23il"})` scans found these rule-changers:
 - `lb23il:28` Innate Conduit: "While out of mana, Lightning Blast has no cost, but cannot chain". It pairs directly with Culnivar's dump to 0. Whether "0" counts as "out" is **U**.
 - `lb23il:14` Effluent Defense: ward per mana spent; its stat is display-only, property 54.
 - `lb23il:22` Overcharge: "cannot double cast if it is channelled or cast by another skill". This is an anti-synergy for any triggered Lightning Blast.
@@ -101,14 +101,14 @@ Off-mask but relevant: Focus `vm53dx` (Spell|Buff, channelled, 0 cost) and Mana 
 
 Novelty pairing: Culnivar's Claim + Mana Guide + Focus. No catalogue entry names these together.
 
-**Step 12. Stack partners.** Fallback for `find_mods({property: 18})`: a scan of `uniques.json` `mods[]` for property 18 plus the tooltip text. It found:
-- Mana Guide uid 368 (amulet). ManaRegen +0.34-0.70, WardRegen +25-50 tagged Channelling (262144), WardDecayThreshold +50-115, LightningResistance +0.24-0.38. Tooltip: "While channelling Focus you cast Lightning Blast once per second", "Mana regeneration from Focus is half as effective", "You have 50% less armor while channeling Focus".
+**Step 12. Stack partners.** `find_mods({"filters":{"property":18,"source_kinds":["unique_mod"]},"limit":100})` returns `total_matching` 15 unique lines for ManaRegen (property 18), plus the tooltip text. The relevant ones:
+- Mana Guide uid 368 (amulet). ManaRegen +0.34-0.70, Ward per Second (SP 92) +25-50 tagged Channelling (262144), WardDecayThreshold +50-115, LightningResistance +0.24-0.38. Tooltip: "While channelling Focus you cast Lightning Blast once per second", "Mana regeneration from Focus is half as effective", "You have 50% less armor while channeling Focus".
 - Urzil's Pride uid 10 (body): "1% increased mana regeneration per 2% uncapped Lightning Resistance".
 - Bluefeather Band uid 440 (ring): 3 zero-cost skills in a row give mana and ward, but ManaRegen MORE -0.54..-0.48. That is an anti-synergy with regen-as-ward.
 
 Affixes:
-- 330 Increased Mana Regen: T8 0.94-1.1 on ring, relic, belt, amulet.
-- 1015 corrupted Attunement + Mana Regen.
+- 330 Mana Regeneration: T8 (highest tier) 0.94-1.1 on ring, relic, belt, amulet.
+- 1015 Added Attunement and Increased Mana Regen (prefix, 8 tiers).
 
 Idols:
 - 178 Idol Mage Ward Per Second: 12-40, Grand and Ornate.
@@ -120,7 +120,7 @@ Blessings: all three relevant ones are in Ending the Storm, so only one can be t
 - Light of the Moon, mana +30-50;
 - Resonance of the Sea, ward/s 17-25.
 
-**Step 13. Passives** (Q13; fallback `trees.json` + `tree_node_stats.json`, tree `mg-1`):
+**Step 13. Passives** (Q13 with params `["ward", "ward"]`, or `passive_tree({"class_id":"Mage"})`, tree `mg-1`):
 - `mg-1:8` Warden: +10% ward retention per point, 5 points.
 - `mg-1:14` Wisdom: Sorcerer mana regen per mana.
 - `mg-1:27` Mana Bulwark: mana before health. Anti-synergy, because mana sits near 0 after each dump.
