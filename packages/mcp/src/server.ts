@@ -57,7 +57,7 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "find_mods",
     description:
-      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), modifier_type (0 added, 1 increased, 2 more, null display-only), source_kinds, source_id, min_value (value_max >=), special_tag.",
+      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), include_indirect (default false: rows of properties 58/98/130 store an index, not a tag mask, and are excluded from tag filters), modifier_type (0 added, 1 increased, 2 more, null display-only), source_kinds, source_id, min_value (value_max >=), special_tag.",
     shape: {
       filters: z
         .object({
@@ -66,6 +66,7 @@ export const TOOL_DEFS: ToolDef[] = [
           tags_any: z.array(tagItem).optional(),
           tags_all: z.array(tagItem).optional(),
           include_untagged: z.boolean().optional(),
+          include_indirect: z.boolean().optional(),
           modifier_type: z.number().int().min(0).max(2).nullable().optional(),
           source_kinds: z.array(z.string()).optional(),
           source_id: z.union([z.string(), z.number()]).optional(),
@@ -80,16 +81,16 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "skill_tree",
     description:
-      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires edges). Accepts an ability id (fi9) or a tree id.",
-    shape: { ability_id: z.string() },
-    run: (ctx, a) => t.skillTree(ctx, a.ability_id),
+      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires). requires is an array of {node_id, node_name, points}: the node needs that many points allocated in each listed node (requires_text is the compact form, e.g. '2>=2,6>=2' = node 2 needs 2 points AND node 6 needs 2 points). Accepts an ability id (fi9) or a tree id. Optional filter (case-insensitive text matched against node name, description, mod label/property_name; keeps only matching nodes) and compact (drop description and x/y).",
+    shape: { ability_id: z.string(), filter: z.string().optional(), compact: z.boolean().optional() },
+    run: (ctx, a) => t.skillTree(ctx, a.ability_id, { filter: a.filter, compact: a.compact }),
   },
   {
     name: "passive_tree",
     description:
-      "A class passive tree with all nodes, mods, requirements and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver).",
-    shape: { class_id: z.union([z.number(), z.string()]) },
-    run: (ctx, a) => t.passiveTree(ctx, a.class_id),
+      "A class passive tree with all nodes, mods, requires ({node_id,node_name,points}[] plus requires_text '2>=2,6>=2') and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver). Optional filter (keeps only nodes whose name/description/mod text contains it) and compact (drop description and x/y).",
+    shape: { class_id: z.union([z.number(), z.string()]), filter: z.string().optional(), compact: z.boolean().optional() },
+    run: (ctx, a) => t.passiveTree(ctx, a.class_id, { filter: a.filter, compact: a.compact }),
   },
   {
     name: "sql",
