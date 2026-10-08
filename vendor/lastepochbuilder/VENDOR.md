@@ -14,7 +14,7 @@ Upstream code and documentation are MIT licensed (see `LICENSE`). The extracted 
 Fetched file-by-file from raw.githubusercontent.com at the SHA above (72 files, about 42 MB, no LFS pointers):
 
 - `LICENSE`, `README.md`, `TECH_README.md`, `PLAN.md`, `BACKLOG.md`
-- `research/*.md` (18 files), `research/02_assets/*.txt` (3 files)
+- `research/*.md` (17 files), `research/02_assets/*.txt` (3 files)
 - `research/data/**/*.json` (42 files: `research/data/game/*.json`, `sp_enum.json`, `stat_tag_enums.json`, `monster_level_damage_reduction.json`)
 - `client/docs/ENGINE.md`, `client/docs/UI.md`
 - `client/data/*.json` (3 files)
