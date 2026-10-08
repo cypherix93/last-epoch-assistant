@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "le-data": {
+      "command": "node",
+      "args": ["--import", "tsx", "packages/mcp/src/cli.ts", "start"],
+      "env": {}
+    }
+  }
+}

@@ -30,6 +30,15 @@ docs/                 - documentation
 - `yarn mcp` - start the MCP server (stdio)
 - `yarn mcp:call` - call an MCP tool from the CLI
 
+## MCP server
+
+`@le/mcp` is an MCP server named `le-data` (stdio) over `data/le.sqlite` (build it first with `yarn db:build`; override the path with `LE_DB_PATH`).
+
+- Enable in Claude Code: the repo-root `.mcp.json` registers it as `node --import tsx packages/mcp/src/cli.ts start` (plain `node` + tsx, no build and no `yarn`/`cmd /c` wrapper, so it works from a direct spawn on Windows). Approve the project server when prompted, then check `/mcp`. Tools appear as `mcp__le-data__<tool>`.
+- Tools: `version`, `schema`, `search`, `get`, `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH), `knowledge`. Every response has `ok: true` or `{ok:false,error}`.
+- CLI fallback (no MCP): `yarn mcp:call lookup '{"name":"Fireball"}'`, `yarn mcp:call find_mods '{"filters":{"property_name":"ward","tags_any":["Minion"]}}'`. PowerShell: wrap the JSON in a here-string or escape the inner quotes.
+- Source layout: `packages/mcp/src/{context,get,tools,server,cli,index}.ts`; tests need the built database and skip with a warning without it.
+
 ## Data refresh after a patch
 
 After a Last Epoch patch:
