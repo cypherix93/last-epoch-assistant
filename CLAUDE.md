@@ -36,7 +36,12 @@ docs/                 - documentation
 
 - Enable in Claude Code: the repo-root `.mcp.json` registers it as `node --import tsx packages/mcp/src/cli.ts start` (plain `node` + tsx, no build and no `yarn`/`cmd /c` wrapper, so it works from a direct spawn on Windows). Approve the project server when prompted, then check `/mcp`. Tools appear as `mcp__le-data__<tool>`.
 - Tools: `version`, `schema`, `search`, `get`, `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH), `knowledge`. Every response has `ok: true` or `{ok:false,error}`.
-- CLI fallback (no MCP): `yarn mcp:call lookup '{"name":"Fireball"}'`, `yarn mcp:call find_mods '{"filters":{"property_name":"ward","tags_any":["Minion"]}}'`. PowerShell: wrap the JSON in a here-string or escape the inner quotes.
+- CLI fallback (no MCP): `yarn mcp:call <tool> [args]`. Only the JSON result goes to stdout (single line; add `--pretty` to indent), logs go to stderr. Do NOT use `yarn -s` (not valid in yarn berry; it is not needed). Three ways to pass args, first match wins:
+  1. `@path/to/args.json` reads the JSON args from a file (for `sql`, a file that does not start with `{` is raw SQL); `sql --query-file <path>` reads raw SQL from a file.
+  2. stdin: `-`, or no args argument with piped stdin. Use this for anything containing shell-special characters (`<`, `>`, `%`, `&`, `|`, quotes): yarn runs scripts through cmd.exe on Windows, which mangles them inline. For `sql`, stdin text that does not start with `{` is raw SQL and is wrapped as `{query}`.
+  3. inline JSON, only for simple args: `yarn mcp:call lookup '{"name":"Fireball"}'`, `yarn mcp:call skill_tree '{"ability_id":"fi9","filter":"ignite","compact":true}'`.
+  - Bash: `printf '%s' '{"query":"select name from uniques where name like '"'"'%Claim%'"'"' and unique_id > 0"}' | yarn mcp:call sql`, or simply `echo "select name from uniques where name like '%Claim%' and unique_id > 0" | yarn mcp:call sql`.
+  - PowerShell: `@'` + newline + `select name from uniques where name like '%Claim%' and unique_id > 0` + newline + `'@ | yarn mcp:call sql` (single-quoted here-string, closing `'@` at column 0; JSON works too).
 - Source layout: `packages/mcp/src/{context,get,tools,server,cli,index}.ts`; tests need the built database and skip with a warning without it.
 
 ## Data refresh after a patch

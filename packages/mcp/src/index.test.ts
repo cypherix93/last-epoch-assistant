@@ -1,6 +1,8 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
@@ -95,6 +97,71 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((passiveTree(ctx, "mg-1") as R).tree.tree_id).toBe("mg-1");
   });
 
+  it("enriched get: ability components, affix, unique, ailment names", () => {
+    const fi = getTool(ctx, "ability", "fi9") as R;
+    const dmg = fi.components.find((c: R) => c.component_type === "DamageEnemyOnHit").decoded;
+    expect(dmg.damage).toEqual({ fire: 25 });
+    expect(dmg.added_damage_scaling).toBe(1.25);
+    expect(dmg.damage_tags).toContain("Spell");
+    const ign = fi.components.find((c: R) => c.component_type === "ChanceToApplyAilmentsOnHit").decoded;
+    expect(ign.ailments[0]).toMatchObject({ id: 1, name: "Ignite", chance: 0.4 });
+    expect(fi.components.find((c: R) => c.component_type === "DestroyAfterDuration").decoded.duration).toBeGreaterThan(0);
+    expect(fi.components[0].fields).toBeTruthy();
+    expect(fi.ability.tags_names).toEqual(expect.arrayContaining(["Fire", "Spell"]));
+    const vn = getTool(ctx, "ability", "vn53") as R;
+    const pz = vn.components.find((c: R) => c.decoded?.ailments).decoded.ailments[0];
+    expect(pz).toMatchObject({ name: "Poison", chance: 1 });
+    const cd = (sql(ctx, "select ability_id, charges_gained_per_second c from abilities where charges_gained_per_second > 0 limit 1") as R).rows[0];
+    const withCd = getTool(ctx, "ability", cd.ability_id) as R;
+    expect(withCd.ability.cooldown_seconds).toBeCloseTo(1 / cd.c, 5);
+
+    const af = getTool(ctx, "affix", 26) as R;
+    expect(af.affix.type_name).toMatch(/prefix|suffix/);
+    expect(af.can_roll_on.length).toBeGreaterThan(0);
+    expect(af.can_roll_on.every((x: R) => typeof x.name === "string")).toBe(true);
+    expect(af.tiers[0].mods[0]).not.toHaveProperty("source_ord");
+
+    const un = getTool(ctx, "unique", 0) as R;
+    expect(un.unique.base_type_name).toBe("Helmet");
+    expect(un.unique.sub_type_name).toBeTruthy();
+    const withAilTag = (sql(ctx, "select source_id from mods where source_kind='unique_mod' and property=1 and special_tag=1 limit 1") as R).rows[0];
+    const um = (getTool(ctx, "unique", Number(withAilTag.source_id)) as R).mods.find((m: R) => m.property === 1 && m.special_tag === 1);
+    expect(um.special_tag_name).toBe("Ignite");
+    const setU = (sql(ctx, "select unique_id from uniques where set_id is not null limit 1") as R).rows[0];
+    expect((getTool(ctx, "unique", setU.unique_id) as R).unique.set_name).toBeTruthy();
+  });
+
+  it("tree requires is structured; filter and compact", () => {
+    const t = skillTree(ctx, "fi9") as R;
+    const n4 = t.nodes.find((n: R) => n.id === 4);
+    expect(n4.requires[0]).toEqual({ node_id: 2, node_name: "Piercing Heat", points: 2 });
+    expect(n4.requires[1].node_id).toBe(6);
+    expect(n4.requires_text).toBe("2>=2,6>=2");
+    const all_ = passiveTree(ctx, 1) as R;
+    const f = passiveTree(ctx, 1, { filter: "ward" }) as R;
+    expect(f.nodes.length).toBeGreaterThan(0);
+    expect(f.nodes.length).toBeLessThan(all_.nodes.length);
+    expect(f.node_count).toBe(all_.node_count);
+    expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
+    expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
+    expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("search node hits carry tree_id and node_id", () => {
+    const r = search(ctx, "piercing heat", ["skill_node"]) as R;
+    const h = r.results.find((x: R) => x.id === "fi9:2");
+    expect(h).toMatchObject({ tree_id: "fi9", node_id: 2 });
+  });
+
+  it("find_mods ignores indirect-property rows in tag filters", () => {
+    const rows = (findMods(ctx, { tags_any: ["Minion"] }, 2000) as R).rows;
+    expect(rows.some((x: R) => [58, 98, 130].includes(x.property) && (x.tags & 8192) !== 0 && x.tags !== 0)).toBe(false);
+    const all_ = (findMods(ctx, { tags_any: ["Minion"], include_indirect: true }, 2000) as R).total_matching;
+    expect(all_).toBeGreaterThanOrEqual((findMods(ctx, { tags_any: ["Minion"] }, 1) as R).total_matching);
+    const strict = (findMods(ctx, { tags_all: ["Minion"] }, 2000) as R).rows;
+    expect(strict.some((x: R) => [58, 98, 130].includes(x.property))).toBe(false);
+  });
+
   it("sql", () => {
     expect(() => sql(ctx, "DELETE FROM meta")).toThrow();
     expect(() => sql(ctx, "SELECT 1; SELECT 2")).toThrow(/single/);
@@ -147,5 +214,45 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
     } finally {
       await client.close();
     }
+  }, 60_000);
+});
+
+describe.skipIf(!have)("@le/mcp CLI call arg forms", () => {
+  const cli = join(REPO_ROOT, "packages", "mcp", "src", "cli.ts");
+  const run = (args: string[], input?: string) =>
+    spawnSync(process.execPath, ["--import", "tsx", cli, "call", ...args], { cwd: REPO_ROOT, input, encoding: "utf8" });
+  const Q = `select name from uniques where name like '%Claim%' and unique_id > 0 and "name" <> 'x'`;
+  const dir = mkdtempSync(join(tmpdir(), "le-cli-"));
+
+  it("stdin JSON (omitted and '-'), compact single-line stdout", () => {
+    for (const a of [["sql"], ["sql", "-"]]) {
+      const r = run(a, JSON.stringify({ query: Q }));
+      expect(r.status).toBe(0);
+      expect(r.stdout.trim().split("\n")).toHaveLength(1);
+      expect(JSON.parse(r.stdout).rows[0].name).toBe("Culnivar's Claim");
+    }
+  }, 60_000);
+
+  it("stdin raw SQL for the sql tool, with a UTF-8 BOM", () => {
+    const r = run(["sql"], "\ufeff" + Q);
+    expect(JSON.parse(r.stdout).rows[0].name).toBe("Culnivar's Claim");
+  }, 60_000);
+
+  it("@file JSON, @file raw SQL and --query-file", () => {
+    const j = join(dir, "a.json");
+    writeFileSync(j, JSON.stringify({ query: Q }));
+    const s = join(dir, "q.sql");
+    writeFileSync(s, Q);
+    expect(JSON.parse(run(["sql", "@" + j]).stdout).row_count).toBe(1);
+    expect(JSON.parse(run(["sql", "@" + s]).stdout).row_count).toBe(1);
+    expect(JSON.parse(run(["sql", "--query-file", s]).stdout).row_count).toBe(1);
+  }, 60_000);
+
+  it("inline JSON still works, --pretty indents, bad JSON fails", () => {
+    expect(JSON.parse(run(["lookup", '{"name":"Fireball"}']).stdout).ok).toBe(true);
+    expect(run(["version", "{}", "--pretty"]).stdout).toContain("\n  ");
+    const bad = run(["sql", '{"query":']);
+    expect(bad.status).toBe(1);
+    expect(bad.stderr).toContain("Invalid JSON args");
   }, 60_000);
 });

@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { classIdOf, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -163,7 +163,13 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): R
     .map(({ r }) => {
       const { name_hl, snippet, ...rest } = r;
       const hit = typeof snippet === "string" && snippet.includes("<b>");
-      return { ...rest, snippet: hit ? snippet : name_hl, rank: Math.round((r.rank as number) * 1000) / 1000 };
+      const out: Row = { ...rest, snippet: hit ? snippet : name_hl, rank: Math.round((r.rank as number) * 1000) / 1000 };
+      if (/_node$/.test(String(r.kind)) && typeof r.id === "string" && r.id.includes(":")) {
+        const i = r.id.lastIndexOf(":");
+        out.tree_id = r.id.slice(0, i);
+        out.node_id = Number(r.id.slice(i + 1));
+      }
+      return out;
     });
   return { query: q, count: results.length, results };
 }
@@ -298,7 +304,11 @@ export interface ModFilters {
   min_value?: number;
   special_tag?: number;
   include_untagged?: boolean;
+  /** Rows of indirect properties (58, 98, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
+  include_indirect?: boolean;
 }
+
+const INDIRECT_PROPS = "(58, 98, 130)";
 
 /**
  * The join logic of find_mods: every `mods` row plus a human source name.
@@ -334,12 +344,17 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   }
   if (f.tags_any?.length) {
     const mask = tagMask(ctx, f.tags_any);
-    where.push(f.include_untagged === false ? "(m.tags & ?) != 0" : "((m.tags & ?) != 0 OR m.tags = 0)");
+    const ind = f.include_indirect ? "" : ` AND m.property NOT IN ${INDIRECT_PROPS}`;
+    where.push(
+      f.include_untagged === false
+        ? `((m.tags & ?) != 0${ind})`
+        : `(((m.tags & ?) != 0${ind}) OR m.tags = 0)`,
+    );
     params.push(mask);
   }
   if (f.tags_all?.length) {
     const mask = tagMask(ctx, f.tags_all);
-    where.push("(m.tags & ?) = ?");
+    where.push(f.include_indirect ? "(m.tags & ?) = ?" : `((m.tags & ?) = ? AND m.property NOT IN ${INDIRECT_PROPS})`);
     params.push(mask, mask);
   }
   if (f.modifier_type === null) where.push("m.modifier_type IS NULL");
@@ -366,12 +381,21 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const w = where.length ? " WHERE " + where.join(" AND ") : "";
   const lim = Math.max(1, Math.min(limit, 2000));
   const total = (one(ctx, `SELECT count(*) n ${MODS_JOIN_SQL}${w}`, ...params) as Row).n as number;
-  const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim).map(dropNulls);
+  const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim)
+    .map(dropNulls)
+    .map((m) => decorateMod(ctx, m));
   return { total_matching: total, count: rows.length, truncated: total > rows.length, rows };
 }
 
 // ---------------------------------------------------------------- trees
-function treePayload(ctx: Ctx, tree: Row): Row {
+export interface TreeOpts {
+  /** keep only nodes whose name, description or any mod label/property_name contains this text (case-insensitive) */
+  filter?: string;
+  /** drop description and x/y */
+  compact?: boolean;
+}
+
+function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   const treeId = tree.tree_id as string;
   const nodeKind = tree.tree_kind === "skill" ? "skill_node" : tree.tree_kind === "class" ? "passive_node" : "weaver_node";
   const nodes = all(
@@ -389,30 +413,51 @@ function treePayload(ctx: Ctx, tree: Row): Row {
   for (const m of mods) {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(dropNulls(rest));
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateMod(ctx, dropNulls(rest)));
   }
+  const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();
   for (const r of all(
     ctx,
     "SELECT node_id, required_node_id AS node, required_points AS points FROM tree_node_requirements WHERE tree_id = ? ORDER BY node_id, ord",
     treeId,
   )) {
-    (reqByNode.get(r.node_id as number) ?? reqByNode.set(r.node_id as number, []).get(r.node_id as number)!).push({
-      node: r.node,
-      points: r.points,
-    });
+    (reqByNode.get(r.node_id as number) ?? reqByNode.set(r.node_id as number, []).get(r.node_id as number)!).push(
+      dropNulls({ node_id: r.node, node_name: nameById.get(r.node as number), points: r.points }),
+    );
   }
+  const needle = opts.filter?.trim().toLowerCase();
+  const modText = (id: number) =>
+    (modsByNode.get(id) ?? []).map((m) => `${m.label ?? ""} ${m.property_name ?? ""} ${m.display ?? ""}`).join(" ");
+  const kept = needle
+    ? nodes.filter((n) =>
+        `${n.name ?? ""} ${n.description ?? ""} ${n.alt_text ?? ""} ${modText(n.id as number)}`.toLowerCase().includes(needle),
+      )
+    : nodes;
   return {
     tree: clean(tree),
     node_count: nodes.length,
-    nodes: nodes.map((n) => {
+    ...(needle ? { matched_count: kept.length, filter: opts.filter } : {}),
+    nodes: kept.map((n) => {
       const id = n.id as number;
-      return dropNulls({ ...n, mods: modsByNode.get(id) ?? [], requires: reqByNode.get(id) });
+      const req = reqByNode.get(id);
+      if (opts.compact) {
+        delete n.description;
+        delete n.alt_text;
+        delete n.x;
+        delete n.y;
+      }
+      return dropNulls({
+        ...n,
+        mods: modsByNode.get(id) ?? [],
+        requires: req,
+        requires_text: req?.map((r) => `${r.node_id}>=${r.points}`).join(","),
+      });
     }),
   };
 }
 
-export function skillTree(ctx: Ctx, abilityId: string): Row {
+export function skillTree(ctx: Ctx, abilityId: string, opts: TreeOpts = {}): Row {
   const s = String(abilityId);
   const t = one(ctx, "SELECT * FROM trees WHERE tree_kind = 'skill' AND (ability_id = ? OR tree_id = ?)", s, s);
   if (!t) {
@@ -421,10 +466,10 @@ export function skillTree(ctx: Ctx, abilityId: string): Row {
       a ? `Ability '${s}' (${a.name}) has no skill tree` : `No skill tree for '${s}'. Use lookup({name, kinds:["ability"]}) to find the ability id.`,
     );
   }
-  return treePayload(ctx, t);
+  return treePayload(ctx, t, opts);
 }
 
-export function passiveTree(ctx: Ctx, classId: string | number): Row {
+export function passiveTree(ctx: Ctx, classId: string | number, opts: TreeOpts = {}): Row {
   const cid = classIdOf(ctx, classId);
   const t =
     cid !== undefined
@@ -433,7 +478,7 @@ export function passiveTree(ctx: Ctx, classId: string | number): Row {
   if (!t) {
     throw new ToolError(`No class/passive tree for ${JSON.stringify(classId)}. Use 0-4, a class name (Primalist, Mage, Sentinel, Acolyte, Rogue) or a tree id (pr-1, mg-1, kn-1, ac-1, rg-1, weaver).`);
   }
-  const out = treePayload(ctx, t);
+  const out = treePayload(ctx, t, opts);
   if (cid !== undefined) out.class = one(ctx, "SELECT class_id, name FROM classes WHERE class_id = ?", cid);
   out.masteries = cid !== undefined ? all(ctx, "SELECT mastery_index, name FROM masteries WHERE class_id = ? ORDER BY mastery_index", cid) : undefined;
   return out;
