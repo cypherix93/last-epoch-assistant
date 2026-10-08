@@ -57,3 +57,6 @@ dist/
 data/le.sqlite
 data/*.sqlite
 data/*.sqlite-journal
+
+# Build temp file
+data/*.sqlite.tmp

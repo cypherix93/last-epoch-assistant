@@ -8,10 +8,11 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
-    "build-db": "tsx src/cli.ts"
+    "build-db": "tsx src/build-db.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^12.0.0"
+    "better-sqlite3": "^12.0.0",
+    "lz-string": "^1.5.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
