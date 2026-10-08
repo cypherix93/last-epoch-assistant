@@ -32,4 +32,14 @@ docs/                 - documentation
 
 ## Data refresh after a patch
 
-(to be completed)
+After a Last Epoch patch:
+
+```
+yarn fetch            # LE Tools + Maxroll -> data/raw/<ver>/, rewrites sources.lock.json and data/raw/CURRENT
+yarn db:build         # rebuild data/le.sqlite
+```
+
+- `<ver>` is derived from LE Tools (`version152` -> `1.5.2`). A new folder appears only when LE Tools bumps its data version; Maxroll data is stored in the same folder and overwritten in place when its hash changes (it has no history).
+- `data/raw/<ver>/letools/<Global>.json` (one per global from the LE Tools data scripts, plus `i18n.en.json`), `data/raw/<ver>/maxroll/data.json`, `data/raw/<ver>/sources.lock.json` (URLs, sha256, bytes, globals, Maxroll hash/ETag/Last-Modified) and `data/raw/CURRENT` (latest version string) change. Review with `git diff --stat data/raw`.
+- Re-running with nothing new is a no-op (git status unchanged). Options: `--source letools|maxroll`, `--force`, `--version 150` (LE Tools only; needs a lockfile for that version; Maxroll skipped).
+- Raw data is committed; commit the refresh as its own commit.
