@@ -42,3 +42,18 @@ docs/superpowers/handoffs/
 
 # Playwright MCP artifacts (browser snapshots, console logs)
 .playwright-mcp/
+
+# Yarn (node-modules linker)
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+.pnp.*
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Generated database
+data/le.sqlite
+data/*.sqlite
+data/*.sqlite-journal

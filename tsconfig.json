@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/fetch" },
+    { "path": "packages/db" },
+    { "path": "packages/mcp" }
+  ]
+}
