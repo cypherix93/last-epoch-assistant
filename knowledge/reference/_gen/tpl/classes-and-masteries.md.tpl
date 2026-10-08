@@ -124,7 +124,7 @@ Representative skill records from `abilities.json` (including the three new skil
 - `vendor/lastepochbuilder/research/data/game/abilities.json`, `trees.json` - skill tags, mana cost, cooldown, tree node counts, passive thresholds (A).
 - `vendor/lastepochbuilder/research/data/game/items.json` - starting equipment names (A).
 - `vendor/lastepochbuilder/research/07a_assets_core_data.md`, `07f_passive_weaver_trees.md` - interpretation of fields (A).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\ingame_guide_1.5.0.txt` - levels, passive points, specialisation slots (G).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_class-and-mastery-introductions.md` - mastery themes (X).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_passives-and-skills.md`, `maxroll_respec-guide.md` - 113 points, tree halves, respec rules (X).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_season5_patch_notes_maxroll.md` - new skills, quest reward changes (X).
+- `vendor/corpus/ingame_guide_1.5.0.txt` - levels, passive points, specialisation slots (G).
+- `vendor/corpus/maxroll_class-and-mastery-introductions.md` - mastery themes (X).
+- `vendor/corpus/maxroll_passives-and-skills.md`, `maxroll_respec-guide.md` - 113 points, tree halves, respec rules (X).
+- `vendor/corpus/maxroll_season5_patch_notes_maxroll.md` - new skills, quest reward changes (X).

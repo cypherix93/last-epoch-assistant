@@ -33,5 +33,5 @@ Ids used by `ailments.json`, `specialTag` of ailment stats and `NodeTooltipStat.
 
 ## Sources
 - `vendor/lastepochbuilder/research/data/sp_enum.json`, `stat_tag_enums.json`, `classes.json`, `ailments.json` - SP ids, enums, class values (A).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\ingame_guide_1.5.0.txt` - definitions of ailments, defenses, crafting, endgame terms (G).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_rage-of-morditas.md`, `maxroll_season5_patch_notes_maxroll.md`, `maxroll_weaver-tree-strategies.md`, `maxroll_primordial-items.md`, `maxroll_respec-guide.md`, `maxroll_gear-walkthrough.md` - S5 and endgame terms (X).
+- `vendor/corpus/ingame_guide_1.5.0.txt` - definitions of ailments, defenses, crafting, endgame terms (G).
+- `vendor/corpus/maxroll_rage-of-morditas.md`, `maxroll_season5_patch_notes_maxroll.md`, `maxroll_weaver-tree-strategies.md`, `maxroll_primordial-items.md`, `maxroll_respec-guide.md`, `maxroll_gear-walkthrough.md` - S5 and endgame terms (X).

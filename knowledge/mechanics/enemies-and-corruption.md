@@ -279,5 +279,5 @@ the same rare's melee hit ≈ 776 physical before player defenses (see defenses.
 - `vendor/lastepochbuilder/research/02_le_formulas.md` §6.4–6.5 (level DR shape, Tunklab health/damage functions, corruption scaling).
 - `vendor/lastepochbuilder/client/docs/ENGINE.md` §6.2 (`level_dr`), §10.1 (attack presets, damage at area level L, corruption more).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (Penetrations, CorruptionandtheShade, GazeOfOrobyss, Blessings, EchoModifiers, EmpoweredTimelines, BossWard, Stun, Freeze).
-- corpus `dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790): boss ward introduction, bosses 50% more effective health vs stun and freeze.
-- corpus `maxroll_monolith_empowered-guide.md` (https://maxroll.gg/last-epoch/monolith/empowered-guide): empowered rules, corruption-gated uniques, 200-corruption blessing option.
+- `vendor/corpus/dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790): boss ward introduction, bosses 50% more effective health vs stun and freeze.
+- `vendor/corpus/maxroll_monolith_empowered-guide.md` (https://maxroll.gg/last-epoch/monolith/empowered-guide): empowered rules, corruption-gated uniques, 200-corruption blessing option.

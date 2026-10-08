@@ -313,4 +313,4 @@ The same build's ignite is computed in [ailments.md](ailments.md#worked-example)
 - `vendor/lastepochbuilder/research/data/game/skill_conversions.json` (conversion rule kinds and counts).
 - `vendor/lastepochbuilder/research/data/stat_tag_enums.json` (AT, ConditionalDamageProperty).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (BaseDamage, DamageConversion, DamageEffectiveness, IncreasedAddedAndMore, CriticalStrikes, Penetrations, Resistances, AilmentMechanics, Terminology).
-- corpus `maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained, updated 2026-03-27): crit multiplier arithmetic, variance, ADE on tree nodes, conversion examples.
+- `vendor/corpus/maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained, updated 2026-03-27): crit multiplier arithmetic, variance, ADE on tree nodes, conversion examples.

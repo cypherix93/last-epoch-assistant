@@ -309,6 +309,6 @@ total Fireball DPS vs level-100 normal = 268.9 (hits) + 105.1 (ignite) = 374.0  
 - `vendor/lastepochbuilder/research/data/game/abilities.json` (Fireball ignite chance 0.4).
 - `vendor/lastepochbuilder/research/data/stat_tag_enums.json` (AilmentID enum).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (AilmentMechanics, AilmentDurationandEffectiveness, ResistanceShred, ArmorShred, Bleed…TimeRot, Curse, Stun, Freeze).
-- corpus `maxroll_ailments-explained.md` (https://maxroll.gg/last-epoch/resources/ailments-explained, updated 2026-04-02): "ailments cannot apply ailments", stale base values.
-- corpus `maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained): ailment scaling examples, Ignite 39 (0.8.5 data).
-- corpus `dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790): bosses 50% more effective health vs stun and freeze, freeze takes ward into account.
+- `vendor/corpus/maxroll_ailments-explained.md` (https://maxroll.gg/last-epoch/resources/ailments-explained, updated 2026-04-02): "ailments cannot apply ailments", stale base values.
+- `vendor/corpus/maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained): ailment scaling examples, Ignite 39 (0.8.5 data).
+- `vendor/corpus/dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790): bosses 50% more effective health vs stun and freeze, freeze takes ward into account.

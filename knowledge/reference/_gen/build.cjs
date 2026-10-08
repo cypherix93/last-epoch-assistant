@@ -11,10 +11,10 @@ const FILE = { classes: 'gen_classes.cjs', items: 'gen_items.cjs', uniques: 'gen
 const tplDir = path.join(__dirname, 'tpl');
 const outDir = path.join(L.ROOT, 'knowledge/reference');
 fs.mkdirSync(outDir, { recursive: true });
-const CORPUS = 'C:\\Users\\Genesis\\AppData\\Local\\Temp\\claude\\D--src-last-epoch-assistant\\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\\scratchpad\\corpus';
+const CORPUS = path.join(L.ROOT, 'vendor/corpus');
 const V = 'vendor/lastepochbuilder/research';
 const SEARCH = [
-  [null, CORPUS],
+  ['vendor/corpus', CORPUS],
   [V, path.join(L.ROOT, V)],
   [V + '/data', path.join(L.ROOT, V, 'data')],
   [V + '/data/game', path.join(L.ROOT, V, 'data/game')],
@@ -27,7 +27,7 @@ function expandSources(text) {
   let tail = text.slice(i);
   tail = tail.replace(/`([^`\\/]+\.(md|txt|json))`/g, (m, name) => {
     for (const [pre, dir] of SEARCH) {
-      if (fs.existsSync(path.join(dir, name))) return '`' + (pre === null ? CORPUS + '\\' + name : pre + '/' + name) + '`';
+      if (fs.existsSync(path.join(dir, name))) return '`' + pre + '/' + name + '`';
     }
     return m;
   });

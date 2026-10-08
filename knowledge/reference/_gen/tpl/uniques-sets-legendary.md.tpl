@@ -110,5 +110,5 @@ Rules:
 ## Sources
 - `vendor/lastepochbuilder/research/data/game/uniques.json`, `sets.json`, `affixes.json`, `items.json`, `trees.json` - all unique, set, primordial, WW data (A).
 - `vendor/lastepochbuilder/research/07a_assets_core_data.md` (7.2, 7.3), `07e_save_format.md` (3.2) - value model, LP/WW storage (A).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\ingame_guide_1.5.0.txt` - rarity, LP, WW, sets, primordial, ascendance (G).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_legendary-items-crafting-guide.md`, `maxroll_weavers-will-uniques.md`, `maxroll_primordial-items.md`, `maxroll_set-items-crafting.md`, `maxroll_imprints-and-endgame-crafting.md`, `maxroll_nemesis-system-overview.md`, `maxroll_boss-loot-table-cheat-sheet.md`, `maxroll_season5_patch_notes_maxroll.md` - forging rules, WW, T8, set shards, imprints, Nemesis, boss loot, S5 (X).
+- `vendor/corpus/ingame_guide_1.5.0.txt` - rarity, LP, WW, sets, primordial, ascendance (G).
+- `vendor/corpus/maxroll_legendary-items-crafting-guide.md`, `maxroll_weavers-will-uniques.md`, `maxroll_primordial-items.md`, `maxroll_set-items-crafting.md`, `maxroll_imprints-and-endgame-crafting.md`, `maxroll_nemesis-system-overview.md`, `maxroll_boss-loot-table-cheat-sheet.md`, `maxroll_season5_patch_notes_maxroll.md` - forging rules, WW, T8, set shards, imprints, Nemesis, boss loot, S5 (X).
