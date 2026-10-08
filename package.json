@@ -14,7 +14,8 @@
     "db:build": "yarn workspace @le/db run build-db",
     "setup": "yarn fetch && yarn db:build",
     "mcp": "yarn workspace @le/mcp run start",
-    "mcp:call": "yarn workspace @le/mcp run call"
+    "mcp:call": "yarn workspace @le/mcp run call",
+    "mcp:list": "yarn workspace @le/mcp run list"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
