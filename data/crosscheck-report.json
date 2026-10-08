@@ -1,0 +1,286 @@
+{
+  "summary": {
+    "affix": {
+      "compared": 1156,
+      "mismatches": 1,
+      "fields": 43615,
+      "byNote": {
+        "float_noise": 8,
+        "real": 1
+      }
+    },
+    "ailment": {
+      "compared": 126,
+      "mismatches": 0,
+      "fields": 1764,
+      "byNote": {
+        "expected_gap": 22
+      }
+    },
+    "class": {
+      "compared": 5,
+      "mismatches": 0,
+      "fields": 251,
+      "byNote": {}
+    },
+    "unique": {
+      "compared": 486,
+      "mismatches": 0,
+      "fields": 28774,
+      "byNote": {}
+    }
+  },
+  "skippedFields": [
+    "ailment.duration (Maxroll ailment records have no duration)"
+  ],
+  "mismatches": [
+    {
+      "kind": "affix",
+      "id": "336",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.29000002,
+      "maxroll": 0.29,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "338",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.29000002,
+      "maxroll": 0.29,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "378",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.58000004,
+      "maxroll": 0.58,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "380",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.58000004,
+      "maxroll": 0.58,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "381",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.58000004,
+      "maxroll": 0.58,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "399",
+      "field": "tiers[4].rolls[0].max",
+      "letools": 0.24000001,
+      "maxroll": 0.24,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "910",
+      "field": "canRollOn.length",
+      "letools": 1,
+      "maxroll": 2,
+      "note": "real"
+    },
+    {
+      "kind": "affix",
+      "id": "1057",
+      "field": "tiers[0].rolls[0].min",
+      "letools": 0.040000003,
+      "maxroll": 0.04,
+      "note": "float_noise"
+    },
+    {
+      "kind": "affix",
+      "id": "1060",
+      "field": "tiers[0].rolls[0].min",
+      "letools": 0.040000003,
+      "maxroll": 0.04,
+      "note": "float_noise"
+    },
+    {
+      "kind": "ailment",
+      "id": "129",
+      "field": "record",
+      "letools": "Frailty of Aberroth",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "130",
+      "field": "record",
+      "letools": "Shock of Aberroth",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "131",
+      "field": "record",
+      "letools": "Chill of Aberroth",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "132",
+      "field": "record",
+      "letools": "Curse of Aberroth",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "133",
+      "field": "record",
+      "letools": "Aberroth's Time Rot",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "134",
+      "field": "record",
+      "letools": "Silk",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "135",
+      "field": "record",
+      "letools": "Chosen of the Chosen",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "136",
+      "field": "record",
+      "letools": "Spiders",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "137",
+      "field": "record",
+      "letools": "Exposed Flesh",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "138",
+      "field": "record",
+      "letools": "Berserk Trigger",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "139",
+      "field": "record",
+      "letools": "Stone Aegis",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "140",
+      "field": "record",
+      "letools": "Fireclaws",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "141",
+      "field": "record",
+      "letools": "Flaming Heraldry",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "142",
+      "field": "record",
+      "letools": "Hemorrhage",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "143",
+      "field": "record",
+      "letools": "All Resistances Reduction",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "144",
+      "field": "record",
+      "letools": "Scathing Light",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "145",
+      "field": "record",
+      "letools": "Dawn Shroud",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "146",
+      "field": "record",
+      "letools": "Aspect of the Grole",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "147",
+      "field": "record",
+      "letools": "Bulwark",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "148",
+      "field": "record",
+      "letools": "Bulwark Radiance",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "149",
+      "field": "record",
+      "letools": "Disemboweled",
+      "maxroll": null,
+      "note": "expected_gap"
+    },
+    {
+      "kind": "ailment",
+      "id": "150",
+      "field": "record",
+      "letools": "Grounded",
+      "maxroll": null,
+      "note": "expected_gap"
+    }
+  ]
+}
