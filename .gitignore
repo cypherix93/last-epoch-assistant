@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Editor / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude local settings (keep shared settings.json if/when added)
+.claude/settings.local.json
+
+# Claude Code worktrees (created by EnterWorktree; one-off branches)
+.claude/worktrees/
+
+# Claude Code harness runtime lockfiles (scheduled-tasks daemon, etc.)
+.claude/*.lock
+
+# Superpowers brainstorming visual companion artifacts
+.superpowers/
+
+# Session handoffs (ephemeral pass-the-torch docs, consumed by the next session)
+docs/superpowers/handoffs/
+
+# Playwright MCP artifacts (browser snapshots, console logs)
+.playwright-mcp/
