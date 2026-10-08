@@ -93,6 +93,6 @@ Columns: id = `blessingId`; Pool = which of the three offer pools the normal ble
 ## Sources
 - `vendor/lastepochbuilder/research/data/game/items.json`, `idols.json`, `affixes.json`, `blessings.json`, `global_player_properties.json` - idol bases, grids, affixes, blessings, altar properties (A).
 - `vendor/lastepochbuilder/research/07a_assets_core_data.md` (8.1, 8.2, 10) - grid orientation, blessing schema, unresolved items (A).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\ingame_guide_1.5.0.txt` - idols, altars, blessings rules (G).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_idols-guide.md`, `maxroll_idol-altars.md`, `maxroll_gear-walkthrough.md`, `maxroll_respec-guide.md`, `maxroll_season5_patch_notes_maxroll.md`, `maxroll_monolith_empowered-guide.md` - classes of idols, altar details, respec, S5 changes (X).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\wiki_idols.md` - structure only (U, stale 2024).
+- `vendor/corpus/ingame_guide_1.5.0.txt` - idols, altars, blessings rules (G).
+- `vendor/corpus/maxroll_idols-guide.md`, `maxroll_idol-altars.md`, `maxroll_gear-walkthrough.md`, `maxroll_respec-guide.md`, `maxroll_season5_patch_notes_maxroll.md`, `maxroll_monolith_empowered-guide.md` - classes of idols, altar details, respec, S5 changes (X).
+- `vendor/corpus/wiki_idols.md` - structure only (U, stale 2024).

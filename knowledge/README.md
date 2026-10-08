@@ -28,6 +28,10 @@ When sources disagree, pages state both values, the choice, and why. Priority:
 
 Paths in the Sources sections are relative to the repository root. Entries marked `corpus` refer to a fetched community-text snapshot (filename plus its original URL); the URL is the durable reference.
 
+## Sources on disk
+
+Every `vendor/corpus/<file>` citation resolves to a plain-text capture committed in this repo; `vendor/corpus/INDEX.md` lists each file with its source URL, and `vendor/corpus/VENDOR.md` states provenance and usage terms. Data-derived claims cite the vendored research dump under `vendor/lastepochbuilder/`; see `vendor/lastepochbuilder/VENDOR.md` for its source repo, commit and licence.
+
 ## Pages
 
 | Page | What it covers |

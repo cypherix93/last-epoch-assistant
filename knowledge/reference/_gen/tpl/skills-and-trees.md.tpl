@@ -129,5 +129,5 @@ All Weaver nodes (A, `trees.json`; "Requires" lists prerequisite node ids; infer
 ## Sources
 - `vendor/lastepochbuilder/research/data/game/abilities.json`, `trees.json`, `tree_node_stats.json`, `skill_node_effects.json`, `passive_node_effects.json`, `weaver_node_effects.json`; `vendor/lastepochbuilder/research/data/stat_tag_enums.json`, `sp_enum.json` (A).
 - `vendor/lastepochbuilder/research/07b_assets_abilities_trees.md`, `07c_skill_mutators.md`, `07f_passive_weaver_trees.md`, `03_le_data_sources.md` - field meanings, node effect statuses, Weaver (A).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\ingame_guide_1.5.0.txt` - specialisation, skill levels, Weaver tree summary (G).
-- `C:\Users\Genesis\AppData\Local\Temp\claude\D--src-last-epoch-assistant\2a02c54d-b8b3-416e-bc0a-3ef48c1c23fd\scratchpad\corpus\maxroll_passives-and-skills.md`, `maxroll_respec-guide.md`, `maxroll_weaver-tree-strategies.md`, `maxroll_season5_patch_notes_maxroll.md` - slots, respec, Weaver points and strategies, S5 fixes (X).
+- `vendor/corpus/ingame_guide_1.5.0.txt` - specialisation, skill levels, Weaver tree summary (G).
+- `vendor/corpus/maxroll_passives-and-skills.md`, `maxroll_respec-guide.md`, `maxroll_weaver-tree-strategies.md`, `maxroll_season5_patch_notes_maxroll.md` - slots, respec, Weaver points and strategies, S5 fixes (X).

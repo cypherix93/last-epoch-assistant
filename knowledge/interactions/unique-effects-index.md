@@ -1,6 +1,6 @@
 # Unique effects index (Last Epoch 1.5.0)
 
-Generated file, do not edit by hand. Regenerate with `node build-unique-index.js <worktree-root>` (script kept in the session scratchpad `kb-interactions/`; logic: one row per record of `vendor/lastepochbuilder/research/data/game/uniques.json`).
+Generated file, do not edit by hand. Regenerate with `node build-unique-index.js <worktree-root>` (script not vendored; logic: one row per record of `vendor/lastepochbuilder/research/data/game/uniques.json`).
 
 Sources: `vendor/lastepochbuilder/research/data/game/uniques.json` (names, base types, tooltip text), `vendor/lastepochbuilder/research/data/game/unique_effects.json` (component class), `vendor/lastepochbuilder/client/data/unique_effect_models.json` (planner models).
 

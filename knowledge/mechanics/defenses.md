@@ -311,4 +311,4 @@ Raising physical resistance from 50% to 75% changes `resMult` from 1.25 to 1.00 
 - `vendor/lastepochbuilder/research/data/game/monster_damage.json` (average monolith melee hit 87.58, monster crit means).
 - `vendor/lastepochbuilder/research/data/game/actor_scaler.json`, `monster_rarity.json`, `monster_mods.json` (raw-hit chain for the example).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (Resistances, Armor, Penetrations, Dodge, Block, Endurance, GlancingBlow, CriticalStrikes, Parry, DamageTakenFromMana, Terminology).
-- corpus `maxroll_defenses-explained.md` (https://maxroll.gg/last-epoch/resources/defenses-explained, updated 2026-04-02): layer multiplication example, resistance-value argument, conflicting attribute numbers.
+- `vendor/corpus/maxroll_defenses-explained.md` (https://maxroll.gg/last-epoch/resources/defenses-explained, updated 2026-04-02): layer multiplication example, resistance-value argument, conflicting attribute numbers.

@@ -177,4 +177,4 @@ Damage taken by the minion from a normal hit: × 0.5 (innate) × 0.4 (level) = �
 - `vendor/lastepochbuilder/research/07a_assets_core_data.md` §0.1 (minion strength confirmation).
 - `vendor/lastepochbuilder/research/02_le_formulas.md` §8 (minion rules, Season 3/4 patch notes, exceptions).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (Minions, Companions, Totems, Levels).
-- corpus `maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained, updated 2026-03-27): minion scaling list, exceptions (Manifest Armor, Ballista, Julra's Obsession), stale 0.6% minion power.
+- `vendor/corpus/maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained, updated 2026-03-27): minion scaling list, exceptions (Manifest Armor, Ballista, Julra's Obsession), stale 0.6% minion power.

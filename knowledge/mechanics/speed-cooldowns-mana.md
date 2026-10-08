@@ -209,4 +209,4 @@ A 20% chance-to-cast-on-hit trigger with 1 s ICD on Flurry at 3 hits per use:
 - `vendor/lastepochbuilder/research/data/game/classes.json` (hiddenBaseMods: AttackSpeed/CastSpeed ADDED 1, Movespeed MORE 0.05 / 0.10).
 - `vendor/lastepochbuilder/research/data/game/ailments.json` (Chill, Slow, Frenzy, Haste, Enrage, Root, Inspiration, shrine buffs).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (Evade, Chill, Slow, ManaAndRegen, Minions).
-- corpus `maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained): attack vs cast speed equations, dual-wield averaging, Disintegrate and Dancing Strikes exceptions.
+- `vendor/corpus/maxroll_damage-explained.md` (https://maxroll.gg/last-epoch/resources/damage-explained): attack vs cast speed equations, dual-wield averaging, Disintegrate and Dancing Strikes exceptions.

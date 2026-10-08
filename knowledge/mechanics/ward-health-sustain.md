@@ -219,6 +219,6 @@ Regen: (6 + 14 + 10 added) × 1.25 = 37.5 health/s                              
 - `vendor/lastepochbuilder/client/docs/ENGINE.md` §7 (Health, Mana rows), §8.7 (sustain rows), §10.3 (recovery simulation).
 - `vendor/lastepochbuilder/research/data/stat_tag_enums.json` (HitEventTag, IdolAltarPropertyID).
 - `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (Ward, HealthLeech, Levels, HealthAndRegen, ManaAndRegen, DamageTakenFromMana, Potions, Terminology).
-- corpus `dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790, 2024-07-05): ward decay old and new formula.
-- corpus `maxroll_defenses-explained.md` (https://maxroll.gg/last-epoch/resources/defenses-explained, updated 2026-04-02): leech rate, overkill, healing, conflicting attribute values.
-- corpus `dev_unintuitive_mechanics_guide.md` (https://forum.lastepoch.com/t/unintuitive-mechanics-guide-for-le, 2019): obsolete 20%/s ward rule (for the pitfall only).
+- `vendor/corpus/dev_harbingers_of_ruin_patch_notes_1_1.md` (https://forum.lastepoch.com/t/last-epoch-harbingers-of-ruin-patch-notes/71790, 2024-07-05): ward decay old and new formula.
+- `vendor/corpus/maxroll_defenses-explained.md` (https://maxroll.gg/last-epoch/resources/defenses-explained, updated 2026-04-02): leech rate, overkill, healing, conflicting attribute values.
+- `vendor/corpus/dev_unintuitive_mechanics_guide.md` (https://forum.lastepoch.com/t/unintuitive-mechanics-guide-for-le, 2019): obsolete 20%/s ward rule (for the pitfall only).
