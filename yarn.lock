@@ -219,6 +219,7 @@ __metadata:
     "@types/better-sqlite3": "npm:^7.6.0"
     "@types/node": "npm:^22.0.0"
     better-sqlite3: "npm:^12.0.0"
+    lz-string: "npm:^1.5.0"
     tsx: "npm:^4.20.0"
     typescript: "npm:^5.9.0"
     vitest: "npm:^3.2.0"
@@ -1465,6 +1466,15 @@ __metadata:
   version: 3.2.1
   resolution: "loupe@npm:3.2.1"
   checksum: 10c0/910c872cba291309664c2d094368d31a68907b6f5913e989d301b5c25f30e97d76d77f23ab3bf3b46d0f601ff0b6af8810c10c31b91d2c6b2f132809ca2cc705
+  languageName: node
+  linkType: hard
+
+"lz-string@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "lz-string@npm:1.5.0"
+  bin:
+    lz-string: bin/bin.js
+  checksum: 10c0/36128e4de34791838abe979b19927c26e67201ca5acf00880377af7d765b38d1c60847e01c5ec61b1a260c48029084ab3893a3925fd6e48a04011364b089991b
   languageName: node
   linkType: hard
 
