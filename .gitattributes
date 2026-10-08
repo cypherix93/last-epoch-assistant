@@ -1,1 +1,4 @@
 data/raw/** -text
+
+# Build reports and raw data are LF everywhere (avoid CRLF noise on Windows)
+data/*.json text eol=lf
