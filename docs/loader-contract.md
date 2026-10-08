@@ -106,7 +106,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | world | stat_properties (all / with display rule) | 151 / 113 |
 | world | stat_property_alt_texts | 162 |
 | world | player_properties | 713 |
-| world | ability_properties (rows / distinct abilities) | 2,344 / 177 |
+| world | ability_properties (rows / distinct abilities) | 2,344 / 175 (177 list entries; abilityID 0 and 803 have empty properties) |
 | world | idol_altar_properties / conditional_properties | 31 / 48 |
 | world | attributes; mods `attribute` / `attribute_corrupted` | 5; 7 / 10 |
 | world | classes / masteries / class_abilities | 5 / 20 / 156 |
@@ -119,7 +119,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | world | maxroll_quests / raw_globals | 145 / 34 |
 | items | item_base_types / item_subtypes | 48 / 1,558 |
 | items | affixes (all / single) / affix_stats / affix_tiers | 1,156 / 616 / 1,696 / 6,238 |
-| items | affix_can_roll_on / affix_reroll_chances / affix_display_categories | 2,539 / 201 / 45 |
+| items | affix_can_roll_on / affix_reroll_chances / affix_display_categories | 2,539 / 218 / 45 |
 | items | mods `affix_tier` | 9,711 |
 | items | mods `implicit` / `blessing` / `idol_altar` (= 1,529 implicits) | 1,284 / 234 / 11 |
 | items | uniques (all / set items) / unique_subtypes | 486 / 61 / 486 |
@@ -127,7 +127,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | items | sets / mods `set_bonus` / set_tooltips | 25 / 54 / 18 |
 | items | idol_altars / blessings (all with a timeline) | 13 / 224 |
 | items | relations (affix / unique / set / implicit) / compact_ids A,U,S,I | 2,207 / >= 1,014 |
-| skills | abilities (all / player / with tree) | 1,228 / 183 / 136 |
+| skills | abilities (all / player / with tree) | 1,228 / 182 / 136 (playerAbilityIdList has 183 entries, vm53dx twice) |
 | skills | ability_components / ability_links | 2,516 / 129 |
 | skills | ailments; mods `ailment_buff` | 148; 161 |
 | skills | ui_buffs / entities | 264 / 96 |

@@ -59,7 +59,7 @@ Verified for all keys in `monsterMods` and in the maps `relModAbilities`, `relMo
 | `A` | affix | decimal `affixId` | 558 of 558 resolve to an existing affix (e.g. `AGwVgHEA` -> 658 "Percent Missing Health Restored On Lunge") |
 | `U` | unique mod line | 6 digits `<NNN><uuu>`: last 3 digits = `uniqueId` (zero padded), first 3 digits = an index of the line within the unique | 333 of 333 resolve to an existing unique (e.g. `UAzCMwZgJiA` = `001032` -> unique 32 "Frozen Ire"). The first three digits are **not** always an index into `mods[]` (only 285 of 722 uses are < `mods.length`, up to 13 seen); exact meaning unknown |
 | `S` | set bonus line | 3 digits = `setID` | 15 of 15 resolve (e.g. `SAzDMQ` = `003` -> "Apiarist's" set) |
-| `I` | item implicit | `1` + 3-digit `baseTypeId` + 3-digit `subTypeId` + 3-digit implicit index (always `000` in the data) | 107 of 108 resolve to an existing sub type (e.g. `IIwBjIVnEg` = `1000050000` -> base 0, sub 5 "Falconry Helm") |
+| `I` | item implicit | `1` + 3-digit `baseTypeId` + 3-digit `subTypeId` + 3-digit implicit index (always `000` in the data) | 107 of 108 resolve to an existing sub type (e.g. `IIwBjIVnEg` = `1000050000` -> base 0, sub 50 "Falconry Helm") |
 
 What the maps contain (key -> value):
 
@@ -104,6 +104,8 @@ Examples (3 per kind, from the verification output):
 | M | `MIxA` | `1` | monster mod 1: "the dungeon boss drops much '{'1'}'Exalted Jewelry'{'/'}'" |
 | M | `MIzDMQ` | `113` | monster mod 113: "enemies have '{'1'}'[1%] more health and damage'{'/'}'" |
 
+Known unresolved ids: the implicit compact id `IIwBmCY0kSA` decodes to base 12 / sub 12 / implicit 0, a sub type that does not exist in itemDB (it is kept in `compact_ids` with `resolves = 0`; Maxroll has a 12/12 "Silver Crescent" sub type that LE Tools lacks).
+
 ## 3. Ability joins (the one id family that needs a mapping)
 
 LE Tools identifies abilities by a short string (`fi9`); Maxroll by a name (`Fireball`). The numeric `index` is the bridge:
@@ -117,7 +119,7 @@ MR  abilityProperties[0].abilityID == 1          (== coreDB.abilityPropertyList[
 
 - `index` is present on 981 of the 1,228 LE records (the rest are internal sub-abilities without index); 971 of them resolve to a non-null Maxroll slot. The 10 that do not (660, 664, 678, 687, 791, 792, 812, 813, 992, 993) are null in Maxroll's `abilityList`.
 - For all 136 LE skill-tree ids, `Maxroll.abilities[abilityList[LE.index]].playerAbilityID == treeID`.
-- Player-skill id lists: LE `playerAbilityIdList` (183 ids) vs Maxroll `playerAbilityList` (184 names resolved to `playerAbilityID`): 174 ids shared. LE-only ids: `null_Soul_Geyser`, `evade3wb`, `evade3sp`, `evade3sb`, `evade3rp`, `sw43_c`, `hs18gu_c`, `rb7_c`; Maxroll-only: `werebearevade1` and two entries with an empty `playerAbilityID`.
+- Player-skill id lists: LE `playerAbilityIdList` (183 entries, 182 distinct: `vm53dx` appears twice) vs Maxroll `playerAbilityList` (184 names resolved to `playerAbilityID`): 174 ids shared. LE-only ids: `null_Soul_Geyser`, `evade3wb`, `evade3sp`, `evade3sb`, `evade3rp`, `sw43_c`, `hs18gu_c`, `rb7_c`; Maxroll-only: `werebearevade1` and two entries with an empty `playerAbilityID`.
 - Property ids that embed an ability index: SP 58 (`AbilityProperty`, `tags`), SP 88 (`LevelOfSkills`, `tags`), and `extraTag` of a few lines (e.g. SP 117 `extraTag 143` = `MarrowShards`).
 
 ## 4. i18n key patterns
