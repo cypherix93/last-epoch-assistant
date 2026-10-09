@@ -276,7 +276,8 @@ CREATE TABLE item_subtypes (
   is_starting_item INTEGER,            -- subItems[].isStartingItem
   attack_rate   REAL,                  -- subItems[].attackRate
   added_weapon_range REAL,             -- subItems[].addedWeaponRange
-  affix_effectiveness REAL,            -- subItems[].affixEffectiveness
+  affix_effectiveness REAL,            -- subItems[].affixEffectiveness (0 Standard, 1 OmenIdol)
+  affix_effect_modifier REAL,          -- the item AEM affixes on this sub type scale with: item_base_types.affix_effect_modifier, or itemList.omenIdolAffixEffectModifier (0) when affix_effectiveness = 1 (Omen idols)
   item_tags     INTEGER,               -- subItems[].itemTags
   im_set_tier   INTEGER,               -- subItems[].IMSetTier
   lens_effect   TEXT,                  -- t(subItems[].lensEffectKey) or subItems[].lensEffect (lenses)
@@ -342,6 +343,7 @@ CREATE TABLE affix_stats (
   label_key     TEXT,                  -- .affixProperties[].modDisplayNameKey
   set_property  INTEGER,               -- .affixProperties[].setProperty
   disable_alt_text INTEGER,            -- .affixProperties[].disableAltText
+  rounding_scale INTEGER NOT NULL DEFAULT 100, -- rounding grid of the rolled value (coreDB rounding of the stat: increased -> Hundredth; added -> roundAddedToInt, more -> roundingForMore / moreRoundingOverrides of the property, player property (98), ability property (58) or altar property (130)): 100 Hundredth, 1 Integer, 10 Tenth, 1000 Thousandth
   PRIMARY KEY (affix_id, ord)
 ) WITHOUT ROWID;
 
@@ -1376,13 +1378,18 @@ SELECT
   bt.name AS base_type,
   i.unique_id,
   i.is_corrupted,
+  -- values are the in-game values: the stored tier range scaled by the item's affix effect modifier
+  -- ((1 + aem) / (1 + standard_affix_effect_modifier), see v_affix_values), rounded to the stat's grid, then the roll
+  -- applied; ' x<factor>' after the tier marks a scaled affix
   (SELECT group_concat(
             coalesce(af.name, 'affix ' || x.affix_id) || ' T' || x.tier ||
+            CASE WHEN abs((CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) - 1.0) > 1e-9 THEN ' x' || printf('%g', round((CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END), 4)) ELSE '' END ||
             CASE x.origin WHEN 'normal' THEN '' ELSE ' [' || x.origin || ']' END ||
             coalesce(' (' || (SELECT group_concat(coalesce(md.label, md.property_name, '?') || ' ' ||
-                                                  printf('%g', round(md.value_min + (coalesce(md.value_max, md.value_min) - md.value_min) * coalesce(x.roll, 1), 4)),
+                                                  printf('%g', round((round(md.value_min * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale) + ((round(coalesce(md.value_max, md.value_min) * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale) - (round(md.value_min * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale)) * coalesce(x.roll, 1), 4)),
                                                   ', ' ORDER BY md.source_ord, md.sub_ord)
                                 FROM mods md
+                                JOIN affix_stats ast ON ast.affix_id = x.affix_id AND ast.ord = md.source_ord
                                WHERE md.source_kind = 'affix_tier' AND md.source_id = CAST(x.affix_id AS TEXT) AND md.tier = x.tier) || ')', ''),
             '; ' ORDER BY x.ord)
      FROM community_build_item_affixes x LEFT JOIN affixes af ON af.affix_id = x.affix_id
@@ -1393,6 +1400,43 @@ JOIN community_builds b ON b.build_id = p.build_id
 LEFT JOIN uniques u ON u.unique_id = i.unique_id
 LEFT JOIN item_subtypes st ON st.base_type_id = i.base_type_id AND st.sub_type_id = i.sub_type_id
 LEFT JOIN item_base_types bt ON bt.base_type_id = i.base_type_id;
+
+-- Affix tier values as they roll on each base type the affix can roll on. The stored ranges (mods affix_tier) are
+-- authored for the affix's standard_affix_effect_modifier (std); on an item whose affix effect modifier is aem the
+-- range is scaled by (1 + aem) / (1 + std) (1 when aem = std) and rounded to the stat's grid
+-- (affix_stats.rounding_scale; SQLite rounds half away from zero, the game half to even in float32).
+-- Source: AffixList+Affix.getModifier (vendor/lastepochbuilder/research/07a_assets_core_data.md 0.3 / 6, D),
+-- knowledge/reference/item-system.md. Example: affix 119 (std 0) T1 0.6 on a Grand Idol (aem -0.33) rolls up to 0.40;
+-- affix 912 (std -0.33) 8 on an Ornate Idol (aem 0) rolls up to 12. Omen idol sub types use aem 0
+-- (item_subtypes.affix_effect_modifier), i.e. the factor of an aem-0 base.
+CREATE VIEW v_affix_values AS
+WITH f AS (
+  SELECT a.affix_id, a.name AS affix_name, coalesce(a.standard_affix_effect_modifier, 0) AS std_aem,
+         r.base_type_id, bt.name AS base_type, coalesce(bt.affix_effect_modifier, 0) AS item_aem,
+         CASE WHEN coalesce(bt.affix_effect_modifier, 0) = coalesce(a.standard_affix_effect_modifier, 0) THEN 1.0
+              ELSE (1.0 + coalesce(bt.affix_effect_modifier, 0)) / (1.0 + coalesce(a.standard_affix_effect_modifier, 0)) END AS factor
+    FROM affixes a
+    JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+    JOIN item_base_types bt ON bt.base_type_id = r.base_type_id
+)
+SELECT f.affix_id, f.affix_name, f.base_type_id, f.base_type, m.tier, m.source_ord AS ord, s.label,
+       m.property, m.property_name, m.tag_names, m.special_tag, m.modifier_type,
+       f.std_aem, f.item_aem, round(f.factor, 6) AS scale_factor, s.rounding_scale,
+       m.value_min AS stored_min, m.value_max AS stored_max,
+       round(m.value_min * f.factor * s.rounding_scale) / s.rounding_scale AS value_min,
+       round(m.value_max * f.factor * s.rounding_scale) / s.rounding_scale AS value_max
+  FROM f
+  JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(f.affix_id AS TEXT)
+  JOIN affix_stats s ON s.affix_id = f.affix_id AND s.ord = m.source_ord;
+
+-- v_affix_values restricted to the idol sizes (base types 25-33), with the idol grid size (WxH).
+CREATE VIEW v_idol_affix_values AS
+SELECT v.affix_id, v.affix_name, v.base_type_id, v.base_type AS idol, bt.size_x || 'x' || bt.size_y AS idol_size,
+       v.tier, v.ord, v.label, v.property, v.property_name, v.tag_names, v.special_tag, v.modifier_type,
+       v.std_aem, v.item_aem, v.scale_factor, v.value_min, v.value_max, v.stored_min, v.stored_max
+  FROM v_affix_values v
+  JOIN item_base_types bt ON bt.base_type_id = v.base_type_id
+ WHERE bt.is_idol = 1;
 
 -- Uniques used by community builds, per slot: builds using it in any tab / in the default tab.
 CREATE VIEW v_item_usage AS

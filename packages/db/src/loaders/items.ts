@@ -153,6 +153,31 @@ const BLESSING_BASE = 34;
 const ALTAR_BASE = 41;
 const LENS_BASES = new Set([35, 36, 37, 38, 39, 109]);
 
+/** PropertyRounding enum (coreDB roundAddedToInt / roundingForMore) -> grid scale: 0 Hundredth x100, 1 Integer x1, 2 Tenth x10, 3 Thousandth x1000. */
+const ROUNDING_SCALE: Record<number, number> = { 0: 100, 1: 1, 2: 10, 3: 1000 };
+
+/**
+ * Rounding grid of an affix line (vendor 07a_assets_core_data.md "How rounding picked", D): INCREASED always
+ * Hundredth; ADDED the property's roundAddedToInt; MORE its moreRoundingOverrides[specialTag] else roundingForMore.
+ * The property record is the SP entry of coreDB.propertyList, or for indirect stats the player property (98, tags),
+ * ability property (58, tags = ability index, specialTag = property index) or idol altar property (130, tags);
+ * missing entries use the list's defaultProperty.
+ */
+export function roundingScale(core: Obj, property: number, modifierType: number, tags: number, specialTag: number): number {
+  if (modifierType === 1) return 100;
+  let rec: Obj | undefined;
+  if (property === 98) rec = (core.playerPropertyList as Obj[])[tags];
+  else if (property === 58) rec = (core.abilityPropertyList as Obj[]).find((a) => a.abilityID === tags)?.properties?.[specialTag];
+  else if (property === 130) rec = (core.idolAltarPropertyList?.list as Obj[] | undefined)?.[tags];
+  else rec = (core.propertyList as Obj[]).find((p) => p.property === property);
+  rec ??= core.defaultProperty as Obj;
+  let r: number | undefined;
+  if (modifierType === 2) {
+    r = ((rec?.moreRoundingOverrides as Obj[] | undefined) ?? []).find((o) => o.specialTag === specialTag)?.roundingForMore ?? rec?.roundingForMore;
+  } else r = rec?.roundAddedToInt;
+  return ROUNDING_SCALE[Number(r ?? 0)] ?? 100;
+}
+
 function implicitKind(base: number): "blessing" | "idol_altar" | "implicit" {
   return base === BLESSING_BASE ? "blessing" : base === ALTAR_BASE ? "idol_altar" : "implicit";
 }
@@ -230,6 +255,8 @@ export function loadItems(ctx: LoaderContext): void {
           attack_rate: num(s.attackRate),
           added_weapon_range: num(s.addedWeaponRange),
           affix_effectiveness: num(s.affixEffectiveness),
+          // affixes scale with the item's AEM; Omen idol sub types (affixEffectiveness 1) use omenIdolAffixEffectModifier
+          affix_effect_modifier: int(s.affixEffectiveness) === 1 ? (num(itemList.omenIdolAffixEffectModifier) ?? 0) : num(b.affixEffectModifier),
           item_tags: int(s.itemTags),
           im_set_tier: int(s.IMSetTier),
           lens_effect: t(s.lensEffectKey) ?? str(s.lensEffect),
@@ -329,6 +356,7 @@ export function loadItems(ctx: LoaderContext): void {
         label_key: str(p.modDisplayNameKey),
         set_property: int(p.setProperty),
         disable_alt_text: bool(p.disableAltText),
+        rounding_scale: roundingScale(ctx.raw.letools.coreDB as Obj, p.property, p.modifierType, p.tags ?? 0, p.specialTag ?? 0),
       });
     });
     tiers.forEach((tier, ti) => {

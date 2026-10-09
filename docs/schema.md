@@ -131,9 +131,9 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | table | purpose | key | rows |
 |---|---|---|---|
 | `item_base_types` | base types (Helmet, Relic, Small Idol, Blessing, Idol Altar, Affix Shard, ...) with category (NULL for 8 base types not listed by the loot-filter categories), size, max affixes | base_type_id | 48 |
-| `item_subtypes` | every base item (sub type) with level / class requirement, weapon stats, lens effect; implicits are mods (`implicit` / `blessing` / `idol_altar`) | (base_type_id, sub_type_id) | 1,558 |
+| `item_subtypes` | every base item (sub type) with level / class requirement, weapon stats, lens effect, `affix_effect_modifier` (the AEM its affixes scale with: the base type's, or 0 for Omen idol sub types, `affix_effectiveness = 1`); implicits are mods (`implicit` / `blessing` / `idol_altar`) | (base_type_id, sub_type_id) | 1,558 |
 | `affixes` | prefixes and suffixes (incl. idol, set, corrupted, Weaver affixes): name, title, type, special type, roll target, class specificity, weighting | affix_id | 1,156 |
-| `affix_stats` | the stat lines of each affix (1 for single, 2 for multi affixes) | (affix_id, ord) | 1,696 |
+| `affix_stats` | the stat lines of each affix (1 for single, 2 for multi affixes), with `rounding_scale` (the value grid: 100 Hundredth, 1 Integer, 10 Tenth, 1000 Thousandth) | (affix_id, ord) | 1,696 |
 | `affix_tiers` | tiers with required level; the roll values are mods `affix_tier` | (affix_id, tier) | 6,238 |
 | `affix_can_roll_on` | base types an affix rolls on | (affix_id, base_type_id) | 2,539 |
 | `affix_reroll_chances` | per equipment type reroll chance / weighting | (affix_id, ord) | 218 |
@@ -146,6 +146,8 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | `set_tooltips` | set bonus descriptions with piece requirement | (set_id, ord) | 18 |
 | `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 (`grid_index` ordering is unverified) |
 | `blessings` | blessing sub types with timeline, difficulty (0 normal, 1 empowered = grand) and slot list; the stat is mods `blessing` | sub_type_id | 224 |
+
+**Affix values depend on the item (`v_affix_values`, `v_idol_affix_values`).** The tier ranges in `mods` (`affix_tier`) are STORED values, authored for the affix's `affixes.standard_affix_effect_modifier` (std). On an item whose affix effect modifier is `aem` (`item_base_types.affix_effect_modifier`, per sub type `item_subtypes.affix_effect_modifier`: Omen idols use 0) the range becomes `stored x (1 + aem) / (1 + std)` (factor 1 when aem = std), rounded to `affix_stats.rounding_scale` (decompiled `AffixList+Affix.getModifier`, vendor `07a_assets_core_data.md`, D; `knowledge/reference/item-system.md`). This matters most for idols (aem -0.83 Small / Minor, -0.62 Humble / Stout, -0.33 Grand / Large, 0 Ornate / Huge, -0.05 Adorned) and for gear: Body Armor 0.5, one-handed weapons 0.75, two-handed weapons 2.2, shields / catalysts / amulets 0.17. Examples: affix 119 (std 0) T1 0.22..0.60 rolls 0.15..0.40 on a Grand Idol; affix 912 (std -0.33) T7 7..8 rolls 10..12 on an Ornate Idol and is unscaled on Grand / Large idols; Added Health (25) T5 61..90 rolls 92..135 on Body Armor. Read in-game ranges from `v_affix_values` (one row per affix x base type it rolls on x tier x line: `stored_min/max`, `scale_factor`, `value_min/max`) or `v_idol_affix_values` (idol bases only, with `idol_size` WxH); `v_build_items_named.affixes_text` and the `build` / `item_usage` tools apply the factor of the build item's own sub type. SQLite rounds half away from zero where the game rounds half to even in float32, so a value exactly on a .5 boundary can differ by one grid step (U).
 
 **Legendary fields of `uniques` (what the columns mean).**
 
@@ -221,6 +223,8 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 |---|---|---|
 | `v_mods_named` | mods row | mods columns (incl. the tree columns `property_kind`, `stat_kind`, `modifier_source`, `label_mismatch`, `code_ref`) + `source_name`, `property_enum`, `modifier_name` |
 | `v_unique_summary` | unique | name, base_type, sub_type, set_name, `mods_text` (all mods flattened), `tooltip_text`, lore |
+| `v_affix_values` | (affix, base type it rolls on, tier, line) | affix_name, base_type, tier, ord, label, property, property_name, tag_names, special_tag, modifier_type, `std_aem`, `item_aem`, `scale_factor`, `rounding_scale`, `stored_min` / `stored_max` (the data), `value_min` / `value_max` (in-game range on that base) |
+| `v_idol_affix_values` | (affix, idol base, tier, line) | v_affix_values for base types 25-33 plus `idol` (base name) and `idol_size` (`3x1`, ...) |
 | `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers and its tag names in brackets, e.g. `Damage added 3..100 [Void,Melee]`), `rolls_on_text` |
 | `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list; `[more]` / `[increased]` / `[added]` = `stat_kind`, with `?` when inferred, `[skill parameter]`; `(no scaling)` marks non-per-point lines; `(not a plain <property>)` marks `label_mismatch` lines), `unlocked_by` (`node>=points` entries joined by a vertical bar = any one of; `requires` is the deprecated comma-separated alias) |
 | `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, special_tag, tags, tag_names, modifier_name, value_min, value_max |
@@ -243,7 +247,7 @@ Maxroll build guides and their planner profiles, loaded by `packages/db/src/load
 | view | one row per | columns |
 |---|---|---|
 | `v_build_summary` | build | class / mastery / main skill names, tiers, default tab name and level, `specialized_skills` and `uniques` of the default tab |
-| `v_build_items_named` | build item (all tabs) | profile_name, is_default, slot, grid_x/y, kind, `item_name` (unique or base name), sub_type, base_type, `affixes_text` (`<affix> T<tier> [origin] (<line> <rolled value>, ...)`; values in stored units, fractions for percentages) |
+| `v_build_items_named` | build item (all tabs) | profile_name, is_default, slot, grid_x/y, kind, `item_name` (unique or base name), sub_type, base_type, `affixes_text` (`<affix> T<tier>[ x<factor>] [origin] (<line> <rolled value>, ...)`; in-game values: the tier range scaled by the item's affix effect modifier (` x0.67` marks a scaled affix, see `v_affix_values`), fractions for percentages) |
 | `v_item_usage` | (unique, slot) | `builds` (any tab), `default_builds`, `guides`, `items` |
 | `v_affix_usage` | (affix, slot, origin) | builds, default_builds, items, min / max / avg tier |
 | `v_build_nodes_named` | allocated node | `kind` (`passive` / `skill`), tree_id, tree_name, node_id, node_name, points, max_points, mastery |
@@ -252,7 +256,7 @@ Notes for tool and query authors:
 
 - Pick a tab. Every build has 2 to 6 tabs and the views return all of them; filter `is_default = 1` (the tab the planner opens on, usually `Endgame` / `Endgame Gear`, a `Starting Setup` tab for leveling guides) or on `profile_name`. Tab names are free text (`Endgame`, `Endgame Gear`, `Endgame ` with a trailing space, `Block Endgame`); match them case-insensitively on a trimmed prefix, as the MCP tools do.
 - Count builds, not items: one build carries up to 12 idols and two rings, and the same item usually appears in several tabs. `v_item_usage` / `v_affix_usage` already count `DISTINCT build_id`; do the same in your own aggregates.
-- `v_build_items_named.affixes_text` values are in stored units (fractions for increased / more: `0.08` = 8%). The `build` MCP tool returns the same values per stat line with a `modifier` (`added` / `increased` / `more`).
+- `v_build_items_named.affixes_text` values are in-game values (scaled by the item's affix effect modifier; fractions for increased / more: `0.08` = 8%). The `build` MCP tool returns the same values per stat line with a `modifier` (`added` / `increased` / `more`), plus `scale_factor` on a scaled affix and `stored_value` (the unscaled data value) on its lines.
 - Unique mods (`uniqueRolls`) are not expanded in the views; read them with `get` kind `unique` and `community_build_items.unique_rolls`.
 - `v_build_nodes_named` lists skill trees of non-specialized skills too (`community_build_skills.is_specialized = 0`): planner leftovers with no in-game effect. Filter them out unless you want the raw planner state.
 - Builds per guide: one `community_builds` row per planner profile; `is_primary = 1` is the guide's own planner (one guide in 1.5.2 has two profiles). Filter `is_primary = 1` to count guides.

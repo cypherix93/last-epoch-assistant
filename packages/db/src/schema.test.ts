@@ -27,8 +27,8 @@ const EXPECTED_TABLES = [
   "unique_tooltips", "uniques", "woven_echoes",
 ];
 const EXPECTED_VIEWS = [
-  "v_affix_summary", "v_affix_usage", "v_blessings", "v_build_items_named", "v_build_nodes_named", "v_build_summary",
-  "v_item_usage", "v_mods_named", "v_skill_node_summary", "v_unique_summary",
+  "v_affix_summary", "v_affix_usage", "v_affix_values", "v_blessings", "v_build_items_named", "v_build_nodes_named", "v_build_summary",
+  "v_idol_affix_values", "v_item_usage", "v_mods_named", "v_skill_node_summary", "v_unique_summary",
 ];
 const EXPECTED_INDEXES = [
   "abilities_index", "abilities_name", "ability_components_type", "ability_properties_ability",

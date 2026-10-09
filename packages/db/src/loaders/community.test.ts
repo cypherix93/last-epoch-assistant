@@ -138,12 +138,29 @@ describe.skipIf(!hasRawData())("community loader (fixture against the real game 
     }
   });
 
-  it("names affixes with rolled values (World Splitter Melee Void Damage T7 = 65, Mask Mana T7 = 120, Mana / Regen T5 = 8% / 33%)", () => {
+  it("names affixes with rolled in-game values (World Splitter Melee Void Damage T7 = 65 stored, 119 on a 2h axe; Mask Mana T7 = 120, Mana / Regen T5 = 8% / 33%)", () => {
     const id = endgame();
     const text = (slot: string) => (one(`SELECT affixes_text FROM v_build_items_named WHERE build_profile_id = ? AND slot = ?`, id, slot).affixes_text as string);
-    expect(text("weapon")).toMatch(/^Melee Void Damage T7 \[extra\] \(Melee Void Damage 65\); .* T7 \[corruption\]/);
+    // affix 76 (std 0.75, authored for 1h weapons) on a two-handed axe (aem 2.2) rolls x3.2/1.75: T7 51..65 -> 93..119
+    expect(text("weapon")).toMatch(/^Melee Void Damage T7 x1\.8286 \[extra\] \(Melee Void Damage 119\); .* T7 x1\.8286 \[corruption\]/);
     expect(text("head")).toBe("Mana T7 [extra] (Mana 120); Increased Mana and Mana Regen T5 [extra] (Mana 0.08, Mana Regen 0.33)");
-    expect(text("body")).toMatch(/^Level of Erasing Strike T7 \[extra\] \(Erasing Strike 4, Void Damage 1\.5\); Mana T5 \[extra\] \(Mana 50\)$/);
+    // Added Mana (std 0) on Body Armor (aem 0.5) rolls x1.5: T5 36..50 -> 54..75; Level of Erasing Strike is authored for body armor (std 0.5)
+    expect(text("body")).toMatch(/^Level of Erasing Strike T7 \[extra\] \(Erasing Strike 4, Void Damage 1\.5\); Mana T5 x1\.5 \[extra\] \(Mana 75\)$/);
+  });
+
+  it("shows idol affix values scaled by idol size (ground truth: Ornate Solar idols unscaled, Omen idol aem 0)", () => {
+    const id = endgame();
+    const idol = (name: string) => all(`SELECT affixes_text FROM v_build_items_named WHERE build_profile_id = ? AND slot = 'idol' AND item_name = ?`, id, name).map((r) => r.affixes_text as string);
+    // Ornate idols have aem 0 and these affixes std 0: the decode's values (Vitality 7, Melee Void 90%, 5% / 18%)
+    for (const t of idol("Heretical Ornate Solar Idol")) {
+      expect(t).toBe("Vitality T1 (Vitality 7); Melee Void Damage T1 (Melee Void Damage 0.9); Increased Movement Speed and Increased Damage T7 (Movement Speed 0.05, Damage 0.18)");
+    }
+    // Omen idols use omenIdolAffixEffectModifier 0, so a Grand Omen idol is not scaled down
+    expect(idol("Grand Iron Omen Idol")[0]).toBe("Vitality T1 (Vitality 7); Chance To Shred Armor on Melee Hit T1 (Chance to Shred Armor on Melee Hit 0.8); Melee Damage T1 [corruption] (Melee Damage 10)");
+    // a Large idol (aem -0.33) scales std-0 affixes x0.67: 80% -> 54%; affix 920 (std -0.33) is authored for it
+    expect(idol("Heretical Large Rahyeh Idol")[0]).toMatch(/^Chance To Shred Armor on Melee Hit T1 x0\.67 \(Chance to Shred Armor on Melee Hit 0\.54\); .* T1 x0\.67 \(.* 0\.23\); .* T7 \(.* 0\.2, .* 0\.05\)$/);
+    // Minor Weaver idol affixes are authored for minor idols (std -0.83 = aem): unscaled
+    expect(idol("Minor Weaver Idol")[0]).toBe("Mana and Increased Mana Regen T1 (Mana 12, Mana Regen 0.05); Cold Resistance and Minion Cold Resistance T1 (Cold Resistance 0.12, Minion Cold Resistance 0.12)");
   });
 
   it("decodes the Endgame idols on the 5x5 grid", () => {

@@ -112,10 +112,12 @@
   "views": [
     "v_affix_summary",
     "v_affix_usage",
+    "v_affix_values",
     "v_blessings",
     "v_build_items_named",
     "v_build_nodes_named",
     "v_build_summary",
+    "v_idol_affix_values",
     "v_item_usage",
     "v_mods_named",
     "v_skill_node_summary",

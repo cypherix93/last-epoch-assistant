@@ -340,7 +340,19 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     const w = b.gear.find((g: R) => g.slot === "weapon");
     expect(w).toMatchObject({ name: "World Splitter", kind: "legendary", unique_id: 365, base: "Bardiche", corrupted: true });
     expect(w.affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, type: "prefix", origin: "extra", roll: 1 });
-    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 65, modifier: "added" });
+    // in-game value: affix 76 (std 0.75) on a two-handed axe (aem 2.2) rolls x3.2/1.75; the data value is stored_value
+    expect(w.affixes[0]).toMatchObject({ scale_factor: 1.8286 });
+    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 119, stored_value: 65, modifier: "added" });
+    // idols: Ornate (aem 0) unscaled, Large (aem -0.33) x0.67 on std-0 affixes, Omen idols aem 0
+    const large = b.idols.find((i: R) => i.name === "Heretical Large Rahyeh Idol");
+    expect(large.affixes[0]).toMatchObject({ affix_id: 211, scale_factor: 0.67 });
+    expect(large.affixes[0].values[0]).toMatchObject({ value: 0.54, stored_value: 0.8 });
+    const ornate = b.idols.find((i: R) => i.name === "Heretical Ornate Solar Idol");
+    expect(ornate.affixes.map((a: R) => a.values.map((v: R) => v.value))).toEqual([[7], [0.9], [0.05, 0.18]]);
+    expect(ornate.affixes[0]).not.toHaveProperty("scale_factor");
+    const omen = b.idols.find((i: R) => i.name === "Grand Iron Omen Idol");
+    expect(omen.affixes.map((a: R) => a.values[0].value)).toEqual([7, 0.8, 10]);
+    expect(b.units).toMatch(/scale_factor/);
     expect(w.implicits.length).toBeGreaterThan(0);
     expect(b.idols).toHaveLength(6);
     expect(b.idols[0]).toMatchObject({ grid_x: 2, grid_y: 0, name: "Minor Weaver Idol", size: "1x1" });
