@@ -489,16 +489,38 @@ function stripSqlComments(sql: string): string {
   return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
 }
 
+const PRAGMA_ARG = /^pragma\s+(table_info|index_list)\s*\(\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'|"([A-Za-z_][A-Za-z0-9_]*)"|([A-Za-z_][A-Za-z0-9_]*))\s*\)$/i;
+
 /**
- * Read-only SELECT/WITH only. Guards: single statement, comment-stripped text starts with SELECT/WITH,
- * db opened readonly, and prepared statement must report readonly. better-sqlite3 cannot interrupt a
- * running statement, so there is no time limit: keep queries selective (the row cap bounds output only).
+ * The read-only schema pragmas the sql tool accepts, rewritten to their table-valued-function form (a plain
+ * SELECT, so the readonly guards in sql() still apply): PRAGMA table_list, PRAGMA table_info(<name>),
+ * PRAGMA index_list(<name>). Any other PRAGMA, or any other argument shape, is rejected.
+ */
+function rewritePragma(text: string): { text: string; params: unknown[] } | undefined {
+  if (!/^pragma\b/i.test(text)) return undefined;
+  if (/^pragma\s+table_list\s*(\(\s*\))?$/i.test(text)) return { text: "SELECT * FROM pragma_table_list()", params: [] };
+  const m = PRAGMA_ARG.exec(text);
+  if (!m) {
+    throw new ToolError("Only these PRAGMAs are allowed: PRAGMA table_list, PRAGMA table_info(<table>), PRAGMA index_list(<table>)");
+  }
+  return { text: `SELECT * FROM pragma_${m[1].toLowerCase()}(?)`, params: [m[2] ?? m[3] ?? m[4]] };
+}
+
+/**
+ * Read-only SELECT/WITH, plus the schema pragmas accepted by rewritePragma. Guards: single statement,
+ * comment-stripped text starts with SELECT/WITH (after the pragma rewrite), db opened readonly, and the
+ * prepared statement must report readonly. better-sqlite3 cannot interrupt a running statement, so there is
+ * no time limit: keep queries selective (the row cap bounds output only).
  */
 export function sql(ctx: Ctx, query: string, params: unknown[] = [], limit = 500): Row {
-  const text = stripSqlComments(query).trim().replace(/;\s*$/, "").trim();
+  let text = stripSqlComments(query).trim().replace(/;\s*$/, "").trim();
   if (!text) throw new ToolError("Empty query");
   if (text.includes(";")) throw new ToolError("Only a single statement is allowed (found ';')");
-  if (!/^(select|with)\b/i.test(text)) throw new ToolError("Only SELECT or WITH ... SELECT queries are allowed");
+  const pragma = rewritePragma(text);
+  if (pragma) ({ text, params } = pragma);
+  if (!/^(select|with)\b/i.test(text)) {
+    throw new ToolError("Only SELECT or WITH ... SELECT queries (or PRAGMA table_list / table_info(<table>) / index_list(<table>)) are allowed");
+  }
   let stmt;
   try {
     stmt = ctx.db.prepare(text);

@@ -15,14 +15,18 @@ Core principle: build a table of buckets (type x {base, added, increased, more})
 
 ### Step 0: fix the scope
 
-Write down before computing: skill (ability id), character level, attributes, equipped items with tiers/rolls, passive and skill-tree allocations, enemy (dummy, level-N monster, boss, area level, corruption). Missing inputs become explicit assumptions labelled **U**.
+Write down before computing: skill (ability id), character level, attributes, equipped items with tiers/rolls, passive and skill-tree allocations, enemy (dummy, level-N monster, boss, area level, corruption). Missing inputs become explicit assumptions labelled **U**. If the user gives no passives or mastery, say "class and mastery passives not counted" in the report.
 
-Tool shorthand for the whole procedure (MCP names; without MCP use `yarn mcp:call <tool> '<json>'` from the repo root in Bash, and send JSON containing `<`, `>`, `%`, `&` or `|` on stdin, see **le-data-query**). `find_mods` arguments are always nested: `{"filters":{...},"limit":N}`.
+Interpretation rule for numbers the user states: character-sheet values are **final totals** (crit chance 40% -> cc = 0.40; crit multiplier 250% -> cm = 2.5; "350% increased fire damage" -> inc_fire = 3.5 already summed), item and node lines are **additions** (+100% crit multiplier -> cm = 2.0 + 1.0). If the user does not say which, compute both readings and report the spread (for cm 250%: total gives x2.5, addition gives x4.5).
+
+Tool shorthand for the whole procedure (MCP names; without MCP use `yarn mcp:call <tool> [args]` from the repo root, with SQL and anything containing quotes, `<`, `>`, `%`, `&` or `|` passed as `@file` / `--query-file` or on stdin, see **le-data-query**). `find_mods` arguments are always nested: `{"filters":{...},"limit":N}`.
 
 ```
 lookup({"name":"Fireball","kinds":["ability"]})                       -> ability_id fi9
-get({"kind":"ability","id":"fi9"})                                    -> {ability, components, links, attribute_scaling, level_scaling, properties}
+get({"kind":"ability","id":"fi9"})                                    -> {ability, components (each with decoded: damage, crit, ADE, hit, ailments), links, attribute_scaling, level_scaling, properties}
 skill_tree({"ability_id":"fi9"})                                      -> every node with stats and requirements
+skill_tree({"ability_id":"fi9","filter":"ignite","compact":true})     -> only the nodes mentioning ignite
+passive_tree({"class_id":"Mage","filter":"spell damage","compact":true})   -> class/mastery passives that feed the skill
 find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})   -> 606 display-only node Damage lines
 find_mods({"filters":{"property_name":"Penetration","tags_any":["Fire"]},"limit":50})
 sql({"query":"SELECT ord, component_type, json_extract(raw_json, '$.baseDamageStats.damage') AS damage FROM ability_components WHERE ability_id = 'fi9'"})
@@ -40,6 +44,8 @@ FROM abilities WHERE name = 'Fireball' AND is_player_ability = 1;
 `speed_scaler`: 2 AttackSpeed, 3 CastSpeed, 54 none. `tags` is the AT mask of the skill (Fireball 264 = Fire|Spell).
 
 ### Step 2: base damage, ADE, crit, hit/DoT flag
+
+`get({"kind":"ability","id":"fi9"})` already returns each component's `decoded` object: `damage` keyed by type name (Fireball `{"fire":25}`), `damage_total`, `added_damage_scaling` (ADE), `crit_chance`, `crit_multiplier`, `hit`, `damage_tags`, and for `ChanceToApplyAilmentsOnHit` the `ailments[]` with names and chances. The same through SQL, including fields `decoded` does not carry (`critType`):
 
 ```sql
 SELECT ord, component_type,
@@ -65,7 +71,7 @@ SELECT ord, json_extract(raw_json, '$.ailments') AS ailments
 FROM ability_components WHERE ability_id = 'fi9' AND component_type = 'ChanceToApplyAilmentsOnHit';
 ```
 
-- Attribute and level scaling the skill brings with it (mods rows, usually +4% increased damage per attribute point):
+- Attribute and level scaling the skill brings with it (mods rows, usually +4% increased damage per attribute point). `context = 'attribute:N'` names the attribute: N = 0 Strength, 1 Vitality, 2 Intelligence, 3 Dexterity, 4 Attunement (Fireball: `attribute:2`, Intelligence). The contribution is `value x attribute total`, for example `0.04 x 60 Int = +2.40` increased; confirm that the user's attribute figure is the final total (class base + gear + passives) and label it **U** if it is not.
 
 ```sql
 SELECT source_kind, context, property, property_name, tag_names, modifier_type, value_min, value_max
@@ -117,7 +123,7 @@ Node stat lines are display-only: all 6,528 `skill_node` rows in `mods` have `mo
 find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})
 ```
 
-(`total_matching` 606 in this build; `source_context` names the tree.) The same through SQL, restricted to one tree and to wording that mentions "more":
+(`total_matching` 606 in this build; `source_context` names the tree.) The same through SQL, restricted to one tree (all property-0 lines of its nodes; add `AND label LIKE '%more%'` to keep only lines whose wording says "more", which on most trees, Fireball included, is none):
 
 ```sql
 SELECT source_id, label, display, property_name
@@ -174,7 +180,7 @@ Per type, multiply:
 2. resistance factor `resMult = (res > 0.75 ? 0.25 : 1 - res) + pen` where `res` is the enemy's resistance after shred (no floor below 0) and `pen` is your Penetration (SP 59) of that type (typed, Elemental, or all). Most monsters have 0% resistance by default; mods, monolith modifiers and champions add it. Shred is applied before the 75% cap, penetration after it, and shred is weaker vs bosses (-2% per stack instead of -5%);
 3. enemy damage-taken modifiers (SP 6 on the enemy: increased damage taken, curses like Withering);
 4. monster level damage reduction `(1 - DR)`: 87% at level 100 (x0.13), 75% at level 75, 54% at level 50, boss `DR + 0.05(1 - DR)`; 0 for a training dummy. [damage-pipeline.md#9-monster-level-damage-reduction] **D/A**
-5. enemy armour for hits (negative armour = bonus), using the armour formula of [defenses.md#armour] **D/X**.
+5. enemy armour for hits (negative armour = bonus), using the armour formula of [defenses.md#armour] **D/X**. Default for monsters: 0 armour and 0% resistance unless mods, monolith modifiers or champions add them ([enemies-and-corruption.md#summary-10-lines-max-the-rules-an-agent-must-never-get-wrong] item 8, **G**). Corruption raises monster health and the damage they deal, not the damage they take: it does not enter `resMult` or DR (it does change how long a kill takes).
 
 "Penetration by area level" applies to *enemies hitting you* (their 1%/area level), not to your penetration of them; do not mix the two.
 
@@ -214,6 +220,8 @@ Ailments cannot crit, ignore armour/dodge/block, face resistance, penetration of
 
 ### Step 11: rate
 
+If the user gives no cast or attack speed, report per-hit numbers only, or label the DPS **U** with the speed you assumed (for example S = 1).
+
 `uses/s = S x speedMultiplier x 1.1 / useDuration` with `S = (1 + sum increased speed + tree increased speed) x product more` for the skill's scaler; melee (and bow with a bow) additionally multiply by the weapon attack rate; cap by cooldown `1/cooldown` when the skill has one. `DPS = avg hit x uses/s x hits per use x projectiles hitting`. [speed-cooldowns-mana.md#2-use-rate] **D**, [speed-cooldowns-mana.md#3-cooldowns-and-charges] **D**. Channelled, combo and minion skills: read their sections first.
 
 ### Step 12: minions
@@ -222,7 +230,7 @@ Player stats help minions only through the Minion/Totem tag transfer; minion dam
 
 ## Worked example: Fireball vs level-100 monster
 
-Inputs from the data (queries above): Fire 25, ADE 1.25, crit 5%/x2.0, ignite chance 0.4, `use_duration 0.75`, CastSpeed, Ignite Fire 40 over 2.5 s. Illustrative build inputs (all **U**): 40 Int (+160% increased from attribute scaling), +20 spell fire (typed), +12 spell damage (untyped), +8 spell cold (typed), increased 80% fire / 50% spell / 30% elemental / 40% cold, tree 35% more and 20% more fire, +4% crit chance with 150% increased, +100% crit multiplier, 40% + 10% cast speed, 20% fire penetration, 3 fire shred stacks, level-100 monster (DR 0.87).
+Inputs from the data (queries above): Fire 25, ADE 1.25, crit 5%/x2.0, ignite chance 0.4, `use_duration 0.75`, CastSpeed, Ignite Fire 40 over 2.5 s. Illustrative build inputs (all **U**; the 35% more matches Winged Fire `fi9:6` at 5/5 points, +7% per point, but the "20% more fire" node and the +4% crit chance are invented for the example; the real Fireball damage nodes are `fi9:6` Winged Fire, `fi9:14` (damage over time), `fi9:22` Mana Sphere and `fi9:23` Unchained Fire): 40 Int (+160% increased from attribute scaling), +20 spell fire (typed), +12 spell damage (untyped), +8 spell cold (typed), increased 80% fire / 50% spell / 30% elemental / 40% cold, tree 35% more and 20% more fire, +4% crit chance with 150% increased, +100% crit multiplier, 40% + 10% cast speed, 20% fire penetration, 3 fire shred stacks, level-100 monster (DR 0.87).
 
 ```
 fire dmg  = 25 + 1.25 x (20 + 12 x 25/25) = 65 ; cold dmg = 1.25 x 8 = 10
@@ -244,10 +252,13 @@ Source: [damage-pipeline.md#worked-example], [ailments.md#worked-example]. Repor
 
 ```
 Skill: <name> (<ability_id>)  src mask: <value> (<tags>)  enemy: <dummy | level N, area A, corruption C>
+Inputs read as: <totals | additions | both> ; passives counted: <yes | not counted>
 Buckets: type | base | ADE x added | increased (sum, list) | more (list) | hit
-Crit: cc, cm, E_crit      Rate: uses/s, source of speed
+Crit: cc, cm, E_crit      Rate: uses/s, source of speed (or "speed missing: per-hit only / U")
 Enemy: res, shred, pen, DT, level DR, armour
+Avg hit (vs dummy | vs level N): ...
 Hit DPS: ...   Ailment DPS: ...   Total: ...   (labels: formulas D/G, inputs A from ids, assumptions U)
+Bounds / interpretation spread: <low>-<high> and what drives it
 Not modelled / undetermined: <list>
 Sources: <table + id for every modifier>, <page#section for every formula>
 ```

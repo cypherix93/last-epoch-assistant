@@ -174,6 +174,28 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((sql(ctx, "select count(*) n from uniques where unique_id = ?;", [0]) as R).rows[0].n).toBe(1);
   });
 
+  it("sql allows only the read-only schema pragmas", () => {
+    const info = sql(ctx, "PRAGMA table_info(affixes)") as R;
+    expect(info.rows.map((r: R) => r.name)).toContain("affix_id");
+    expect((sql(ctx, "pragma table_info('uniques');") as R).rows.map((r: R) => r.name)).toContain("unique_id");
+    expect((sql(ctx, 'PRAGMA table_info("mods")') as R).rows.length).toBeGreaterThan(5);
+    expect((sql(ctx, "PRAGMA table_info(no_such_table)") as R).rows).toEqual([]);
+    const list = sql(ctx, "PRAGMA table_list") as R;
+    expect(list.rows.some((r: R) => r.name === "mods")).toBe(true);
+    expect((sql(ctx, "PRAGMA index_list(mods)") as R).columns).toContain("unique");
+    for (const bad of [
+      "PRAGMA journal_mode = WAL",
+      "PRAGMA writable_schema = 1",
+      "PRAGMA user_version",
+      "PRAGMA table_info(mods) ; DROP TABLE meta",
+      "PRAGMA table_info(mods); PRAGMA foreign_keys = OFF",
+      "PRAGMA table_info(x') union select 1 --)",
+      "PRAGMA main.table_info(mods)",
+    ]) {
+      expect(() => sql(ctx, bad), bad).toThrow();
+    }
+  });
+
   it("knowledge", () => {
     const l = knowledge(ctx) as R;
     expect(l.pages.length).toBeGreaterThanOrEqual(20);
