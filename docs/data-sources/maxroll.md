@@ -2536,3 +2536,30 @@ Example (record #0, trimmed):
   "moreRoundingOverrides": []
 }
 ```
+
+## Guides and planner profiles
+
+`yarn fetch --only maxroll-guides` (alias `--source maxroll-guides`; part of the default `yarn fetch`) downloads Maxroll's Last Epoch build guides into `data/raw/<version>/maxroll-guides/`. Code: `packages/fetch/src/maxroll-guides.ts`; HTML parsing is covered by `maxroll-guides.test.ts` with fixtures cut from the live pages.
+
+Sources (all plain GETs with the repo's browser-like User-Agent, sequential with a ~350 ms pause, 3 retries):
+
+| what | URL |
+|---|---|
+| guide list (server-rendered) | `https://maxroll.gg/last-epoch/build-guides` |
+| guide page | `https://maxroll.gg/last-epoch/build-guides/<slug>` |
+| planner profile | `https://planners.maxroll.gg/profiles/le/<profileId>` |
+| tier lists | `https://maxroll.gg/last-epoch/tierlists/{corruption,speed-farming,bossing}-tier-list` |
+
+Layout:
+
+- `maxroll-guides/index.json`: `{fetched_at, list_url, guides[], tier_lists{}}`. Each guide: `slug, title, url, author, updated` (as shown, e.g. `October 8, 2026`), `updated_iso`, `season` (`Season 5 Rage Of The Frostborn` or `Season 4`), `playstyle` (Endgame/Leveling), `style_tags` (Caster/Melee/Range/Minions), `class`, `mastery` (lowercase slugs such as `void-knight`), `planner_id`, `profile_ids[]`, `tiers{corruption,speed,bossing}` (letter, absent when the build is not on that list). Each tier list: `{url, title, updated, entries[{name, tier, slug}]}`; `slug` is the guide the entry links to (exact mapping), `null` for entries without a guide link.
+- `maxroll-guides/profiles/<profileId>.json`: the planner response saved verbatim, `{id, date, name, class, data}`. `data` is a JSON-encoded string whose `profiles[]` are the Starter/Endgame/Aspirational planner profiles, plus `items`, `lootFilters`, `options`, `globalNotes`, and so on. Guide pages themselves are not stored.
+- `sources.lock.json` gets a `maxrollGuides` section: `{listUrl, files[{url, sha256, bytes, fetched_at}]}` with one entry per fetched URL (list, tier lists, guide pages, profiles). `fetched_at` is kept when the hash is unchanged.
+
+How it works and caveats:
+
+- Cards on the list page carry the title, author, `Last Updated` date and tags in a fixed order (season, playstyle, style tags, base class, mastery). The card's skill-bar embed (`data-le-profile`) is the guide's own profile and becomes `planner_id`.
+- A guide page embeds planner widgets as `data-le-profile="<id>" data-le-type="plannerEquipment|plannerSkills|plannerPassives"`; `profile_ids` are the distinct ids in page order (the card's `planner_id` is prepended if the page lacks it). Do not use the `"plannerId"` string found in the page's JSON: on guide pages it belongs to a related post in the sidebar, not to the guide itself.
+- Pagination: the list page shows only current (non-archived) guides, 73 on 2026-10-08 (70 Season 5, 3 Season 4), well under the 100-per-page size of its "See more results" control, so the server render is complete. That control queries Maxroll's Meilisearch proxy (`https://meilisearch-proxy.maxroll.gg`, index `wp_posts_8`); with archived posts included it holds 136 Last Epoch build guides (63 older, untagged with a season). The fetch step does not use that API; archived guides are out of scope. `?page=2` returns the same page.
+- Profiles are large (about 140 KB each, 10 MB for 74); guide pages are only parsed and discarded. Guides are community-authored and edited frequently, so re-running the step changes profile files and hashes; commit the result with the matching game data version.
+- The shown date is the guide's last edit, not the game version. Season 4 guides may still be listed; filter on `season`.

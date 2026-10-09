@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-10-08T22:01:15.276Z",
+  "fetchedAt": "2026-10-09T03:32:51.660Z",
   "letools": {
     "versionFolder": "version152",
     "plannerUrl": "https://www.lastepochtools.com/planner/",
@@ -118,5 +118,916 @@
     "lastModified": "Wed, 30 Sep 2026 11:34:57 GMT",
     "sha256": "500b44e8aa4dde319a1aecda948ae30a25fbec67b8b1df3ed7b61c0dddf2f5f1",
     "bytes": 10089878
+  },
+  "maxrollGuides": {
+    "listUrl": "https://maxroll.gg/last-epoch/build-guides",
+    "files": [
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides",
+        "sha256": "c46f7c330260c88b95f42ab3a3f528563121311c6c1dfcf0f78cc84415bafc6b",
+        "bytes": 547079,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/tierlists/corruption-tier-list",
+        "sha256": "b47383eb5a891a1e7cf232654a75ee64dc27d4fe56a6eff9a3561dc80bfeb68e",
+        "bytes": 303271,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/tierlists/speed-farming-tier-list",
+        "sha256": "5b438710b19aa4bb0d388fc2c550d361d27fde99326d762e7ba21fda312dbd25",
+        "bytes": 298440,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/tierlists/bossing-tier-list",
+        "sha256": "cd94167e2695a6bb48fe2ae4b1ec2f8917d00a4e4904f5ca5770cd51d74ade6f",
+        "bytes": 304376,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/lightning-blast-runemaster-guide",
+        "sha256": "0dcb4ff25e7710dca69716e9875d265ba511993737894e5fc789e5c33f04087f",
+        "bytes": 570612,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/tornado-shaman-guide",
+        "sha256": "867400a44e7bf95aff12ce66fc1c5efbeccaf0a8134a58b7e75fad30bc8c867c",
+        "bytes": 492544,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shadow-cascade-bladedancer-guide",
+        "sha256": "e6f6ddac668ea551c2541f09b9bcf6dd48742949cf8aaafb7172718f67362a9e",
+        "bytes": 493421,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/anurok-frogs-beastmaster-guide",
+        "sha256": "7c085bdcdb9e8b9ea7d43feffeace215c98fa928485ffc50576cf4e801874f0c",
+        "bytes": 420042,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shadow-rend-bladedancer-guide",
+        "sha256": "eefc83071b98e9a8af63c4a4fc5733b11a3f6e4cc7f35ebebe7b47ececf27821",
+        "bytes": 311813,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/stygian-coal-lich-guide",
+        "sha256": "d1e61d22679f90b3ba3b98c4787b37b269a73979ce60470edf6a1a83b7f185d2",
+        "bytes": 418670,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/rip-blood-lich-leveling-guide",
+        "sha256": "0bc6139fcbda28d86cffc5ca1dd202e9592fe6e5916a8b722b775ddc631dd71e",
+        "bytes": 285782,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/melee-avalanche-shaman-guide",
+        "sha256": "766d0c5d3a8ea12fa665b8500a950ae61e2f39d44565d5627bab7a7c0cadccc0",
+        "bytes": 332945,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/ignite-radiant-lance-paladin-guide",
+        "sha256": "125df4411a45085acf03f943a73b304c4582599d3222e54a39b3cf8a5c41af74",
+        "bytes": 345884,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/abyssal-echoes-void-knight-guide",
+        "sha256": "9de77419eb76c73603416b24012e4a79488bad64904a152fc08857f4ea91c2fe",
+        "bytes": 341786,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/swipe-beastmaster-guide",
+        "sha256": "a1b630511247355a330427007b7f79176e8b64ebc671510ff69f280701d43618",
+        "bytes": 311148,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shuriken-marksman-guide",
+        "sha256": "3c9506fd2285d1deba993cda70ee5328f2aa1014c6c44015ffa1844473d6b72e",
+        "bytes": 290292,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/rive-void-knight-guide",
+        "sha256": "0d74a286202879aa2bf185e9c8e0802d907e8a05bb0b02dab23db0e184a83ef1",
+        "bytes": 411510,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/bleed-hammerdin-paladin-guide",
+        "sha256": "486e2ee37da72ba8c66b6d7bb8ad54dfdb4717b94b3873af5f8a7bb83adcde84",
+        "bytes": 377317,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-paladin-guide",
+        "sha256": "dfff97e98c6f65e7919dff98f9314f4f62fa4b73ba5560abcc8cdec84fee4339",
+        "bytes": 363441,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shield-throw-paladin-guide",
+        "sha256": "22cc87960b30d5bf244125945aea076f097171bf1bcb79025bfe2be2bb0f113a",
+        "bytes": 368261,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-void-knight-guide",
+        "sha256": "8aadf1ec7fef10e445e8a6c0f64275fc15bdbe8dfe3d9bd33a7834dd4d3d8e73",
+        "bytes": 357650,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-leveling-guide",
+        "sha256": "0d2c8ea0bd976f55d09cc4afc9dfbe1c0db4c70085d51ebf4db332d783578713",
+        "bytes": 298677,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/upheaval-beastmaster-guide",
+        "sha256": "a35bef0071f05478a088b833084ae64c58d1423f614244086f1b20f34bd4e260",
+        "bytes": 317944,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/forge-strike-forge-guard-guide",
+        "sha256": "5a8ee7306f9af108c4e9710daa748daa11bf8bf35401cdf5c657e3e981961ce1",
+        "bytes": 349381,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/marksman-leveling-guide",
+        "sha256": "3abe2817af87e7d52d9719d48d2a9ca00c37789702a8999dcdecf6928722b80e",
+        "bytes": 317136,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/bladedancer-leveling-guide",
+        "sha256": "a6e3e7f053bfd897e693ebaad1610064726dfb88467a452d64e6c619c663efee",
+        "bytes": 336611,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/falconer-leveling-guide",
+        "sha256": "18a667ee68f8e5c345e0dbd57ea3ace490a59fc1a159089503c626ee859d3528",
+        "bytes": 323381,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/necromancer-leveling-guide",
+        "sha256": "cd54182595dcb11d6c140ce7dcfd352ef4e54a7c0734900642a52136c3bc446f",
+        "bytes": 295359,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/warlock-leveling-guide",
+        "sha256": "ecd02a342dbaa75f80644820d560bb4c4395f46ae32c72fd0769b995a020dacb",
+        "bytes": 302717,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/paladin-leveling-guide",
+        "sha256": "0daf48412387abec4ef6ca2d7ce00f7b423e24241caca32d9f2ad60f59c379aa",
+        "bytes": 313351,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shaman-leveling-guide",
+        "sha256": "ef980aa952917f1addac9b75877614d8c53dadc8388348fc2a59bd7bbf097a5f",
+        "bytes": 312546,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/spellblade-leveling-guide",
+        "sha256": "1a868cd8d0c36c369c26e808a5646d0ba8e23a2bc668987fc3b1e710b48654cc",
+        "bytes": 296351,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shatter-strike-leveling-guide",
+        "sha256": "79f127936aa596104b8b6d814db8a9420787105c7a352379d1c4d96e15d7d0e9",
+        "bytes": 306813,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/meteor-sorcerer-guide",
+        "sha256": "aa08d1091ca26185a5f408ae9d5924ec1b6f365e86898e999ac865313cabc1e1",
+        "bytes": 334336,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shield-bash-forge-guard-guide",
+        "sha256": "559ddee5276f3351c350a6adc471e57a87a32b11adf74088d76dd83e77b3d871",
+        "bytes": 365430,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/storm-crows-beastmaster-guide",
+        "sha256": "7172d469e74157a7b1e96403342beffaf5ea502d31028d1b00b6b6a61fd41126",
+        "bytes": 412716,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/spirit-thorns-beastmaster-guide",
+        "sha256": "b60d7cfc191c3d8182830e2d03813b6ddbef08aa46b1fedd4f8747e4fa23c752",
+        "bytes": 333900,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/static-orb-sorcerer-guide",
+        "sha256": "ef93e38bc6389e0fb080219b9b9565297ad99286e17c22d9712b6638eff893ab",
+        "bytes": 365099,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/hydrahedron-runemaster-guide",
+        "sha256": "dd13f129fa9aed20f1ea70ddd4d7e85bc4a92bfb20fd1f4130e164d24d3cb437",
+        "bytes": 439014,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/reflect-shaman-guide",
+        "sha256": "22663002553a74d011b881d22f2fd23c1db1c5540c1287ceb1db9fb302fb06b9",
+        "bytes": 425384,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shatter-totem-werebear-druid-guide",
+        "sha256": "284ee60deddcd822d9a4684117c67411b31d48450311e656ffae56047b578d9e",
+        "bytes": 550482,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/totem-shaman-guide",
+        "sha256": "a70880c9935dc88baf666c5a6fa4030091459b2a1209029b8338a7cc73582b54",
+        "bytes": 467380,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/multistrike-forge-guard-guide",
+        "sha256": "91682a40399ec4ab3d50950fadd04a507bfcdc3dfbf4e7ad451acdc4c70ea08e",
+        "bytes": 349683,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/fire-aura-spellblade-guide",
+        "sha256": "5fa8b23334623d0a41c341a736de2a580e98b52bf2202434e49df45910001f5d",
+        "bytes": 337684,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shatter-strike-spellblade-guide",
+        "sha256": "8566b9e0b863c8e4acf9cbd75a79872a52c1ed310aaf6e4a13330dc820fc4735",
+        "bytes": 362874,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/flame-reave-spellblade-guide",
+        "sha256": "9f612b5edac15279ce15bdb89b0c83582c8ff3de288620c10165e03be41bf152",
+        "bytes": 351613,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/glacier-sorcerer-guide",
+        "sha256": "9190738386c6ff5d6b294dfc6b48149408c1fec29e5da8b0cb9349995f594d6a",
+        "bytes": 417709,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/sabertooth-beastmaster-guide",
+        "sha256": "c1f708288171c8dc25acfe86c6a68401950a78a73fcd84ce863c98b4356b7d17",
+        "bytes": 351795,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/raptor-beastmaster-guide",
+        "sha256": "d2f73c974c0feaf881568326a0bc1acd20bd881ac7f1e8f8cdf853f787166331",
+        "bytes": 327512,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/bear-beastmaster-guide",
+        "sha256": "1da08cf39e36bcade9a33621feba56ac728aec41d23e741ae04b5acd4baf5f10",
+        "bytes": 373412,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/multishot-marksman-guide",
+        "sha256": "53f2b312f25ebf94e352956b9cd96685dbae53d4a1928e6a1af9d5d178d3dd0d",
+        "bytes": 343217,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/bladestorm-bladedancer-guide",
+        "sha256": "bdddf6c3c6688baa291cc093c46048a3d0eb38cf398c2aaa7e6c140257a181a2",
+        "bytes": 337139,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/forged-weapons-forge-guard-guide",
+        "sha256": "fa9f72114883287d7b5343b43e3e25277af7667b59399e7832541a9d5d172f32",
+        "bytes": 330850,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/zombie-warlock-guide",
+        "sha256": "af1c0c0d2966c6d560708e8491535e50c889658d2720f154a5118deb96a8e4da",
+        "bytes": 330856,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/skeleton-necromancer-guide",
+        "sha256": "83ac702bda69f6d788f28367f6e0603f504cd16d0f4e43224930a584a42cf370",
+        "bytes": 358729,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/wraith-necromancer-guide",
+        "sha256": "a82a96e7b2e52535c81c352101f36fa6a1aae15d1d9ca70a6bbbcac622877ddf",
+        "bytes": 350479,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/skeleton-mage-necromancer-guide",
+        "sha256": "c67429f92de9f45f21a6468e357793703603486051749f7b54d66381e6a6baf4",
+        "bytes": 351224,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/blood-spectre-necromancer-guide",
+        "sha256": "b70158c7310e6f7a541f34bced66d8277f86eea2405af538c541858cc8ab59f6",
+        "bytes": 426506,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/abomination-necromancer-guide",
+        "sha256": "54715f055df72894068f6dfe2e1be0520d539ceb3fb2db72124942f7bd97ca0f",
+        "bytes": 390637,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/ballista-falconer-guide",
+        "sha256": "6a7572cb8b619b940b561a6815a7f3f84b9d89ab877bc71714c3f1f726a8a475",
+        "bytes": 539897,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/multistrike-smite-void-knight-guide",
+        "sha256": "3aa1bf8bbd9324a58b6a6471b8cc1eac615f16f6be6988f0c0e6f775e68bcf6d",
+        "bytes": 329813,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/javelin-paladin-guide",
+        "sha256": "9a89f7416cb9357fc35ce3bbf267834633e031029fe99eef27bbada986461591",
+        "bytes": 320786,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/crit-hammerdin-paladin-guide",
+        "sha256": "ebccefa1f0a9cd524587347c1b12c1bc4f5c28cd0068c26eaeb7280f82b89fa5",
+        "bytes": 334892,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/heartseeker-marksman-guide",
+        "sha256": "16deff0ea383053a510637da95461da6397f6c680972a1ecef06a1d0fb08a9ec",
+        "bytes": 358165,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/harvest-lich-guide",
+        "sha256": "1a6bb4e884d764eaa6025d3b8623135d28c0c9e3750b974f3d0392096ac54e27",
+        "bytes": 389417,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/chaos-bolts-lich-guide",
+        "sha256": "a30d22fb20b6b897eabbd86760ceacb87b2215706b1b14b404ccb5357e5ffab3",
+        "bytes": 355715,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/erasing-strike-void-knight-guide",
+        "sha256": "5ffc192b7cc4e00cdfabf59c8ef2c36434ab5ddb8927aa9634ecc9b31209ddef",
+        "bytes": 359854,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/time-rot-void-knight-guide",
+        "sha256": "f30f7d908d4a38e175f3ffddad4659a195ec45720e8e3cc66371e53a100ebb35",
+        "bytes": 502764,
+        "fetched_at": "2026-10-09T03:31:39.985Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/judgement-aura-paladin-guide",
+        "sha256": "6aa032456a04f1825a968e8fbebd298fffae27b987b92cd5b62ea17cfffaf9f0",
+        "bytes": 325418,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/judgement-paladin-guide",
+        "sha256": "b4c0157c05d1406b6d2b3a864db3e88de0246a019e1c01231dd8a67c73a58e62",
+        "bytes": 389965,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/flay-mana-lich-guide",
+        "sha256": "d9d5501cc601337de06a960633a971baba1e3f7213e014e94811783a54bf5be3",
+        "bytes": 400472,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/rip-blood-lich-guide",
+        "sha256": "7799143daefe34ef1b3e80573b106cbfe92f89171e382ba3e9293fb4564872b2",
+        "bytes": 381244,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/echo-warpath-void-knight-guide",
+        "sha256": "b864e2c6fc86ac763783c706a323337c34e1099ce4fbbbe7f72d88a1fa35a409",
+        "bytes": 364937,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/flame-whip-warlock-guide",
+        "sha256": "7b558c595f2af6e15fd984f13e094b4d07d284d171e31cb901e59a534ac2aa2e",
+        "bytes": 333393,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/profane-veil-warlock-guide",
+        "sha256": "ba2ad47d48cbaddb93ad13f5ab14898937ece326abce9443059e826848cddc24",
+        "bytes": 395644,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/shield-rush-forge-guard-guide",
+        "sha256": "829c2ca705110bb3c34997d4e2f8067b99f6ad86bb4757fd6f614372d7a96920",
+        "bytes": 314754,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://maxroll.gg/last-epoch/build-guides/frostbite-swarmblade-druid-guide",
+        "sha256": "19fb1df7495275242deb7f6ed8034102b027bee54b1a945c4c1493195607228b",
+        "bytes": 350519,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/fr66z80q",
+        "sha256": "3ccae7ca3837f7eafb812224c82d47cc05bc748e5ca85bd49e278f05cf671222",
+        "bytes": 335058,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/kj6jox0q",
+        "sha256": "88fbf3b829535413b2dd7ac9a42a4667093367f3926367eedfd196ac4a853d4a",
+        "bytes": 258472,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/uz6jpp0q",
+        "sha256": "de0303ac533d07681bb71b50ad1c380e6e2ec58959f00f960030b9f3bf98f9a7",
+        "bytes": 258585,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/rl6jp20q",
+        "sha256": "d0a98dfac146a82e047de0ebcb33864c12d1b1085cfe4694e4ec70ecc0f445a2",
+        "bytes": 196548,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/zge0t60e",
+        "sha256": "677044b30e5e3ccda6adb97b88683536f362a135d81f4a857efc002db996696a",
+        "bytes": 107233,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/eo9n270v",
+        "sha256": "cafe2b6f82124ed436651c90288d98f1caa45e4141efa24d0f6d0123552bb07e",
+        "bytes": 174771,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/fa8rmy0v",
+        "sha256": "39359fa7a19677dee6e4bcb3867822d43660618ecb3c08f1f72473729815e30b",
+        "bytes": 56575,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/npq70b0t",
+        "sha256": "6168998931caafa3bb594789e1f9d1b80b1c9ef2205c24b6c6041c316ac3a23f",
+        "bytes": 108402,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/gg33xj0s",
+        "sha256": "2a657f7592d1da27bc04566cd99a19542bcdecb3b03382e1770dfcf59cfcd05e",
+        "bytes": 124276,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/i4li50ot",
+        "sha256": "074e042c2e224be64453a278413ba97c399b29970e0482c2e0fc0b58d38d18c0",
+        "bytes": 130710,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/lv7xf00v",
+        "sha256": "d856df83c7c5723de9eea470f36d9c277ac9d14d698bd91592f655bc5ccd77cb",
+        "bytes": 101640,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/90fchi0t",
+        "sha256": "2ceda2dd29308c4cdb876c8e03a339beb36a1d65436acf27a28989230f0a1233",
+        "bytes": 78918,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/7e5t00ny",
+        "sha256": "01d879505ad31e88c280d5a708f4ea330134e6f2bc6d9eeb4492144ec3bf55d4",
+        "bytes": 192402,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/vx1xw0gs",
+        "sha256": "b573677a4207146c0dd2a279ac65dd219bb193a7e09685d0e09b287ed7e23634",
+        "bytes": 157735,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/czdxmm0x",
+        "sha256": "d445f89e117c8434d94ced8fb3c63c1b47b36f8e307ec2608f21a0e48e37ccee",
+        "bytes": 139406,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/0679x03l",
+        "sha256": "dec5863b19b1825c4c0c272988f2ca41077befdad1553cf0288bbc339b922027",
+        "bytes": 142938,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/mde1rv0x",
+        "sha256": "14c458d686128c2cf326a1983be87f892dfff20cba4338de0c7c68fd092910fd",
+        "bytes": 145591,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/0w2ltq0g",
+        "sha256": "9644174c66b386fc2fdca78b98ea485cce5ef4fcbc656b707ce5723bbede1c0c",
+        "bytes": 65629,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/88e0b0ln",
+        "sha256": "5bfb6731fd3bbb61cdcc95630779f1f2f41d50915835841410e2dba1f26f6e4e",
+        "bytes": 104974,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/qo1niv06",
+        "sha256": "d2493d9e564452d834a0fabeabcf04386de371c4d62185f807cad2fbecc3273b",
+        "bytes": 121792,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/je68sc0e",
+        "sha256": "9bf4355ec217e30a82912b9786783935299ab4354c5a56b4c42af263be4e66b8",
+        "bytes": 79594,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/sb62zd0e",
+        "sha256": "8cf4b96206967879a1b005316d8b08d7340b119e3f8d5c0d47e5679297909726",
+        "bytes": 96675,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/dz3y3005",
+        "sha256": "f9295a6ee132612bf572d2db8a4b91f81cda1d05caccc7b811ee746659ef24c0",
+        "bytes": 87862,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/ea7od0qq",
+        "sha256": "a91418a7cc8e06e7d84e1472e3eb3421a4739c09119f5c5681e20dc48d878426",
+        "bytes": 59241,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/o771k00f",
+        "sha256": "c886567931c06629fcd4f4c2d1425cf51e3fff91a33bcb8fbd8e4f4edace5a81",
+        "bytes": 66454,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/lp4lq0i3",
+        "sha256": "9b81724a2a6c9ea7646531522d7e87c4138a3857f44bf2b916c92e0c365707b0",
+        "bytes": 75272,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/3k9hk0gr",
+        "sha256": "ee5e1dcc75dd2e83814559975b0b6277bba851f714f45d602e468d27da40626c",
+        "bytes": 76650,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/ps21bf0v",
+        "sha256": "d222e7bf73cfa1e6877944e73c3efdaadb9f5bf881192b8c14f0551d0aadabfa",
+        "bytes": 64684,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/gh3b90il",
+        "sha256": "ae6a626c59bef9b492a8ba879465e23616ce26e5d76b147ca91f2eb64f8db266",
+        "bytes": 66826,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/3pt4f0gf",
+        "sha256": "3cb2833ee28ecd2cde52e0e7fca65737a552ffd4df3450f4c0d0b9c1f4353baa",
+        "bytes": 129354,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/im7tk0it",
+        "sha256": "584d4e9804a7ee6e24638966f39cdfbbec7b6b6093c02b8e5b87f7c1ad24daa5",
+        "bytes": 136001,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/sj6jp40q",
+        "sha256": "7e4f2ea9968c39cc0e7d0668f6c72c3f6cbc64fb4bc9d63812598e89d8e9cf8b",
+        "bytes": 195210,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/c45teq0o",
+        "sha256": "437c07fb76d181374de6c752877f984b24a2d19643036b4cd45655eebb167ed6",
+        "bytes": 33327,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/csbexj0h",
+        "sha256": "dc14941824b36420141c62a0970b414f9745019be00b0c55144e3a274d4edabb",
+        "bytes": 143848,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/ph66z90q",
+        "sha256": "d81750a9da26374fe89dbed3c04dfb4fd9f5872719733ee097c177e61b251ae2",
+        "bytes": 211634,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/1o6jp50q",
+        "sha256": "efcee10a9a9035e1cc96e9e3e18c41108c99ae6dae7499ea8518abd20da2fef8",
+        "bytes": 206119,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/nn6jp80q",
+        "sha256": "2e32a13ee9cf40395c77b2683a9f98bdc0fd587f76b71487644267ff20f16630",
+        "bytes": 318443,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/vr6jps0q",
+        "sha256": "9cee6755ebb5beb3bd0bf13754fa9f002716ff3060ba78f043ab465e2ae8b3ca",
+        "bytes": 228361,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/vdcxm0lg",
+        "sha256": "d9c1932eda43c0f7261caf57ca3f3bf0cefe62665ab5381fb0bec4606377195a",
+        "bytes": 120648,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/o4b870id",
+        "sha256": "3009f9ccfb93edcdd49c3009fa5c886ae4fa1d9e9fb15fd0c46edeafcacb33e9",
+        "bytes": 117527,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/j6i0l0i4",
+        "sha256": "90e0bb3ee89b38db43971a9bcf7f013fb454cf980218c25d624f0af566585250",
+        "bytes": 138367,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/cg2j4d0n",
+        "sha256": "f601f961e7e5915f93cff2a5fa24e86758bc5840ff6ed66ae790797f6b7ba73b",
+        "bytes": 131676,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/41daw0q2",
+        "sha256": "2c07293f1339316b9f05adad635fbe392b67c01fdac74760bc7478cf129965ba",
+        "bytes": 188175,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/7k3ez0gd",
+        "sha256": "0331843bef91f6bafdfa497068d52a810c7415a259920fe59b6dc77cf2da0c30",
+        "bytes": 123477,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/no49f0q9",
+        "sha256": "f2055da937b1dce265757d316b79727d6e7b31c133b3379de0189e7490873622",
+        "bytes": 106142,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/1j2bc0q0",
+        "sha256": "b87f4b3e8f3b3fcaf58559e4e80d928e9d74efbd8e147b957b890de0de6e20f2",
+        "bytes": 146253,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/1g47u005",
+        "sha256": "9ed60708184533a39229c8377c8eb1b93f2a44865b665fe7a2fa9a25cd096e7e",
+        "bytes": 125981,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/4441120i",
+        "sha256": "15fadfa3c0f61a9274690906ce12674f687cab20d62b7db22171106e41f871e5",
+        "bytes": 129628,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/qwtue0v9",
+        "sha256": "6691dc0a478d9c00cc085a7cf3d3174baa874c67757e30c133d910efc910ee96",
+        "bytes": 111896,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/kb3ocj0e",
+        "sha256": "9f003ac70e52de547fff2f8ed14183fd5958ddef0296de3fd5a7b5f0d648472a",
+        "bytes": 121790,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/y21h9h0x",
+        "sha256": "d811d10d7aee25a79af736e331f74e1595ef944babdcdbc516b07f90374cd2d9",
+        "bytes": 135307,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/f3261003",
+        "sha256": "b99d278ab9dfde720063f2a01fd1728d79ca9b884209a1508fecdcf352acdba8",
+        "bytes": 126635,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/jo4ei80q",
+        "sha256": "06b2df806171628718ef00c626bd9e83f276945f222957d8fa117daa1b1bc399",
+        "bytes": 134592,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/i6ahli0t",
+        "sha256": "c1d5ec652fb76d2e55a8bc05e22e338f31ed56a0f3b9162aeeea5081a9e271c8",
+        "bytes": 187538,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/8b7z40qt",
+        "sha256": "0e017510505234df1c6a66f2018f948d2df1bafe163bb91d37933acc2d3e0e8f",
+        "bytes": 170980,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/kl66zb0q",
+        "sha256": "807ba7e19fc5df254f8d4c3072a4f81e1b842916fef3df7b779353291c21ec3d",
+        "bytes": 308004,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/2i2in0qc",
+        "sha256": "0219870e975e84d09649ee6d559c4d542d75aa9be557a93b9ec2f9205a63153c",
+        "bytes": 125445,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/c174p0ze",
+        "sha256": "f17fac6727b494a31fda10e27c5b18bf13283b1c4a88b4301a20cdfd1f4e3ee9",
+        "bytes": 104439,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/fz1tg0qv",
+        "sha256": "a448482c83c923aa67e1b9cc42e71c48f1ff46105880aa34d641d17109bf2a6c",
+        "bytes": 111747,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/ch2i0lbq",
+        "sha256": "53ed8cfe439c4e3b3ae46ecf1607624d9ab16f4af349c4c5b41ff4da96a6960c",
+        "bytes": 147340,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/0i1300go",
+        "sha256": "3e98005027671119ce12c53b3acd5f5b82cb59ac7f6a407c2a957f6701e009c8",
+        "bytes": 164821,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/0y7au08m",
+        "sha256": "111702d05c2424b0d3950a87798be102f04b34d51fd43fc606987622ded538c0",
+        "bytes": 137539,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/0g5ta0n3",
+        "sha256": "422055f55cdb3c23011a0e8333a2fa8c7ae55f95c35f86de6164863a201fd216",
+        "bytes": 143321,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/qr5lt0rq",
+        "sha256": "0d345f81bf66f42ba32e15d7f0f0c719b3cbe7372f47453e73705b1bd0ea27ac",
+        "bytes": 259167,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/8xt70z7t",
+        "sha256": "b167bf1a9de0563c4d40c0ab650670c618d720bd14afe4ee5db28ca4b7dc9691",
+        "bytes": 100088,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/9n5nu0er",
+        "sha256": "f5b352c660687e4716ee0ef3e598a63b3c3f6c7cf5af632ef6ea9c0a279e6ea5",
+        "bytes": 157653,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/2ai4s0qh",
+        "sha256": "6ef3a1c9dfdccf8e82ebcf23bd1e0afefff3cbc593569c7581730f587fdeaf79",
+        "bytes": 172614,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/svfnx0q6",
+        "sha256": "32cb80237039d7fa7fd179d18edb91e5e00fe316ff0cceac7a29741a470e18f9",
+        "bytes": 147950,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/kf9or0nu",
+        "sha256": "dcc4191e3d8c0b4ceaee35c225442cf5d2a2ef94fff29372a6eb44ec7024ef95",
+        "bytes": 140229,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/2svd0sa0",
+        "sha256": "62ca762babbc0ffa46af220d0e2f2219151fb15974c921487f96d60bafce8375",
+        "bytes": 118436,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/q538ke0e",
+        "sha256": "6017677751a81be9f7a7ecdad367153ecebf5797801fe8cdfc201f36d38e8d8b",
+        "bytes": 173318,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/7f5tdu0o",
+        "sha256": "52b6fd33a86027f7883c762a23dee56c3edb0199aa5926d6110b11aa0b63ac72",
+        "bytes": 68653,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/kg56tr03",
+        "sha256": "b669209bfcc95ff5b3c055ed27fbad3dbf281f1c8535bebcfbddf8b830510ea4",
+        "bytes": 50427,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      },
+      {
+        "url": "https://planners.maxroll.gg/profiles/le/20tfn0go",
+        "sha256": "8d8bac8872ce5d1c907cda631f31ba71b9c7e0e6d1a3bde30010a5ac3e83ea7d",
+        "bytes": 38656,
+        "fetched_at": "2026-10-09T03:30:02.822Z"
+      }
+    ]
   }
 }

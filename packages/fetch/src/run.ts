@@ -3,10 +3,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fetchLetools, type ReportRow } from "./letools.js";
 import { fetchMaxroll } from "./maxroll.js";
+import { fetchMaxrollGuides } from "./maxroll-guides.js";
 import { readLock, serializeLock, type SourcesLock } from "./lock.js";
 
 export interface CliArgs {
-  source: "all" | "letools" | "maxroll";
+  source: "all" | "letools" | "maxroll" | "maxroll-guides";
   version?: string;
   force: boolean;
 }
@@ -16,9 +17,10 @@ export function parseArgs(argv: string[]): CliArgs {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--force") args.force = true;
-    else if (a === "--source") {
+    else if (a === "--source" || a === "--only") {
       const v = argv[++i];
-      if (v !== "letools" && v !== "maxroll") throw new Error(`--source must be letools or maxroll (got ${v})`);
+      if (v !== "letools" && v !== "maxroll" && v !== "maxroll-guides")
+        throw new Error(`${a} must be letools, maxroll or maxroll-guides (got ${v})`);
       args.source = v;
     } else if (a === "--version") {
       const v = argv[++i];
@@ -48,8 +50,8 @@ export async function runFetch(
   let prevLock: SourcesLock | null;
   let letoolsLock: SourcesLock["letools"];
 
-  if (args.source === "maxroll") {
-    if (!current) throw new Error("--source maxroll needs data/raw/CURRENT; run a LE Tools fetch first.");
+  if (args.source === "maxroll" || args.source === "maxroll-guides") {
+    if (!current) throw new Error("--source maxroll / maxroll-guides needs data/raw/CURRENT; run a LE Tools fetch first.");
     semver = current;
     prevLock = lockOf(semver);
     letoolsLock = prevLock?.letools;
@@ -68,7 +70,7 @@ export async function runFetch(
   }
 
   let maxrollLock = prevLock?.maxroll;
-  if (args.source !== "letools") {
+  if (args.source === "all" || args.source === "maxroll") {
     if (args.version) {
       log(`Skipping Maxroll: it has no version history, --version applies to LE Tools only.`);
     } else {
@@ -78,7 +80,23 @@ export async function runFetch(
     }
   }
 
-  const lock: SourcesLock = { fetchedAt: new Date().toISOString(), letools: letoolsLock, maxroll: maxrollLock };
+  let guidesLock = prevLock?.maxrollGuides;
+  if (args.source === "all" || args.source === "maxroll-guides") {
+    if (args.version) {
+      log(`Skipping Maxroll guides: they have no version history, --version applies to LE Tools only.`);
+    } else {
+      const r = await fetchMaxrollGuides({ rawDir, semver, force: args.force, previous: prevLock?.maxrollGuides, log });
+      guidesLock = r.lock;
+      rows.push(...r.rows);
+    }
+  }
+
+  const lock: SourcesLock = {
+    fetchedAt: new Date().toISOString(),
+    letools: letoolsLock,
+    maxroll: maxrollLock,
+    ...(guidesLock ? { maxrollGuides: guidesLock } : {}),
+  };
   // Keep fetchedAt stable when nothing changed so re-runs leave git clean.
   if (prevLock && JSON.stringify({ ...prevLock, fetchedAt: "" }) === JSON.stringify({ ...lock, fetchedAt: "" })) {
     lock.fetchedAt = prevLock.fetchedAt;
