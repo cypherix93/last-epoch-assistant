@@ -196,7 +196,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
   {
     kind: "ability",
     boost: 3,
-    sql: `SELECT ability_id AS id, name, (CASE WHEN is_player_ability = 1 THEN 'player' ELSE 'minion/monster' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri FROM abilities`,
+    sql: `SELECT ability_id AS id, name, (CASE kind WHEN 'player' THEN 'player' WHEN 'player_sub' THEN 'player sub-ability of ' || coalesce(parent_ability_id, '?') WHEN 'minion' THEN 'minion' ELSE 'other (ailment/item/node/proc or monster)' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri, kind AS ability_kind FROM abilities`,
   },
   {
     kind: "unique",
@@ -264,22 +264,22 @@ export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Ro
   }
   const sources = LOOKUP_SOURCES.filter((s) => !kinds?.length || kinds.includes(s.kind));
   const hits = new Map<string, Row>();
-  const add = (kind: string, id: string, nm: string, hint: string | null, score: number) => {
+  const add = (kind: string, id: string, nm: string, hint: string | null, score: number, abilityKind?: string) => {
     const key = `${kind}\u0000${id}`;
     const prev = hits.get(key);
-    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined });
+    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined, ...(abilityKind ? { ability_kind: abilityKind } : {}) });
   };
   for (const s of sources) {
     const base = s.boost ?? 0;
-    for (const r of all(ctx, `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0));
+    for (const r of all(ctx, `SELECT * FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
+      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0), r.ability_kind as string | undefined);
     }
     for (const r of all(
       ctx,
-      `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
+      `SELECT * FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
       likeEscape(q) + "%",
     )) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2));
+      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2), r.ability_kind as string | undefined);
     }
   }
   // FTS fallback only when the name-based passes did not fill the limit.

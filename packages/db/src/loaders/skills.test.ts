@@ -66,6 +66,14 @@ describe.skipIf(!hasRawData())("skills loader spot checks", () => {
     expect([a, b]).toEqual([1, 1]);
   });
 
+  it("abilities.kind separates player skills from their sub-abilities", () => {
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai'")).toEqual({ kind: "player", parent_ability_id: null });
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai_1'")).toEqual({ kind: "player_sub", parent_ability_id: "es6ai" });
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind = 'player'").n).toBe(182);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind <> 'player' AND is_player_ability = 1").n).toBe(0);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE (kind = 'player_sub') <> (parent_ability_id IS NOT NULL)").n).toBe(0);
+  });
+
   it("Ignite ailment", () => {
     const a = one<{ name: string; duration: number; dmg_fire: number; damage_types: string }>(
       "SELECT name, duration, dmg_fire, damage_types FROM ailments WHERE ailment_id = 1",

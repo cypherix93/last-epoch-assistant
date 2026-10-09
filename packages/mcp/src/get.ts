@@ -167,6 +167,25 @@ export function decodeComponent(ctx: Ctx, type: string, raw: Row): Row | undefin
   return undefined;
 }
 
+/** Components of one ability with the decoded damage / ailment payloads (shared by the ability and its sub-abilities). */
+function abilityComponents(ctx: Ctx, abilityId: string): Row[] {
+  return all(
+    ctx,
+    "SELECT ord, component_type, damage_tags, ref_ability_id, raw_json FROM ability_components WHERE ability_id = ? ORDER BY ord",
+    abilityId,
+  ).map((c) => {
+    let rawObj: Row = {};
+    try {
+      rawObj = JSON.parse(c.raw_json as string);
+    } catch {
+      /* keep empty */
+    }
+    const { raw_json: _r, ...head } = c;
+    const decoded = decodeComponent(ctx, c.component_type as string, rawObj);
+    return dropNulls({ ...head, decoded, fields: scalarFields(rawObj) });
+  });
+}
+
 function int(id: Id, what: string): number {
   const n = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
   if (!Number.isFinite(n)) throw new ToolError(`${what} id must be an integer, got ${JSON.stringify(id)}`);
@@ -348,24 +367,33 @@ export const GETTERS: Record<string, Getter> = {
       extra.notes =
         "cooldown_seconds = 1 / charges_gained_per_second (seconds per charge regenerated). attack_speed (`as`) is the animation speed multiplier, not uses/second.";
     }
-    const components = all(
-      ctx,
-      "SELECT ord, component_type, damage_tags, ref_ability_id, raw_json FROM ability_components WHERE ability_id = ? ORDER BY ord",
-      a.ability_id,
-    ).map((c) => {
-      let rawObj: Row = {};
-      try {
-        rawObj = JSON.parse(c.raw_json as string);
-      } catch {
-        /* keep empty */
-      }
-      const { raw_json: _r, ...head } = c;
-      const decoded = decodeComponent(ctx, c.component_type as string, rawObj);
-      return dropNulls({ ...head, decoded, fields: scalarFields(rawObj) });
-    });
+    const components = abilityComponents(ctx, a.ability_id as string);
+    const kind = a.kind as string;
+    if (kind === "player_sub" && a.parent_ability_id) {
+      const parent = one(ctx, "SELECT ability_id, name FROM abilities WHERE ability_id = ?", a.parent_ability_id);
+      if (parent) extra.parent_ability = parent;
+    }
+    if (kind === "other") {
+      extra.kind_note = "kind 'other' = ailment / item / node / proc abilities and monster abilities (the data has no separate monster kind); it is not necessarily a minion.";
+    }
+    // A player skill's damage usually lives in a sub-ability it spawns (e.g. es6ai -> es6ai_1): list them with their components.
+    const subs =
+      kind === "player"
+        ? all(ctx, "SELECT ability_id, name, tag_names FROM abilities WHERE kind = 'player_sub' AND parent_ability_id = ? ORDER BY ability_id", a.ability_id).map((s) => {
+            const comps = abilityComponents(ctx, s.ability_id as string).filter((c) => c.decoded !== undefined);
+            return dropNulls({
+              id: s.ability_id,
+              name: s.name,
+              tag_names: s.tag_names,
+              damage_total: (comps.map((c) => (c.decoded as Row).damage_total).find((v) => typeof v === "number") as number | undefined) ?? undefined,
+              components: comps.map((c) => ({ ord: c.ord, component_type: c.component_type, decoded: c.decoded })),
+            });
+          })
+        : undefined;
     return {
       ability: { ...clean(a, raw), ...extra },
       components,
+      ...(subs ? { sub_abilities: subs } : {}),
       links: all(ctx, "SELECT link_kind, ord, target_ability_id FROM ability_links WHERE ability_id = ? ORDER BY link_kind, ord", a.ability_id),
       attribute_scaling: modsFor(ctx, "ability_attribute_scaling", a.ability_id as string),
       level_scaling: modsFor(ctx, "ability_level_scaling", a.ability_id as string),

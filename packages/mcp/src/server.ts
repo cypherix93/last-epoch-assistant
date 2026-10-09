@@ -44,14 +44,14 @@ export const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: "get",
-    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name).`,
+    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name). An ability reply has kind (player | player_sub | minion | other) and, for a player skill, sub_abilities (the abilities it spawns, with their decoded damage components; the skill's own hit damage is often there).`,
     shape: { kind: z.string(), id: idSchema, include_raw: z.boolean().default(false) },
     run: (ctx, a) => t.getTool(ctx, a.kind, a.id, a.include_raw ?? false),
   },
   {
     name: "lookup",
     description:
-      "Resolve a name to ids: exact (case-insensitive) matches first, then prefix, then FTS. Returns [{kind, id, name, score, hint}]. Player abilities rank above minion abilities.",
+      "Resolve a name to ids: exact (case-insensitive) matches first, then prefix, then FTS. Returns [{kind, id, name, score, hint}]. Player abilities rank above same-named sub-abilities, minion and other abilities; ability rows carry ability_kind (player | player_sub | minion | other).",
     shape: { name: z.string(), kinds: z.array(z.string()).optional(), limit: z.number().int().min(1).max(100).default(10) },
     run: (ctx, a) => t.lookup(ctx, a.name, a.kinds, a.limit ?? 10),
   },

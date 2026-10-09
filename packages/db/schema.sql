@@ -495,6 +495,8 @@ CREATE TABLE abilities (
   internal_name TEXT,                  -- .internalName
   ability_index INTEGER,               -- .index (bridge to Maxroll abilityList and to SP 58 / 88 `tags`)
   is_player_ability INTEGER NOT NULL DEFAULT 0, -- 1 when id in LEAbilities.playerAbilityIdList
+  kind          TEXT NOT NULL DEFAULT 'other', -- DERIVED (lib/ability-kind.ts): player | player_sub (spawned by a player ability, see parent_ability_id) | minion (entity/minion ability) | other (ailment, item, node and proc abilities, monsters); there is no separate monster kind
+  parent_ability_id TEXT,              -- player_sub only: the player ability it descends from
   player_list_ord INTEGER,             -- position in playerAbilityIdList
   has_skill_tree INTEGER NOT NULL DEFAULT 0, -- 1 when LESkillTrees.<id> exists
   tags          INTEGER,               -- .tags (AT mask)

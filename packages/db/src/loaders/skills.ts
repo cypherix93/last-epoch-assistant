@@ -35,7 +35,7 @@
  *  6. mods (ailment buffs)  .buffs[] (160 blocks) -> insertStatBlock, sourceKind 'ailment_buff',
  *                           sourceId ailment id (161 rows).
  *  7. ui_buffs              UIBuffs.<k> (264); enum_name = key of UIBuffIds with that value.
- *  8. entities              LEAbilities.entityList.<k> (96).
+ *  8. entities              LEAbilities.entityList.<k> (96). (abilities.kind / parent_ability_id are filled just before it, lib/ability-kind.ts)
  *  9. trees                 LESkillTrees.<treeID> (136, kind 'skill', name = ability name, ability_id = .ability),
  *                           LECharTrees.trees[i].characterTree (5, kind 'class', class_id =
  *                           characterClass.classID, name = t(characterClass.classNameKey)),
@@ -64,6 +64,7 @@
  * mods source kinds written: skill_node, passive_node, weaver_node, ailment_buff,
  * ability_attribute_scaling, ability_level_scaling (+ optional ability_component).
  */
+import { classifyAbilities } from "../lib/ability-kind.js";
 import { count, modsCount, type ExpectedCount } from "../lib/expected.js";
 import type { LoaderContext } from "../lib/context.js";
 import { insertRow } from "../lib/sqlite.js";
@@ -280,6 +281,13 @@ export function loadSkills(ctx: LoaderContext): void {
       icon: str(b.icon),
       raw_json: rawJson(b),
     });
+  }
+
+  // 1b. abilities.kind / parent_ability_id (derived, see lib/ability-kind.ts)
+  {
+    const classes = classifyAbilities(LA.abilityList as Record<string, JsonObject>, (LA.playerAbilityIdList as string[]) ?? [], (LA.entityList ?? {}) as Record<string, JsonObject>);
+    const upd = db.prepare("UPDATE abilities SET kind = ?, parent_ability_id = ? WHERE ability_id = ?");
+    for (const [abilityId, c] of classes) upd.run(c.kind, c.parent, abilityId);
   }
 
   // 8. entities

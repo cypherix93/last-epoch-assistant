@@ -48,6 +48,23 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((search(ctx, "name:fireball", ["ability"]) as R).results[0].name).toBe("Fireball");
   });
 
+  it("ability kinds: lookup labels sub-abilities, get lists sub_abilities with damage", () => {
+    const l = lookup(ctx, "Erasing Strike", ["ability"]) as R;
+    const byId = Object.fromEntries(l.results.map((r: R) => [r.id, r]));
+    expect(byId.es6ai).toMatchObject({ ability_kind: "player", hint: "player, has tree" });
+    expect(byId.es6ai_1).toMatchObject({ ability_kind: "player_sub", hint: "player sub-ability of es6ai" });
+    expect(JSON.stringify(l)).not.toContain("minion/monster");
+    const a = getTool(ctx, "ability", "es6ai") as R;
+    expect(a.ability.kind).toBe("player");
+    const sub = a.sub_abilities.find((s: R) => s.id === "es6ai_1");
+    expect(sub.damage_total).toBeGreaterThan(0);
+    expect(sub.components[0]).toMatchObject({ component_type: "DamageEnemyOnHit" });
+    const s = getTool(ctx, "ability", "es6ai_1") as R;
+    expect(s.ability).toMatchObject({ kind: "player_sub", parent_ability: { ability_id: "es6ai", name: "Erasing Strike" } });
+    expect(s).not.toHaveProperty("sub_abilities");
+    expect((getTool(ctx, "ability", "ability_gen2") as R).ability.kind_note).toMatch(/monster/);
+  });
+
   it("search raw=true passes FTS5 operators through; default stays safe-quoted", () => {
     const plain = search(ctx, "fireball OR frostbolt", undefined, 50) as R;
     const raw = search(ctx, "fireball OR frostbolt", ["ability"], 50, true) as R;
