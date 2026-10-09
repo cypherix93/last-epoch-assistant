@@ -30,6 +30,7 @@ export const SEARCH_KINDS = [
   "monster_mod",
   "timeline",
   "dungeon",
+  "build",
 ] as const;
 export type SearchKind = (typeof SEARCH_KINDS)[number];
 
@@ -154,6 +155,17 @@ export const SEARCH_SQL: Record<SearchKind, string> = {
       FROM dungeons d
      WHERE d.name IS NOT NULL
      ORDER BY d.dungeon_id`,
+  // community builds (Maxroll guides): id = community_builds.build_id, name = guide title
+  build: `
+    INSERT INTO search (kind, id, name, text)
+    SELECT 'build', CAST(b.build_id AS TEXT), coalesce(b.title, b.slug),
+           concat_ws(' ', b.title, c.name, m.name, gm.name, ab.name, b.author, b.playstyle, b.slug, b.profile_name, 'build guide')
+      FROM community_builds b
+      LEFT JOIN classes c ON c.class_id = b.class_id
+      LEFT JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+      LEFT JOIN masteries gm ON gm.class_id = b.class_id AND gm.mastery_index = b.guide_mastery_index AND b.guide_mastery_index <> b.mastery_index
+      LEFT JOIN abilities ab ON ab.ability_id = b.main_ability_id
+     ORDER BY b.build_id`,
 };
 
 /** Rebuild `search` from scratch. Returns rows inserted per kind. */

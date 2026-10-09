@@ -5,13 +5,14 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, scanSql, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
+import { build, builds, createContext, findMods, getTool, itemUsage, knowledge, lookup, name, passiveTree, pickTabs, resolveDbPath, scanSql, schema, search, skillTree, slotMeta, sql, version, REPO_ROOT, type Ctx } from "./index.js";
 
 const dbPath = resolveDbPath();
 const have = existsSync(dbPath);
 if (!have) console.warn(`[@le/mcp tests] SKIPPED: ${dbPath} missing; run \`yarn db:build\` first.`);
 
 type R = Record<string, any>;
+const ES_SLUG = "erasing-strike-void-knight-guide";
 
 describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
   let ctx: Ctx;
@@ -275,6 +276,133 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     }
   });
 
+  // ---------------------------------------------------------------- community builds (Maxroll guides)
+  const hasBuilds = () => ((sql(ctx, "SELECT count(*) AS n FROM community_builds") as R).rows[0].n as number) > 0;
+
+  it("builds: lists and filters community builds", () => {
+    if (!hasBuilds()) return;
+    const vk = builds(ctx, { mastery: "Void Knight" }) as R;
+    expect(vk.count).toBeGreaterThan(0);
+    expect(vk.builds.every((b: R) => b.class === "Sentinel" && b.mastery === "Void Knight")).toBe(true);
+    const es = vk.builds.find((b: R) => b.slug === ES_SLUG);
+    expect(es).toMatchObject({ title: "Erasing Strike Void Knight Guide", main_skill: "Erasing Strike", main_ability_id: "es6ai", is_primary: true, playstyle: "Endgame" });
+    expect(es.tabs).toEqual(["Starter", "Endgame", "Aspirational"]);
+    expect(Object.keys(es.tiers)).toEqual(["corruption", "speed", "bossing"]);
+    expect((builds(ctx, { ability: "Erasing Strike" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    expect((builds(ctx, { ability: "es6ai", class: "Sentinel", item: "World Splitter", tab: "Endgame" }) as R).builds.map((b: R) => b.slug)).toEqual([ES_SLUG]);
+    expect((builds(ctx, { affix: 76, mastery: "void-knight" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    const s = builds(ctx, { tier: "S", tier_list: "bossing" }) as R;
+    expect(s.builds.every((b: R) => b.tiers.bossing === "S")).toBe(true);
+    const lev = builds(ctx, { playstyle: "leveling" }) as R;
+    expect(lev.count).toBeGreaterThan(0);
+    expect(lev.builds.every((b: R) => b.playstyle === "Leveling")).toBe(true);
+    // a leveling guide opens on a base-class tab: mastery comes from the profile, the card's is guide_mastery
+    const necro = builds(ctx, { mastery: "Necromancer", playstyle: "Leveling" }) as R;
+    expect(necro.builds.find((b: R) => b.slug === "necromancer-leveling-guide")).toMatchObject({ mastery: "Acolyte", guide_mastery: "Necromancer" });
+    expect((builds(ctx, { season: "season 4" }) as R).builds.every((b: R) => /Season 4/.test(b.season))).toBe(true);
+    expect((builds(ctx, { limit: 2 }) as R)).toMatchObject({ count: 2, truncated: true });
+    expect(() => builds(ctx, { mastery: "Nope" })).toThrow(/Unknown mastery/);
+  });
+
+  it("build: one guide fully named (Erasing Strike Void Knight, Endgame)", () => {
+    if (!hasBuilds()) return;
+    const b = build(ctx, { slug: ES_SLUG }) as R;
+    expect(b.build).toMatchObject({ slug: ES_SLUG, class: "Sentinel", mastery: "Void Knight", main_skill: "Erasing Strike", profile_id: "0g5ta0n3" });
+    expect(b.tab).toMatchObject({ name: "Endgame", is_default: true, passive_points: 113 });
+    const w = b.gear.find((g: R) => g.slot === "weapon");
+    expect(w).toMatchObject({ name: "World Splitter", kind: "legendary", unique_id: 365, base: "Bardiche", corrupted: true });
+    expect(w.affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, type: "prefix", origin: "extra", roll: 1 });
+    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 65, modifier: "added" });
+    expect(w.implicits.length).toBeGreaterThan(0);
+    expect(b.idols).toHaveLength(6);
+    expect(b.idols[0]).toMatchObject({ grid_x: 2, grid_y: 0, name: "Minor Weaver Idol", size: "1x1" });
+    expect(b.blessings[0]).toMatchObject({ timeline: "The Black Sun", name: "Grand Emptiness of Ash", is_grand: true });
+    const vk = b.passives.find((g: R) => g.mastery === "Void Knight");
+    expect(vk.points).toBe(68);
+    expect(vk.nodes.find((n: R) => n.name === "Void Well")).toMatchObject({ points: 1 });
+    expect(b.passives.map((g: R) => g.points)).toEqual([20, 68, 25]);
+    const es = b.skills.find((s: R) => s.ability_id === "es6ai");
+    expect(es).toMatchObject({ name: "Erasing Strike", specialized: true, on_bar: true, points: 26 });
+    expect(es.nodes.find((n: R) => n.name === "Time Loop")).toMatchObject({ node_id: 13, points: 1 });
+    expect(b.skills.find((s: R) => s.name === "Rebuke")).toMatchObject({ specialized: false, on_bar: true });
+    expect(b.notes.guide.faqs).toContain("Time Loop");
+    expect(b.strengths).toContain("Great AoE");
+    // tab selection, sections, id, get alias
+    expect((build(ctx, { slug: ES_SLUG, tab: "starter" }) as R).tab.name).toBe("Starter");
+    const only = build(ctx, { id: b.build.build_id, sections: ["skills"] }) as R;
+    expect(only.skills.length).toBeGreaterThan(0);
+    expect(only).not.toHaveProperty("gear");
+    expect((getTool(ctx, "build", ES_SLUG) as R).build.build_id).toBe(b.build.build_id);
+    expect((getTool(ctx, "build", b.build.build_id) as R).tab.name).toBe("Endgame");
+    expect(() => build(ctx, { slug: ES_SLUG, tab: "nope" })).toThrow(/Tabs: Starter, Endgame, Aspirational/);
+    expect(() => build(ctx, { slug: "erasing-strike" })).toThrow(/Did you mean: erasing-strike-void-knight-guide/);
+    expect(() => build(ctx, { slug: ES_SLUG, sections: ["bogus"] })).toThrow(/Unknown section/);
+  });
+
+  it("pickTabs: exact, then prefix, then substring; default / any", () => {
+    const tabs = [
+      { build_profile_id: 1, build_id: 1, ord: 0, name: "Starting Gear", is_default: 0 },
+      { build_profile_id: 2, build_id: 1, ord: 1, name: "Endgame Gear", is_default: 1 },
+      { build_profile_id: 3, build_id: 1, ord: 2, name: "Endgame Brutality", is_default: 0 },
+    ];
+    expect(pickTabs(tabs, "endgame", "default").map((t) => t.ord)).toEqual([1]);
+    expect(pickTabs(tabs, "brutality", "default").map((t) => t.ord)).toEqual([2]);
+    expect(pickTabs(tabs, undefined, "default").map((t) => t.ord)).toEqual([1]);
+    expect(pickTabs(tabs, undefined, "any")).toHaveLength(3);
+    expect(pickTabs(tabs, "aspirational", "default")).toEqual([]);
+    expect(pickTabs(tabs, "aspirational", "default", true).map((t) => t.ord)).toEqual([1]);
+  });
+
+  it("item_usage: builds using a unique or an affix", () => {
+    if (!hasBuilds()) return;
+    const u = itemUsage(ctx, { name: "World Splitter" }) as R;
+    expect(u.item).toMatchObject({ kind: "unique", name: "World Splitter", unique_ids: [365] });
+    expect(u.total_builds).toBeGreaterThanOrEqual(1);
+    expect(u.by_slot.weapon).toBe(u.total_builds);
+    const es = u.builds.find((b: R) => b.slug === ES_SLUG);
+    expect(es).toMatchObject({ mastery: "Void Knight", main_skill: "Erasing Strike", tab: "Endgame", slot: "weapon" });
+    expect(es.extra_affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, origin: "extra" });
+    expect((itemUsage(ctx, { unique_id: 365, mastery: "Void Knight" }) as R).by_mastery).toEqual({ "Void Knight": expect.any(Number) });
+    const a = itemUsage(ctx, { affix: 76, slot: "weapon" }) as R;
+    expect(a.item).toMatchObject({ kind: "affix", affix_ids: [76], affixes: [{ affix_id: 76, type: "prefix" }] });
+    expect(Object.keys(a.by_slot)).toEqual(["weapon"]);
+    expect(a.by_slot.weapon).toMatchObject({ typical_tier: 7 });
+    expect(a.builds.find((b: R) => b.slug === ES_SLUG)).toMatchObject({ item: "World Splitter", tier: 7, origin: "extra" });
+    expect(() => itemUsage(ctx, {})).toThrow(/exactly one/);
+    expect(() => itemUsage(ctx, { name: "No Such Unique Item" })).toThrow(/Unknown unique/);
+  });
+
+  it("slot_meta: what Void Knight builds wear on the helmet", () => {
+    if (!hasBuilds()) return;
+    const m = slotMeta(ctx, { slot: "helmet", mastery: "Void Knight" }) as R;
+    expect(m).toMatchObject({ slot: "head", tab: "Endgame", kind: "all" });
+    expect(m.matched_builds).toBeGreaterThan(0);
+    const mask = m.items.find((x: R) => x.name === "Mask of Indifference");
+    expect(mask).toMatchObject({ kind: "legendary", unique_id: 434 });
+    expect(mask.example_builds).toContain(ES_SLUG);
+    expect(mask.pct).toBeCloseTo((mask.count / m.matched_builds) * 100, 0);
+    expect(m.affixes[0]).toHaveProperty("typical_tier");
+    expect(m.affixes.every((x: R) => x.type === "prefix" || x.type === "suffix")).toBe(true);
+    const uniques = slotMeta(ctx, { slot: "head", mastery: "void-knight", kind: "unique" }) as R;
+    expect(uniques.items.every((x: R) => /unique|legendary|set/.test(x.kind))).toBe(true);
+    const rings = slotMeta(ctx, { slot: "ring", ability: "Erasing Strike" }) as R;
+    expect(rings.slot).toEqual(["finger1", "finger2"]);
+    expect(rings.items.map((x: R) => x.name)).toEqual(expect.arrayContaining(["Flames of Midnight", "Siphon of Anguish"]));
+    const lev = slotMeta(ctx, { slot: "weapon", mastery: "Necromancer" }) as R;
+    expect(lev.tab_fallback_builds).toBeGreaterThan(0);
+    expect(() => slotMeta(ctx, { slot: "elbow" })).toThrow(/Unknown slot/);
+  });
+
+  it("search and lookup find builds by title and slug", () => {
+    if (!hasBuilds()) return;
+    const s = search(ctx, "erasing strike void knight", ["build"]) as R;
+    expect(s.results[0]).toMatchObject({ kind: "build", name: "Erasing Strike Void Knight Guide" });
+    const bySlug = lookup(ctx, ES_SLUG, ["build"]) as R;
+    expect(bySlug.results[0]).toMatchObject({ kind: "build", name: "Erasing Strike Void Knight Guide" });
+    expect(bySlug.results[0].hint).toMatch(/Sentinel \/ Void Knight, Erasing Strike/);
+    expect((lookup(ctx, "Erasing Strike Void Knight Guide") as R).results[0]).toMatchObject({ kind: "build", id: bySlug.results[0].id });
+  });
+
   it("knowledge", () => {
     const l = knowledge(ctx) as R;
     expect(l.pages.length).toBeGreaterThanOrEqual(20);
@@ -299,7 +427,8 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
     await client.connect(transport);
     try {
       const tools = (await client.listTools()).tools.map((t) => t.name);
-      expect(tools).toHaveLength(10);
+      expect(tools).toHaveLength(14);
+      expect(tools).toEqual(expect.arrayContaining(["builds", "build", "item_usage", "slot_meta"]));
       const call = async (n: string, a: object) => {
         const res = await client.callTool({ name: n, arguments: a });
         return JSON.parse((res.content as { text: string }[])[0].text) as R;
@@ -312,6 +441,12 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
       expect(s.results.some((x: R) => x.id === "fi9")).toBe(true);
       const bad = await call("get", { kind: "nope", id: 1 });
       expect(bad).toMatchObject({ ok: false });
+      const b = await call("build", { slug: ES_SLUG, sections: ["blessings"] });
+      expect(b.ok).toBe(true);
+      expect(b.blessings[0].name).toBe("Grand Emptiness of Ash");
+      expect(b).not.toHaveProperty("gear");
+      const sm = await call("slot_meta", { slot: "helmet", mastery: "void-knight" });
+      expect(sm.items.map((x: R) => x.name)).toContain("Mask of Indifference");
     } finally {
       await client.close();
     }

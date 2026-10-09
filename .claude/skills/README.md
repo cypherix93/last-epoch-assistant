@@ -21,7 +21,7 @@ Skills that teach an agent to use this repository's game database (`data/le.sqli
 
 ## Tool quick reference
 
-The `le-data` MCP server has 10 tools (`yarn mcp:list` prints them). Arguments are one JSON object; `?` marks optional keys, defaults in parentheses. Every reply is `{"ok": true, ...}` or `{"ok": false, "error": "..."}`.
+The `le-data` MCP server has 14 tools (`yarn mcp:list` prints them). Arguments are one JSON object; `?` marks optional keys, defaults in parentheses. Every reply is `{"ok": true, ...}` or `{"ok": false, "error": "..."}`.
 
 | Tool | Arguments |
 |---|---|
@@ -35,6 +35,12 @@ The `le-data` MCP server has 10 tools (`yarn mcp:list` prints them). Arguments a
 | `passive_tree` | `{"class_id": number | string, "filter"?: string, "compact"?: boolean}` (0-4, a class name, or a tree id such as `mg-1`, `weaver`) |
 | `sql` | `{"query": string, "params"?: any[], "limit"?: 1-5000 (500)}` (one SELECT or WITH statement, or `PRAGMA table_list` / `table_info(<t>)` / `index_list(<t>)`) |
 | `knowledge` | `{"page"?: string}` (no page: list; page: repo-relative path or unique basename, e.g. `mechanics/damage-pipeline`; returns the whole page as one `text` string) |
+| `builds` | `{"class"?, "mastery"?, "ability"?, "any_skill"?: boolean, "item"?, "affix"?, "tab"?, "tier"?, "tier_list"?: "corruption" \| "speed" \| "bossing", "playstyle"?, "season"?, "limit"? (50)}` (list / filter Maxroll community guides; each row: slug, title, class, mastery, main_skill, tiers, tabs) |
+| `build` | `{"id"?: build_id, "slug"?: string, "tab"?: string (default tab), "sections"?: ("gear" \| "idols" \| "blessings" \| "passives" \| "skills" \| "notes")[]}` (one guide fully named: gear with affix tiers and rolled values, idols on the grid, blessings, passives per mastery, skills with nodes, notes; `get` kind `build` is an alias) |
+| `item_usage` | `{"name"?: string, "unique_id"?: int, "affix"?: id \| name, "slot"?, "tab"?, "class"?, "mastery"?, "limit"? (100)}` (which guides use a unique / set item (with their extra affixes) or an affix (per slot, typical tier)) |
+| `slot_meta` | `{"slot": string, "class"?, "mastery"?, "ability"?, "tab"? ("Endgame"), "kind"?: "unique" \| "rare" \| "all", "limit"? (25)}` (what guides wear in a slot: items with count / pct / example slugs, affixes with typical tier and prefix / suffix) |
+
+The last four read the community builds tables: Maxroll community guides for 1.5.2, community choices and not game truth (`docs/community-builds.md`). `lookup` / `search` kind `build` resolve a guide title or slug to its build_id.
 
 CLI form (from the repo root): `yarn mcp:call <tool> [args] [--pretty]`. Only the JSON result goes to stdout, on one line (`--pretty` indents); logs go to stderr; exit code 1 on `ok:false`. Args, first match wins: `@file.json` (for `sql`, a file not starting with `{` is raw SQL), `sql --query-file q.sql`, stdin (`-` or piped input; raw SQL is accepted for `sql`), or inline JSON for simple args:
 
@@ -42,6 +48,10 @@ CLI form (from the repo root): `yarn mcp:call <tool> [args] [--pretty]`. Only th
 yarn mcp:call lookup '{"name":"Fireball","kinds":["ability"]}'
 yarn mcp:call find_mods '{"filters":{"property":18,"source_kinds":["unique_mod"]},"limit":20}'
 printf '%s' '{"ability_id":"fi9","filter":"ignite","compact":true}' | yarn mcp:call skill_tree
+printf '%s' '{"mastery":"Void Knight","tier":"S"}' | yarn mcp:call builds
+printf '%s' '{"slug":"erasing-strike-void-knight-guide","sections":["gear"]}' | yarn mcp:call build
+printf '%s' '{"name":"World Splitter"}' | yarn mcp:call item_usage
+printf '%s' '{"slot":"helmet","mastery":"Void Knight"}' | yarn mcp:call slot_meta
 yarn mcp:call sql <<'JSON'
 {"query": "SELECT name FROM uniques WHERE level_requirement >= 60 LIMIT 3"}
 JSON

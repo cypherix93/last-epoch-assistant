@@ -15,7 +15,7 @@ function walk(d: string, o: string[] = []) { for (const e of readdirSync(d)) { c
 const files = walk(R + "/.claude/skills");
 let total = 0, ok = 0, bad = 0, ph = 0;
 function count(res: any) {
-  for (const k of ["rows", "results", "nodes", "pages", "tables"]) if (Array.isArray(res[k])) return `${k}=${res[k].length}` + (res.total_matching !== undefined ? ` total=${res.total_matching}` : "");
+  for (const k of ["rows", "results", "nodes", "pages", "tables", "builds", "items"]) if (Array.isArray(res[k])) return `${k}=${res[k].length}` + (res.total_matching !== undefined ? ` total=${res.total_matching}` : "");
   return "keys=" + Object.keys(res).slice(1, 5).join(",");
 }
 const isPlaceholder = (src: string, sql: boolean) => (/<[A-Za-z][A-Za-z_ -]*>/.test(src) && !/<b>/.test(src)) || (!sql && src.includes("..."));
@@ -39,7 +39,7 @@ function tryJson(file: string, line: number, tool: string, text: string, src: st
   try { args = JSON.parse(text); } catch { total++; bad++; console.log(`BAD json ${file}:${line} ${src.slice(0, 90)}`); return; }
   exec(file, line, tool, args, src, sql);
 }
-const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge";
+const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge|builds|build|item_usage|slot_meta";
 for (const f of files) {
   const rel = relative(R + "/.claude/skills", f).split(BS).join("/");
   // strip a blockquote prefix so fenced examples inside "> " callouts are run too

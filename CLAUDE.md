@@ -45,7 +45,7 @@ docs/                 data-source study, schema.md, loader-contract.md
 `@le/mcp` is an MCP server named `le-data` (stdio) over `data/le.sqlite` (build it first with `yarn db:build`; override the path with `LE_DB_PATH`).
 
 - Enable in Claude Code: the repo-root `.mcp.json` registers it as `node --import tsx packages/mcp/src/cli.ts start` (plain `node` + tsx, no build and no `yarn`/`cmd /c` wrapper, so it works from a direct spawn on Windows). Approve the project server when prompted, then run `/mcp` to check that it is connected (enable it there if it is listed as disabled). Tools appear as `mcp__le-data__<tool>`.
-- Tools: `version`, `schema`, `search`, `get`, `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH, plus `PRAGMA table_list`, `PRAGMA table_info(<t>)`, `PRAGMA index_list(<t>)`), `knowledge`. Every response has `ok: true` or `{ok:false,error}`. Argument shapes: `.claude/skills/README.md`.
+- Tools (14): `version`, `schema`, `search`, `get`, `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH, plus `PRAGMA table_list`, `PRAGMA table_info(<t>)`, `PRAGMA index_list(<t>)`), `knowledge`, and the community-build tools `builds` (list / filter guides), `build` (one guide in full, also `get` kind `build`), `item_usage` (which guides use a unique or an affix), `slot_meta` (item and affix distribution of a slot across guides). Every response has `ok: true` or `{ok:false,error}`. Argument shapes: `.claude/skills/README.md`.
 - CLI fallback (no MCP): `yarn mcp:call <tool> [args]`. Only the JSON result goes to stdout (single line; add `--pretty` to indent), logs go to stderr, exit code 1 on `ok:false`. Do NOT use `yarn -s` (not valid in yarn berry; it is not needed). Three ways to pass args, first match wins:
   1. `@path/to/args.json` reads the JSON args from a file (for `sql`, a file that does not start with `{` is raw SQL); `sql --query-file <path>` reads raw SQL from a file.
   2. stdin: `-`, or no args argument with piped stdin. For `sql`, stdin text that does not start with `{` is raw SQL and is wrapped as `{query}`.
@@ -53,7 +53,11 @@ docs/                 data-source study, schema.md, loader-contract.md
   - Use 1 or 2 for anything containing shell-special characters (`<`, `>`, `%`, `&`, `|`, parentheses: yarn runs scripts through cmd.exe on Windows, which mangles them, sometimes silently) and for anything containing a single quote (every SQL string literal, names like "Naga's Fang"). Writing the args to a file is the most robust form.
   - Bash: `printf '%s' '{"name":"Calamity","kinds":["unique"]}' | yarn mcp:call lookup`, or `echo "select name from uniques where name like '%Claim%' and unique_id > 0" | yarn mcp:call sql`.
   - PowerShell: `@'` + newline + `select name from uniques where name like '%Claim%' and unique_id > 0` + newline + `'@ | yarn mcp:call sql` (single-quoted here-string, closing `'@` at column 0; JSON works too).
-- Source layout: `packages/mcp/src/{context,get,tools,server,cli,index}.ts`; tests in `index.test.ts`.
+- Source layout: `packages/mcp/src/{context,get,tools,builds,server,cli,list,index}.ts` (`builds.ts` = the four community-build tools); tests in `index.test.ts`.
+
+## Community builds
+
+`data/raw/<ver>/maxroll-guides/` holds Maxroll's Last Epoch build guides (73 guides, 74 planner profiles for 1.5.2), decoded by the `community` build step into the `community_*` tables (gear with affix tiers, idols, blessings, passive and skill allocations, notes) with every id resolved to the game tables. They are community-authored choices, not game truth: use them for "what do builds run" questions (`builds`, `build`, `item_usage`, `slot_meta`, or the `v_build_*` views via `sql`) and never as a source for mechanics. A build has several tabs (Starter / Endgame / Aspirational); say which one a fact comes from. The build report's `community` key must show `unresolved_total` 0; explained quirks (leveling-guide mastery, item mainsets, removed tree nodes) are `community.warnings`. Details: `docs/community-builds.md` and `docs/schema.md` section 3.9.
 
 ## Skills
 

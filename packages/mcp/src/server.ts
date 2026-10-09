@@ -1,12 +1,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { createContext, ToolError, type Ctx, type Row } from "./context.js";
+import * as bt from "./builds.js";
 import * as t from "./tools.js";
 
 export const SERVER_NAME = "le-data";
 
 const idSchema = z.union([z.string(), z.number(), z.record(z.union([z.string(), z.number()]))]);
 const tagItem = z.union([z.string(), z.number()]);
+/** A fresh schema per use: a shared instance is emitted as a JSON-schema $ref, which mcp:list shows as "any". */
+const strNum = () => z.union([z.string(), z.number()]);
+const COMMUNITY =
+  "Data: Maxroll community build guides (planner profiles) for game 1.5.2 - community-authored choices, NOT game truth (take mechanics from the game tables and knowledge pages).";
+const TAB_DESC = "tab name (case-insensitive: exact, then prefix, then substring; e.g. Endgame, Starter, Aspirational), 'default' (the tab the planner opens on) or 'any'";
 
 export interface ToolDef {
   name: string;
@@ -99,6 +105,65 @@ export const TOOL_DEFS: ToolDef[] = [
       "Read-only SQL: a single SELECT or WITH statement, or one of the schema pragmas PRAGMA table_list, PRAGMA table_info(<table>), PRAGMA index_list(<table>) (every other PRAGMA is rejected). Returns {columns, rows, truncated}. No time limit: keep queries selective. The schema tool also lists tables, columns and sample rows.",
     shape: { query: z.string(), params: z.array(z.any()).optional(), limit: z.number().int().min(1).max(5000).default(500) },
     run: (ctx, a) => t.sql(ctx, a.query, a.params ?? [], a.limit ?? 500),
+  },
+  {
+    name: "builds",
+    description: `List / filter community builds (one row per guide x planner profile). ${COMMUNITY} Filters combine with AND: class, mastery (a leveling guide also matches its card mastery; a base class name matches the whole class), ability (main skill; any_skill=true also matches any specialized skill), item (unique / set name or unique_id, equipped in any tab or in 'tab'), affix (id or name, any tab or 'tab'), tier (letter on the corruption tier list unless tier_list is speed / bossing), playstyle, season (substring). Returns {builds:[{build_id, slug, title, url, author, updated, season, playstyle, class, mastery, main_skill, main_ability_id, tiers:{corruption,speed,bossing}, tabs, is_primary}], count, total_matching}.`,
+    shape: {
+      class: strNum().optional().describe("class name or id 0-4"),
+      mastery: z.string().optional().describe("mastery name, e.g. Void Knight / void-knight"),
+      ability: z.string().optional().describe("main skill: ability name or id (es6ai)"),
+      any_skill: z.boolean().optional().describe("ability also matches any specialized skill (default false: main skill only)"),
+      item: strNum().optional().describe("unique / set item name or unique_id"),
+      affix: strNum().optional().describe("affix id or name"),
+      tab: z.string().optional().describe(`restrict item / affix / any_skill matching to one tab: ${TAB_DESC} (default any tab)`),
+      tier: z.string().optional().describe("tier letter S, A, B, C ..."),
+      tier_list: z.enum(["corruption", "speed", "bossing"]).optional().describe("tier list for tier (default corruption)"),
+      playstyle: z.string().optional().describe("Endgame | Leveling"),
+      season: z.string().optional().describe("substring of the season, e.g. 'Season 5' (default all)"),
+      limit: z.number().int().min(1).max(500).default(50),
+    },
+    run: (ctx, a) => bt.builds(ctx, a),
+  },
+  {
+    name: "build",
+    description: `One community build in full, fully named, with numeric ids kept for follow-up get calls. ${COMMUNITY} Returns the build header, the tab, strengths / weaknesses and the sections: gear (per slot: item name, kind, base, implicits, affixes with name / tier / prefix|suffix / origin / roll / rolled values), idols (grid_x / grid_y on the 5x5 altar, size), blessings (timeline + blessing), passives (grouped by mastery: node name, points), skills (specialized / on_bar flags, tree nodes with points), notes (guide and tab notes as plain text).`,
+    shape: {
+      id: strNum().optional().describe("build_id (from builds, or lookup kind build)"),
+      slug: z.string().optional().describe("guide slug, e.g. erasing-strike-void-knight-guide (the guide's primary profile)"),
+      tab: z.string().optional().describe(`${TAB_DESC}; default: the default tab (typically Endgame)`),
+      sections: z.array(z.enum(bt.BUILD_SECTIONS)).optional().describe("subset of gear, idols, blessings, passives, skills, notes (default all)"),
+    },
+    run: (ctx, a) => bt.build(ctx, a),
+  },
+  {
+    name: "item_usage",
+    description: `Which community builds use a unique / set item, or an affix. ${COMMUNITY} Pass name or unique_id (unique / set item), or affix (id or name) with optional slot. Unique: {item, total_builds, by_slot:{slot: builds}, by_mastery, common_extra_affixes, builds:[{build_id, slug, title, mastery, main_skill, tab, slot, extra_affixes:[{affix_id, name, tier, origin}]}]}. Affix: by_slot:{slot: {builds, items, typical_tier, min_tier, max_tier, origins}} and builds:[{..., slot, item, tier, origin}]. One entry per build (per build and slot for affixes), from its default tab when it is used there.`,
+    shape: {
+      name: z.string().optional().describe("unique or set item name"),
+      unique_id: strNum().optional(),
+      affix: strNum().optional().describe("affix id or name (all affixes with that name)"),
+      slot: z.string().optional().describe("restrict to a slot: weapon, offhand, head/helmet, body, waist/belt, hands/gloves, feet/boots, neck/amulet, ring/finger1/finger2, relic, altar, idol"),
+      tab: z.string().optional().describe(`${TAB_DESC} (default any tab)`),
+      class: strNum().optional(),
+      mastery: z.string().optional(),
+      limit: z.number().int().min(1).max(500).default(100),
+    },
+    run: (ctx, a) => bt.itemUsage(ctx, a),
+  },
+  {
+    name: "slot_meta",
+    description: `What community builds wear in one slot: item distribution and the affixes they roll. ${COMMUNITY} Filters: class, mastery, ability (main skill), tab (default Endgame; builds without such a tab fall back to their default tab and are counted in tab_fallback_builds), kind (unique = unique/legendary/set, rare = rare/exalted/magic, all). Returns {matched_builds, items:[{name, kind, unique_id?, count, pct, example_builds:[slugs]}], affixes:[{affix_id, affix, count, pct, typical_tier, type: prefix|suffix, origins}]}; count = builds.`,
+    shape: {
+      slot: z.string().describe("weapon, offhand, head/helmet, body/chest, waist/belt, hands/gloves, feet/boots, neck/amulet, ring (both fingers)/finger1/finger2, relic, altar, idol"),
+      class: strNum().optional(),
+      mastery: z.string().optional(),
+      ability: z.string().optional().describe("main skill name or ability id"),
+      tab: z.string().optional().describe(`${TAB_DESC} (default Endgame)`),
+      kind: z.enum(["unique", "rare", "all"]).default("all"),
+      limit: z.number().int().min(1).max(200).default(25).describe("max rows in items and in affixes"),
+    },
+    run: (ctx, a) => bt.slotMeta(ctx, a),
   },
   {
     name: "knowledge",
