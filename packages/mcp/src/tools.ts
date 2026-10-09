@@ -313,11 +313,11 @@ export interface ModFilters {
   min_value?: number;
   special_tag?: number;
   include_untagged?: boolean;
-  /** Rows of indirect properties (58, 98, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
+  /** Rows of indirect properties (58, 98, 104, 105, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
   include_indirect?: boolean;
 }
 
-const INDIRECT_PROPS = "(58, 98, 130)";
+const INDIRECT_PROPS = "(58, 98, 104, 105, 130)";
 
 /**
  * The join logic of find_mods: every `mods` row plus a human source name.

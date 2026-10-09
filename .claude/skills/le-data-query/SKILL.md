@@ -120,7 +120,7 @@ How a query matches mods and how they combine: `knowledge/mechanics/stat-model.m
 
 `tag_bits(value, bit, name)` holds all 30 tags. Common values: Physical 1, Lightning 2, Cold 4, Fire 8, Void 16, Necrotic 32, Poison 64, Elemental 128, Spell 256, Melee 512, Throwing 1024, Bow 2048, DoT 4096, Minion 8192, Totem 16384, PetResisted 32768, Potion 65536, Buff 131072, Channelling 262144, Transform 524288, LowLife 1048576, HighLife 2097152, FullLife 4194304, Hit 8388608, Curse 16777216, Ailment 33554432.
 
-- `tag_names` is pre-decoded (`Fire,Spell`). NULL means `tags = 0` (applies to everything of that property) **or** an indirect property. Do not read NULL as "no restriction" for SP 58, 88, 98, 130.
+- `tag_names` is pre-decoded (`Fire,Spell`). NULL means `tags = 0` (applies to everything of that property) **or** an indirect property. Do not read NULL as "no restriction" for SP 58, 88, 98, 104, 105, 130.
 - Filter a bit: `(tags & 8192) <> 0` (always parenthesise `&`). Filter untagged: `tags = 0`.
 - A mod applies to a damage source only if **every** tag on the mod is present on the source (subset rule; Elemental also matches Fire, Cold and Lightning). A mod with `tags = 520` (Fire|Melee) does not apply to a spell. Details: `knowledge/mechanics/damage-pipeline.md#4-tag-matching`.
 - A skill's own tags: `abilities.tags` / `tag_names` (Fireball = 264 = Fire|Spell).
@@ -295,7 +295,7 @@ find_mods({"filters":{"property":0,"modifier_type":1,"tags_any":["Minion"],"incl
 
 Tag names or integer bits both work (`"tags_any":[8192]`). Display-only tree-node lines: `find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":20})` (606 rows in this build; `modifier_type` must be the JSON `null`, not omitted). One owner: `{"filters":{"source_id":"33","source_kinds":["unique_mod"]}}`.
 
-**A bit test can match indirect properties by accident.** For SP 58, 98 and 130 the `tags` column is an index, not a mask. `find_mods` already skips those rows in `tags_any` / `tags_all` (pass `"include_indirect":true` to keep them); in SQL add `AND property NOT IN (58, 98, 130)` yourself.
+**A bit test can match indirect properties by accident.** For SP 58, 98, 104, 105 and 130 the `tags` column is an index, not a mask (104/105 Increased Drop Rate/Experience: with `special_tag` 0 it is an item base_type_id; `get`/`find_mods` rows add `drop_target`). `find_mods` already skips those rows in `tags_any` / `tags_all` (pass `"include_indirect":true` to keep them); in SQL add `AND property NOT IN (58, 98, 130)` yourself.
 
 ## Gotchas
 

@@ -70,6 +70,21 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(cdal.n).toBe(4);
   });
 
+  it("v_affix_summary keeps tag names; v_blessings exposes tags and does not decode drop-rate masks", () => {
+    const db = get().db;
+    const a = db.prepare("SELECT stats_text FROM v_affix_summary WHERE affix_id = 76").get() as { stats_text: string };
+    expect(a.stats_text).toBe("Damage added 3..100 [Void,Melee]"); // Melee Void Damage
+    const cols = (db.prepare("PRAGMA table_info(v_blessings)").all() as { name: string }[]).map((c) => c.name);
+    expect(cols).toEqual(expect.arrayContaining(["tags", "tag_names", "special_tag"]));
+    const dr = db
+      .prepare("SELECT name, tags, tag_names FROM v_blessings WHERE property = 104 AND special_tag = 0 AND tags = 1")
+      .get() as { name: string; tags: number; tag_names: string | null };
+    expect(dr.name).toBe("Embrace of Ice");
+    expect(dr.tag_names).toBeNull();
+    const phys = db.prepare("SELECT count(*) AS n FROM v_blessings WHERE property = 104 AND tag_names IS NOT NULL").get() as { n: number };
+    expect(phys.n).toBe(0);
+  });
+
   it("stores affix tier roll ranges", () => {
     const db = get().db;
     const a = db.prepare("SELECT name, tier_count FROM affixes WHERE affix_id = 0").get() as { name: string; tier_count: number };

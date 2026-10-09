@@ -89,7 +89,7 @@ CREATE TABLE stat_properties (
   alt_text_key      TEXT,                -- coreDB.propertyList[].altTextKey
   has_display_rule  INTEGER NOT NULL,    -- 1 when coreDB.propertyList has an entry (113 of 134 SP)
   list_index        INTEGER,             -- index in coreDB.propertyList
-  is_indirect       INTEGER NOT NULL DEFAULT 0, -- 1 for 58 AbilityProperty, 98 PlayerProperty, 130 IdolAltarProperty (tags is an index, not an AT mask);
+  is_indirect       INTEGER NOT NULL DEFAULT 0, -- 1 for 58 AbilityProperty, 98 PlayerProperty, 104 IncreasedDropRate, 105 IncreasedExperience, 130 IdolAltarProperty (tags is an index, not an AT mask; for 104/105 with special_tag 0 it is an item base_type_id);
                                          -- 88 LevelOfSkills is indirect only when specialTag = 1 (tags = ability index), see lib/stat-lines.ts isIndirectTags()
   round_added_to_int          INTEGER,   -- coreDB.propertyList[].roundAddedToInt (0 none, 1 int, 2 one decimal, 3 see enums.md 12)
   rounding_for_more           INTEGER,   -- coreDB.propertyList[].roundingForMore
@@ -930,7 +930,7 @@ CREATE TABLE mods (
   property_name TEXT,                  -- resolved name: indirect 58/98/130 resolved to the ability/player/altar property name,
                                        -- otherwise stat_properties.name; NULL for skill-local ids (see label)
   special_tag   INTEGER NOT NULL DEFAULT 0, -- .specialTag (AilmentID, trigger event, conditional index, ability property index...)
-  tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/130)
+  tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/104/105/130)
   tag_names     TEXT,                  -- describeTags(tags), comma list; NULL for indirect properties or tags = 0
   extra_tag     INTEGER NOT NULL DEFAULT 0, -- .extraTag (ability index for ability-bound lines)
   modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; NULL for display-only lines (tree nodes)
@@ -1063,7 +1063,9 @@ SELECT
             coalesce(s.property_name, s.label) || ' ' ||
             CASE s.modifier_type WHEN 0 THEN 'added' WHEN 1 THEN 'increased' WHEN 2 THEN 'more' END ||
             (SELECT printf(' %g..%g', min(m.value_min), max(m.value_max)) FROM mods m
-              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord),
+              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord) ||
+            coalesce((SELECT ' [' || m.tag_names || ']' FROM mods m
+              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord AND m.tag_names IS NOT NULL LIMIT 1), ''),
             '; ' ORDER BY s.ord)
      FROM affix_stats s WHERE s.affix_id = a.affix_id) AS stats_text,
   (SELECT group_concat(bt.name, ', ' ORDER BY r.ord)
@@ -1109,6 +1111,8 @@ SELECT
   m.source_ord,
   m.property,
   coalesce(m.property_name, sp.name) AS property_name,
+  m.special_tag,
+  m.tags,
   m.tag_names,
   m.modifier_type,
   CASE m.modifier_type WHEN 0 THEN 'added' WHEN 1 THEN 'increased' WHEN 2 THEN 'more' END AS modifier_name,

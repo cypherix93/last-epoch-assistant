@@ -38,7 +38,13 @@ export function dropNulls(r: Row): Row {
 
 /** Stat properties whose `special_tag` is an ailment id (docs/data-sources/enums.md). */
 export const AILMENT_SPECIAL_TAG_PROPS = new Set([1, 42, 43, 100, 115, 120, 128]);
-const INDIRECT_PROP_KIND: Record<number, string> = { 98: "player_property", 58: "ability_property", 130: "idol_altar_property" };
+const INDIRECT_PROP_KIND: Record<number, string> = {
+  98: "player_property",
+  58: "ability_property",
+  130: "idol_altar_property",
+  104: "drop_category",
+  105: "drop_category",
+};
 
 const ailmentNameCache = new WeakMap<Ctx, Map<number, string>>();
 export function ailmentName(ctx: Ctx, id: number): string | undefined {
@@ -46,6 +52,16 @@ export function ailmentName(ctx: Ctx, id: number): string | undefined {
   if (!m) {
     m = new Map(all(ctx, "SELECT ailment_id, name FROM ailments").map((r) => [r.ailment_id as number, r.name as string]));
     ailmentNameCache.set(ctx, m);
+  }
+  return m.get(id);
+}
+
+const baseTypeCache = new WeakMap<Ctx, Map<number, string>>();
+function baseTypeName(ctx: Ctx, id: number): string | undefined {
+  let m = baseTypeCache.get(ctx);
+  if (!m) {
+    m = new Map(all(ctx, "SELECT base_type_id, name FROM item_base_types").map((r) => [r.base_type_id as number, r.name as string]));
+    baseTypeCache.set(ctx, m);
   }
   return m.get(id);
 }
@@ -60,6 +76,11 @@ export function decorateMod<T extends Row>(ctx: Ctx, m: T): T {
     if (n) out.special_tag_name = n;
   }
   if (INDIRECT_PROP_KIND[p]) out.property_kind = INDIRECT_PROP_KIND[p];
+  // 104/105: with special_tag 0, tags is an item base type id (e.g. 1 = Body Armor); other special tags are undecoded categories.
+  if ((p === 104 || p === 105) && !m.special_tag && typeof m.tags === "number") {
+    const bt = baseTypeName(ctx, m.tags);
+    if (bt) out.drop_target = bt;
+  }
   return out as T;
 }
 

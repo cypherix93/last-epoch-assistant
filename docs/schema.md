@@ -205,7 +205,7 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 | `v_unique_summary` | unique | name, base_type, sub_type, set_name, `mods_text` (all mods flattened), `tooltip_text`, lore |
 | `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers), `rolls_on_text` |
 | `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list), `requires` |
-| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, modifier_name, value_min, value_max |
+| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, special_tag, tags, tag_names, modifier_name, value_min, value_max |
 
 ## 4. Example queries
 

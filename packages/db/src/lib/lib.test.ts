@@ -215,6 +215,10 @@ describe("insertMod / insertStatBlock", () => {
     expect(get(insertMod(db, { ...base, sourceOrd: 14, property: 88, tags: 32, specialTag: 0 }, namer))).toEqual({ property_name: "LevelOfSkills", tag_names: "Necrotic" });
     expect(isIndirectTags(88, 0)).toBe(false);
     expect(isIndirectTags(98)).toBe(true);
+    // drop-rate blessings: tags is an item base type id (1 = Body Armor), never a damage-tag mask
+    expect(isIndirectTags(104, 0)).toBe(true);
+    expect(isIndirectTags(105, 0)).toBe(true);
+    expect((get(insertMod(db, { ...base, sourceOrd: 15, property: 104, tags: 3 }, namer)) as { tag_names: string | null }).tag_names).toBeNull();
   });
 
   it("cleans float noise and mirrors a lone bound", () => {

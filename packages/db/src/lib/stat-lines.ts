@@ -43,16 +43,25 @@ export type ModifierType = 0 | 1 | 2;
 export const MODIFIER_NAMES: Record<ModifierType, string> = { 0: "added", 1: "increased", 2: "more" };
 
 /** Stat property ids whose `tags` is an index into a secondary list, not an AT mask. */
-export const INDIRECT_PROPERTIES = { abilityProperty: 58, levelOfSkills: 88, playerProperty: 98, idolAltarProperty: 130 } as const;
+export const INDIRECT_PROPERTIES = {
+  abilityProperty: 58,
+  levelOfSkills: 88,
+  playerProperty: 98,
+  increasedDropRate: 104,
+  increasedExperience: 105,
+  idolAltarProperty: 130,
+} as const;
 
 /**
  * True when `tags` of a line is an index rather than an AT bitmask:
  * 58 AbilityProperty (ability index), 98 PlayerProperty (playerPropertyList index),
- * 130 IdolAltarProperty (idolAltarPropertyList index), and 88 LevelOfSkills with specialTag 1
+ * 130 IdolAltarProperty (idolAltarPropertyList index), 104 IncreasedDropRate and 105 IncreasedExperience (drop category:
+ * with specialTag 0 `tags` is an item BASE TYPE id, e.g. 1 = Body Armor, 33 = Adorned Idol; specialTags 1-4 select other
+ * drop categories whose tags values are not decoded; never an AT mask), and 88 LevelOfSkills with specialTag 1
  * (single-skill level: tags = ability index; with specialTag 0 tags is an AT mask, e.g. 32 = Necrotic skills).
  */
 export function isIndirectTags(property: number | null | undefined, specialTag = 0): boolean {
-  if (property === 58 || property === 98 || property === 130) return true;
+  if (property === 58 || property === 98 || property === 104 || property === 105 || property === 130) return true;
   return property === 88 && specialTag === 1;
 }
 

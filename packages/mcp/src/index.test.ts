@@ -169,6 +169,14 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(h).toMatchObject({ tree_id: "fi9", node_id: 2 });
   });
 
+  it("drop-rate blessings: tags are a base type, not damage tags", () => {
+    const r = findMods(ctx, { property: 104, source_kinds: ["blessing"], source_id: "34:63" }) as R;
+    expect(r.rows[0]).toMatchObject({ property_name: "Increased Drop Rate", tags: 1, property_kind: "drop_category", drop_target: "Body Armor" });
+    expect(r.rows[0].tag_names).toBeUndefined();
+    const phys = findMods(ctx, { tags_all: ["Physical"], source_kinds: ["blessing"], include_untagged: false }, 2000) as R;
+    expect(phys.rows.some((x: R) => x.property === 104)).toBe(false);
+  });
+
   it("find_mods ignores indirect-property rows in tag filters", () => {
     const rows = (findMods(ctx, { tags_any: ["Minion"] }, 2000) as R).rows;
     expect(rows.some((x: R) => [58, 98, 130].includes(x.property) && (x.tags & 8192) !== 0 && x.tags !== 0)).toBe(false);
