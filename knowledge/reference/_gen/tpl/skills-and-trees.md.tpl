@@ -125,7 +125,7 @@ All Weaver nodes (A, `trees.json`; "Requires" lists prerequisite node ids; infer
 {{gen:misc.weaver_nodes}}
 
 ## Pitfalls
-- A node's modifier type is not in `trees.json`; using `tooltipStats` alone will classify "+N%" or "N% increased" wrongly. Use the effect JSONs (kind added/increased/more).
+- A node's modifier type is not in `trees.json`; using `tooltipStats` alone will classify "+N%" or "N% increased" wrongly. Use the effect JSONs (kind added/increased/more). The database stores the matched result per line (`mods.stat_kind` / `modifier_type`, `modifier_source` structured or inferred, `code_ref`; `docs/schema.md` "Tree node stat kinds"); a `label_mismatch = 1` line is not a plain stat.
 - Many skill-tree "increased" lines behave as MORE; passive-tree damage uses INCREASED far more often (A).
 - `noScaling` stat lines apply once at the threshold; do not multiply them by points.
 - Skills with `damage[]` empty are not damageless: check ailments, mutators (`abilities_code_damage.json`) and sub-abilities.

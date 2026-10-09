@@ -208,11 +208,19 @@ out.nodrop_uniques = {
       }
       return null;
     };
+    // uniques.drop_source / unique_drop_sources of data/le.sqlite (built from itemDB.monsterItemDrops etc.); needs yarn db:build
+    const Database = require(path.join(L.ROOT, 'node_modules/better-sqlite3'));
+    const dbp = process.env.LE_DB_PATH || path.join(L.ROOT, 'data/le.sqlite');
+    if (!fs.existsSync(dbp)) throw new Error('data/le.sqlite not found; run yarn db:build first (' + dbp + ')');
+    const sdb = new Database(dbp, { readonly: true });
+    const dsrc = new Map(sdb.prepare('SELECT unique_id, drop_source FROM uniques').all().map(r => [r.unique_id, r.drop_source]));
+    sdb.close();
+    const dbSrc = (id) => !dsrc.has(id) ? '(not loaded in the database)' : (dsrc.get(id) === null ? 'none (NULL)' : dsrc.get(id));
     const itemsJ = _items();
     const lvl = (u) => { if (u.levelRequirement !== null && u.levelRequirement !== undefined && u.levelRequirement > 0) return String(u.levelRequirement); const b = itemsJ.find(x => x.baseTypeID === u.baseType); const s = b && (b.subItems || []).find(x => x.subTypeID === (u.subTypes || [])[0]); return s ? s.levelRequirement + ' (sub type)' : ''; };
     const rows = _U().filter(u => !u.canDropRandomly).sort((a, b) => (a.baseType - b.baseType) || (a.uniqueID - b.uniqueID))
-      .map(u => { const c = ctx(_nm(u)); return [u.uniqueID, _nm(u), _bname(u.baseType), lvl(u), c ? c : 'not in data']; });
-    return { rows: rows.length, md: table(['uniqueID', 'Unique', 'Slot (base type)', 'Level requirement', 'Source (named on a knowledge page, else "not in data")'], rows) };
+      .map(u => { const c = ctx(_nm(u)); return [u.uniqueID, _nm(u), _bname(u.baseType), lvl(u), dbSrc(u.uniqueID), c ? c : 'not in data']; });
+    return { rows: rows.length, md: table(['uniqueID', 'Unique', 'Slot (base type)', 'Level requirement', 'Database drop source (`uniques.drop_source`)', 'Source named on a knowledge page (else "not in data")'], rows) };
   }
 };
 module.exports = out;

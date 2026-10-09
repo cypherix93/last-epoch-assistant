@@ -57,9 +57,11 @@ out.idol_affix_counts = {
       const s = idol.filter(x => x.canRollOn.includes(id)); const c = {};
       for (const x of s) { const k = x.specialAffixType + ':' + x.type[0]; c[k] = (c[k] || 0) + 1; }
       const g = (k) => c[k] || 0;
-      rows.push([id, base(id).displayName || base(id).name, s.length, g('Standard:P'), g('Standard:S'), g('IdolWeaver:P') + g('IdolWeaver:S'), g('IdolEnchantment:S'), g('Corrupted:P'), g('FakeUniqueMod:P')]);
+      const sm = {}; for (const x of s) { const k = x.standardAffixEffectModifier; sm[k] = (sm[k] || 0) + 1; }
+      const stdTxt = Object.keys(sm).sort((p, q) => q - p).map(k => k + ' x' + sm[k]).join(', ');
+      rows.push([id, base(id).displayName || base(id).name, s.length, g('Standard:P'), g('Standard:S'), g('IdolWeaver:P') + g('IdolWeaver:S'), g('IdolEnchantment:S'), g('Corrupted:P'), g('FakeUniqueMod:P'), stdTxt]);
     }
-    return { rows: rows.length, md: table(['baseTypeID', 'Base', 'Idol affixes that can roll', 'Standard prefix', 'Standard suffix', 'IdolWeaver (weaver idols)', 'IdolEnchantment (suffix, enchanting)', 'Corrupted prefix', 'FakeUniqueMod'], rows) };
+    return { rows: rows.length, md: table(['baseTypeID', 'Base', 'Idol affixes that can roll', 'Standard prefix', 'Standard suffix', 'IdolWeaver (weaver idols)', 'IdolEnchantment (suffix, enchanting)', 'Corrupted prefix', 'FakeUniqueMod', 'Affix standard effect modifier (`standardAffixEffectModifier` x count)'], rows) };
   }
 };
 

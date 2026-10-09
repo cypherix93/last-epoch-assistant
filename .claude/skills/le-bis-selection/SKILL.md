@@ -75,7 +75,15 @@ For a rare slot, list the wanted affixes that can roll on the slot's base type w
 
 ### Step 4: legendary-potential slam targets
 
-A unique can be taken as a legendary only when `uniques.lp_eligible = 1` (derived: not a set item, `legendary_type` 0; Weaver's Will items have `weavers_will = 1`; **U**, confirm in game; a corrupted copy cannot become legendary). Which affixes to slam: the affixes that can roll on the unique's base type (Q10 in **le-build-around-item**) intersected with the build's wishlist, ranked by how often guides add them in that slot (`origin = 'extra'` in `v_affix_usage`, example 3b; the data does not separate LP from slam). Quote the tier guides use (`avg_tier`) as a target, not as a promise.
+A unique can be taken as a legendary only when `uniques.lp_eligible = 1` (derived: not a set item, `legendary_type` 0; Weaver's Will items have `weavers_will = 1`; **U**, confirm in game; a corrupted copy cannot become legendary). Which affixes to slam: the affixes that can roll on the unique's base type (Q10 in **le-build-around-item**) intersected with the build's wishlist, ranked by how often guides add them in that slot (`origin = 'extra'` in `v_affix_usage`, example 3b; the data does not separate LP from slam). Quote the tier guides use (`avg_tier`) as a target, not as a promise. **Quote the slam range scaled for the item's base, not the stored tier range:** read it from `v_affix_values` (one row per affix x base type x tier x line: `stored_min/max` = the data, `scale_factor`, `value_min/max` = the range on that base). Example (World Splitter, a Two-Handed Axe, std 0.75 vs base 2.2): Melee Void Damage T7 is stored 51-65 and scales x1.8286 to 93-119 (below). The scaled numbers follow the decompiled formula (`item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula`, **D**) but have not been checked against the in-game tooltip: label them **D?** / **U**.
+
+```sql
+SELECT u.name AS unique_item, u.base_type, v.affix_name, v.tier, v.std_aem, v.item_aem, v.scale_factor,
+       v.stored_min || '-' || v.stored_max AS stored, v.value_min || '-' || v.value_max AS scaled
+FROM v_unique_summary u
+JOIN v_affix_values v ON v.base_type = u.base_type
+WHERE u.unique_id = 365 AND v.affix_name = 'Melee Void Damage' AND v.tier = 7 AND v.ord = 0;
+```
 
 ### Step 5: idols and blessings
 

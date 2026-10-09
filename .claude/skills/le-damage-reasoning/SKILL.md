@@ -27,7 +27,7 @@ get({"kind":"ability","id":"fi9"})                                    -> {abilit
 skill_tree({"ability_id":"fi9"})                                      -> every node with stats and requirements
 skill_tree({"ability_id":"fi9","filter":"ignite","compact":true})     -> only the nodes mentioning ignite
 passive_tree({"class_id":"Mage","filter":"spell damage","compact":true})   -> class/mastery passives that feed the skill
-find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})   -> 606 display-only node Damage lines
+find_mods({"filters":{"property":0,"modifier_type":2,"source_kinds":["skill_node"]},"limit":100})   -> 437 skill-node "more" Damage lines (kind from the decompiled node code or the label; check label_mismatch and code_ref)
 find_mods({"filters":{"property_name":"Penetration","tags_any":["Fire"]},"limit":50})
 sql({"query":"SELECT ord, component_type, json_extract(raw_json, '$.baseDamageStats.damage') AS damage FROM ability_components WHERE ability_id = 'fi9'"})
 knowledge({"page":"mechanics/damage-pipeline"})                       -> the formulas
@@ -130,27 +130,41 @@ Pitfalls while collecting:
 
 ### Step 5: skill-tree nodes
 
-Node stat lines are display-only: all 6,528 `skill_node` rows in `mods` have `modifier_type` NULL, so `find_mods` with `"modifier_type":2` and `"source_kinds":["skill_node"]` returns 0 rows. The values sit in `display` (`+8%`) and the wording in `label`; node-local stats use ids 5000+ with `property_name` NULL. To list a tree's damage lines use the node view, or `find_mods` with `modifier_type` set to `null` plus `property`/`property_name`:
+Node stat lines carry a modifier kind. Of the 6,528 `skill_node` rows in `mods`, 4,081 are `modifier_source = 'structured'` (kind read from the decompiled node code, with the matched effect in `code_ref`, **D** for game 1.5.0 code matched to 1.5.2 by name and magnitude) and the rest are `inferred` from the label (**U**). `modifier_type` is 0 added / 1 increased / 2 more and `stat_kind` names it (`added` / `increased` / `more`, plus `skill_parameter` for a line that sets a skill-local mutator field, `conversion`, `unknown`); both are NULL / `unknown` when neither code nor label says (for example a "Single Projectile" line). `property_kind` says what `property` is: `stat` (an SP id below 5000, but only the tooltip icon hint), `tooltip_category` (5000-9999, a global category named in `node_tooltip_properties` and returned as `property_hint`), `ailment` or `display_only`. The values sit in `display` (`+8%`) and the wording in `label`.
 
-```
-find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":100})
-```
+**Rule: a `label_mismatch = 1` row is never a plain stat.** The line is not a plain `<modifier> <property_name>` line: `property_name` is only the icon hint. Foe Cleaver `sndr1:24` "Effect of Damage Stats on a 2h Weapon" sits on SP 0 Damage but is `skill_parameter` (`field RiveMutator.twoHandedWeaponStatModifier`); Quintessence of Triumph `mg-1:54` "More Spell Damage" sits on SP 41 but is a conditional more stat (`ConditionalMoreDamage ... {ToEnemiesWithLessRemainingHealthThanYourCurrentWard}`). Read `label`, `code_ref` and the tool's `warning` field, model what they say, and do not drop the line into the generic increased or more bucket by `property_name`. Of the 606 property-0 skill-node lines, 437 are `more` (435 structured, 2 inferred) and 213 of those carry `label_mismatch` (for example "Damage Per Extra Projectile"): only the 222 `more` rows with `label_mismatch = 0` are plain Damage lines.
 
-(`total_matching` 606 in this build; `source_context` names the tree.) The same through SQL, restricted to one tree (all property-0 lines of its nodes; add `AND label LIKE '%more%'` to keep only lines whose wording says "more", which on most trees, Fireball included, is none):
+To list a skill's "more" nodes (Fireball shown), with the code behind each line:
 
 ```sql
-SELECT source_id, label, display, property_name
-FROM mods
+SELECT source_id AS node, source_name AS node_name, label, display, modifier_source, label_mismatch, code_ref
+FROM v_mods_named
+WHERE source_kind = 'skill_node' AND source_id LIKE 'fi9:%' AND modifier_type = 2
+ORDER BY CAST(substr(source_id, 5) AS INTEGER), source_ord;
+```
+
+The same across all trees through the tool (`total_matching` 437 for property 0; `source_context` names the tree):
+
+```
+find_mods({"filters":{"property":0,"modifier_type":2,"source_kinds":["skill_node"]},"limit":100})
+```
+
+Wording still cannot classify a line by itself. The same through SQL, restricted to one tree (all property-0 lines of its nodes, with their kind):
+
+```sql
+SELECT source_id, label, display, property_name, stat_kind, modifier_source, label_mismatch
+FROM v_mods_named
 WHERE source_kind = 'skill_node' AND source_id LIKE 'fi9:%' AND property = 0
 ORDER BY source_id, source_ord;
 ```
 
 ```sql
-SELECT count(*) AS damage_lines, sum(label LIKE '%more%') AS label_says_more, sum(label LIKE '%increased%') AS label_says_increased
+SELECT count(*) AS damage_lines, sum(label LIKE '%more%') AS label_says_more, sum(label LIKE '%increased%') AS label_says_increased,
+       sum(stat_kind = 'more') AS kind_more, sum(modifier_source = 'inferred') AS inferred
 FROM mods WHERE source_kind = 'skill_node' AND property = 0;
 ```
 
-The second query returns 606, 20 and 12: the wording says "more" or "increased" on only 32 of 606 damage lines (most labels are just "Damage"), which is why wording cannot classify them. And the whole-tree view with `stats_text`:
+The second query returns 606, 20, 12, 437 and 67: the wording says "more" or "increased" on only 32 of 606 damage lines (most labels are just "Damage"), so use `stat_kind` / `modifier_source` and treat `inferred` rows as **U**. And the whole-tree view with `stats_text` (`[more]` / `[increased]` / `[added]` mark the kind, `?` an inferred one, `[skill parameter]` a mutator field):
 
 ```sql
 SELECT node_id, name, max_points, stats_text, description
@@ -159,9 +173,9 @@ WHERE tree_kind = 'skill' AND tree_name = 'Fireball' AND (stats_text LIKE '%amag
 ORDER BY node_id;
 ```
 
-Rules: damage in skill trees is almost always **more**, multiplied per node and scaled linearly by allocated points; speed and crit nodes are *increased*; "doubled when condition" and "non-X damage" nodes are special. The per-stat type is not in the database (it lives in the decompiled `skill_node_effects.json`, summarised in `knowledge/mechanics/damage-pipeline.md#5-increased-more-and-skill-trees` as 429 more, 79 added and 38 increased damage stats, **D**; this count cannot be reproduced with SQL). The tooltip wording cannot tell you; classify as "more (assumed, **D** 429:38 prior from the knowledge page)" and flag it. Nodes that add flat damage are still multiplied by ADE. [damage-pipeline.md#5-increased-more-and-skill-trees] **D**, [damage-pipeline.md#3-added-damage] **X**
+Rules: damage in skill trees is almost always **more**, multiplied per node and scaled linearly by allocated points; speed and crit nodes are *increased*; "doubled when condition" and "non-X damage" nodes are special. The per-stat type is in the database for most lines (`modifier_type` / `stat_kind` / `modifier_source` / `code_ref`, from the decompiled `skill_node_effects.json` and `passive_node_effects.json`, summarised in `knowledge/mechanics/damage-pipeline.md#5-increased-more-and-skill-trees` as 429 more, 79 added and 38 increased damage stats, **D**). Use the row's own kind: `structured` is **D**, `inferred` is **U**; for a line with `stat_kind` `unknown` (or a Weaver node: none of the 70 `weaver_node` lines is structured) classify as "more (assumed, **D** 429:38 prior from the knowledge page)" and flag it. The tooltip wording cannot tell you. Nodes that add flat damage are still multiplied by ADE. [damage-pipeline.md#5-increased-more-and-skill-trees] **D**, [damage-pipeline.md#3-added-damage] **X**
 
-Skill-local properties (5000+, `property_name` NULL) and mutator effects (projectile counts, "chance to ..."): read their text, model what the text says, and mark anything not expressible as undetermined (see the last section).
+Skill-local properties (5000+, `property_name` NULL, `property_kind = 'tooltip_category'`; the tools return the category as `property_hint`, from the global `node_tooltip_properties` list, e.g. 5110 "Melee Damage") and mutator effects (`stat_kind = 'skill_parameter'`: projectile counts, "chance to ..."): read `label`, `code_ref` and the text, model what they say, and mark anything not expressible as undetermined (see the last section).
 
 ### Step 6: the bucket formula
 
@@ -296,7 +310,7 @@ Sources: <table + id for every modifier>, <page#section for every formula>
 
 ## When to say "cannot be determined from data"
 
-- Skill-tree mutator effects with 5000+ skill-local property ids or node text that implies code behaviour (extra projectiles, "chance to cast", transform effects): the data holds text and a magnitude, not the effect type or formula.
+- Skill-tree mutator effects with 5000+ skill-local property ids or node text that implies code behaviour (extra projectiles, "chance to cast", transform effects): the data holds text, a magnitude and (for `skill_parameter` lines) the mutator field name in `code_ref`, not a formula for the effect.
 - SP 98 PlayerProperty and SP 58 AbilityProperty lines of uniques/nodes whose effect model is not in `knowledge/interactions/unique-effects-index.md`.
 - Hidden per-skill multipliers, damage variance order, enemy crit avoidance, exact rounding of intermediate values (listed under Open questions of the damage and defense pages).
 - Whether a tree node's "increased damage" is increased or more when no source states it: give both bounds.

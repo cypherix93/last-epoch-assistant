@@ -184,7 +184,7 @@ Gate: all candidates pass. Druid was excluded before scoring, because forms repl
 - **Community baseline:** no guide for Sorcerer + Lightning Blast (step 14c); the proposal differs from the Sorcerer Static Orb and Runemaster Lightning Blast guides by the mana-dump loop. Slot picks to compare with the community-standard ones: relic (Shattered Worlds 3 of 3 Sorcerer guides), belt (Orian's Descent 3 of 3), body (Unstable Core 3 of 3).
 
 Still to do, using the sibling skills:
-- the damage path (**le-damage-reasoning**): 90% increased Lightning|Spell lands in the increased bucket, and the tree's display-only nodes are of unknown type;
+- the damage path (**le-damage-reasoning**): 90% increased Lightning|Spell lands in the increased bucket, and the tree's nodes with an `inferred` or `unknown` kind are uncertain (**U**);
 - the defense plan (**le-defense-reasoning**): seven resistances, ward steady state, endurance only on health;
 - passives in full, idols, leveling.
 

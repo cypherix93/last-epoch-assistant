@@ -80,6 +80,7 @@ lo = min * (1 + m);  hi = max * (1 + m);  s = scale(rounding)  // Hundredth x100
 a  = RoundHalfEven(lo * s);  b = RoundHalfEven(hi * s)
 v  = min(floor((b - a + 1) * roll / 255 + a), b) / s           // roll = byte 0..255
 ```
+**Queryable form:** the database applies this formula for you. `v_affix_values` has one row per affix x base type it rolls on x tier x line with `std_aem`, `item_aem`, `scale_factor`, `stored_min/max` (the data) and `value_min/max` (in-game range on that base); `v_idol_affix_values` is the same for idol bases (25-33) plus `idol` and `idol_size`. Example: Melee Void Damage T7 is stored 51..65 and reads 93..119 on a Two-Handed Axe (x1.8286, D formula, unverified in game: U). Idol scaling examples per size: `idols-and-blessings.md#idol-affix-value-scaling-d-formula-values-unverified-in-game-u`; `docs/schema.md` section 3.4 note on affix values.
 INCREASED stats always round to Hundredth; ADDED uses `roundingForAdded`; MORE uses per-specialTag overrides (A). For Omen Idol subtypes the item AEM is `omenIdolAffixEffectModifier` (0). The game computes in float32 (use `Math.fround`) (A).
 
 Distribution of AEM values (A):

@@ -37,6 +37,20 @@ How many idol affixes can roll on each size (A):
 
 {{gen:idols.idol_affix_counts}}
 
+### Idol affix value scaling (D formula, values unverified in game: U)
+Each idol affix has a `standardAffixEffectModifier` (std, last column above; `affixes.standard_affix_effect_modifier`): the modifier its stored tier range was authored for. Each idol base has its own `affixEffectModifier` (aem): Small / Minor -0.83, Humble / Stout -0.62, Grand / Large -0.33, Adorned -0.05, Ornate / Huge 0 (Omen idol subtypes: 0). The range on a given idol is `stored x (1 + aem) / (1 + std)` (factor 1 when aem = std), rounded to the affix's rounding grid (decompiled `AffixList+Affix.getModifier`, same formula as gear: `item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula`, D). Read it per idol with `v_idol_affix_values` (`idol`, `idol_size`, `scale_factor`, `stored_min/max` = the data, `value_min/max` = in game), never from the stored range alone. The same affix scales differently per size: affix 912 (std -0.33) T7 stored 7..8 rolls 10..12 on an Ornate Idol (factor 1.4925) and is unscaled on Grand / Large idols. The scaled numbers follow the decompiled formula but are not checked against the in-game tooltip (U); SQLite rounds half away from zero where the game rounds half to even in float32, so a value on a .5 boundary can differ by one grid step (U). Do not treat small idols as having the same affix ranges as large ones. One worked example per idol size (Tier 1, std 0 unless stated):
+
+| Idol (size) | aem | Affix | std | scale factor | stored range | in-game range |
+|---|---|---|---|---|---|---|
+| Small / Minor (1x1) | -0.83 | Armor (Minor) | 0 | 0.17 | 58..156 | 10..27 |
+| Humble (2x1) | -0.62 | Health on Kill | 0 | 0.38 | 10..20 | 4..8 |
+| Stout (1x2) | -0.62 | Health Regen | -0.62 | 1 (aem = std) | 2..4 | 2..4 |
+| Grand (3x1) | -0.33 | Damage Over Time (affix 119) | 0 | 0.67 | 0.22..0.60 | 0.15..0.40 |
+| Large (1x3) | -0.33 | Block Effectiveness | 0 | 0.67 | 185..400 | 124..268 |
+| Ornate (4x1) | 0 | Armor | 0 | 1 | 58..156 | 58..156 |
+| Huge (1x4) | 0 | Block Effectiveness | 0 | 1 | 185..400 | 185..400 |
+| Adorned (2x2) | -0.05 | Added Dodge rating if you have been hit recently and Critical Strike Avoidance | 0 | 0.95 | 5..15 | 5..14 |
+
 Idol affixes have one tier row (tier forced to T1 on idols unless `IdolEnchantment`) (A, `07e_save_format.md` 3.4). Idols always drop with 1 prefix and 1 suffix and cannot be altered by crafting (G).
 
 ## Idol altars
@@ -86,7 +100,6 @@ Columns: id = `blessingId`; Pool = which of the three offer pools the normal ble
 - Roll ranges differ per blessing; the Maxroll "blue circle" shows where the roll falls in this range.
 - `cannotDrop` = 1 is set on 35 normal and 79 Grand blessing records (A) with no pattern that matches the obtainable set (Grand versions are obtainable in empowered runs per G); the flag is carried in the tables below and should not be used to filter blessings (U).
 - Altar grid `99` = blocked; values 100+ = refracted slot on top of an unlock number (value - 100 is the unlock number).
-- Idol AEM values (-0.83 ... 0) are negative: do not treat small idols as having equal affix ranges to large ones.
 - Do not assume an idol of the right size is wearable: class-specific sizes need the matching class; universal ones are only 1x1/2x1/1x2 (X).
 - The altar property list contains "per Equipped Heretical Idol" entries even though no heretical idol acquisition path is documented (U).
 
