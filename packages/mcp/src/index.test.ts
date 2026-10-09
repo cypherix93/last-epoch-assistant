@@ -293,7 +293,7 @@ describe.skipIf(!have)("@le/mcp CLI call arg forms", () => {
     const sh = (args: string[]) => spawnSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: REPO_ROOT, encoding: "utf8" });
     const txt = sh(["list"]).stdout;
     expect(txt).toMatch(/^ {4}query\tstring\trequired/m);
-    expect(txt).toMatch(/^ {4}limit\tinteger \[1\.\.500\]\toptional \(default 500\)/m);
+    expect(txt).toMatch(/^ {4}limit\tinteger \[1\.\.5000]\toptional \(default 500\)/m);
     expect(txt).toMatch(/^ {4}ability_id\tstring\trequired/m);
     const raw = JSON.parse(sh(["list", "--json"]).stdout) as { name: string; inputSchema: { properties: object } }[];
     expect(raw.map((t) => t.name)).toContain("sql");
