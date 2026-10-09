@@ -5,7 +5,7 @@
     "build_tool_version": "@le/db 0.0.0",
     "data_version": "1.5.2",
     "data_version_folder": "version152",
-    "fetched_at": "2026-10-08T22:01:15.276Z",
+    "fetched_at": "2026-10-09T03:32:51.660Z",
     "game_version": "Version 1.5.2",
     "game_version_number": "1.5.2",
     "letools_i18n_url": "https://www.lastepochtools.com/data/version152/i18n/full/en.json",
@@ -53,14 +53,14 @@
     "blessings": 224,
     "class_abilities": 156,
     "classes": 5,
-    "community_build_blessings": 0,
-    "community_build_item_affixes": 0,
-    "community_build_items": 0,
-    "community_build_passives": 0,
-    "community_build_profiles": 0,
-    "community_build_skill_nodes": 0,
-    "community_build_skills": 0,
-    "community_builds": 0,
+    "community_build_blessings": 1020,
+    "community_build_item_affixes": 12197,
+    "community_build_items": 4241,
+    "community_build_passives": 5358,
+    "community_build_profiles": 241,
+    "community_build_skill_nodes": 15503,
+    "community_build_skills": 1741,
+    "community_builds": 74,
     "compact_ids": 1306,
     "conditional_properties": 48,
     "dungeon_tiers": 12,
@@ -107,16 +107,7 @@
     "uniques": 486,
     "woven_echoes": 47
   },
-  "empty_tables": [
-    "community_build_blessings",
-    "community_build_item_affixes",
-    "community_build_items",
-    "community_build_passives",
-    "community_build_profiles",
-    "community_build_skill_nodes",
-    "community_build_skills",
-    "community_builds"
-  ],
+  "empty_tables": [],
   "views": [
     "v_affix_summary",
     "v_affix_usage",
@@ -165,9 +156,11 @@
     "unique": 486,
     "weaver_node": 80
   },
-  "foreign_key_violations": {},
+  "foreign_key_violations": {
+    "community_build_skill_nodes -> tree_nodes": 3
+  },
   "expected": {
-    "ok": 93,
+    "ok": 95,
     "failed": 0,
     "results": [
       {
@@ -795,9 +788,23 @@
       },
       {
         "name": "community: community_builds",
-        "expected": 0,
+        "expected": 74,
         "op": "=",
-        "actual": 0,
+        "actual": 74,
+        "ok": true
+      },
+      {
+        "name": "community: community_builds[>= 1]",
+        "expected": 1,
+        "op": ">=",
+        "actual": 74,
+        "ok": true
+      },
+      {
+        "name": "community: community_build_profiles[>= 1]",
+        "expected": 1,
+        "op": ">=",
+        "actual": 241,
         "ok": true
       },
       {
@@ -823,20 +830,65 @@
       }
     ]
   },
-  "warnings": [],
+  "warnings": [
+    "community: 8 unresolved guide_class id(s) (7 distinct), e.g. acolyte/necromancer vs Acolyte/Acolyte (necromancer-leveling-guide/ea7od0qq), mage/spellblade vs Mage/Mage (spellblade-leveling-guide/ps21bf0v), primalist/shaman vs Primalist/Primalist (shaman-leveling-guide/3k9hk0gr)",
+    "community: 2 unresolved ability id(s) (2 distinct), e.g. 426 (reflect-shaman-guide/1o6jp50q mainset), 430 (anurok-frogs-beastmaster-guide/rl6jp20q mainset)",
+    "community: 3 unresolved skill_node id(s) (1 distinct), e.g. vr53sl:3 (shield-rush-forge-guard-guide/7f5tdu0o/Starter)",
+    "community: 212 unresolved item_key id(s) (1 distinct), e.g. [object Object] (anurok-frogs-beastmaster-guide/rl6jp20q/Starter/body)"
+  ],
   "crosscheck_mismatches": 1,
   "community": {
-    "present": false,
-    "guides": 0,
-    "builds": 0,
-    "profiles_loaded": 0,
+    "present": true,
+    "guides": 73,
+    "builds": 74,
+    "profiles_loaded": 74,
     "profiles_missing": 0,
-    "tabs": 0,
-    "items": 0,
-    "affixes": 0,
-    "resolution": "none",
-    "unresolved_total": 0,
-    "unresolved": {},
-    "unnamed_properties": []
+    "tabs": 241,
+    "items": 4241,
+    "affixes": 12197,
+    "resolution": "ok",
+    "unresolved_total": 225,
+    "unresolved": {
+      "guide_class": {
+        "count": 8,
+        "distinct": 7,
+        "examples": [
+          "acolyte/necromancer vs Acolyte/Acolyte (necromancer-leveling-guide/ea7od0qq)",
+          "mage/spellblade vs Mage/Mage (spellblade-leveling-guide/ps21bf0v)",
+          "primalist/shaman vs Primalist/Primalist (shaman-leveling-guide/3k9hk0gr)",
+          "rogue/bladedancer vs Rogue/Rogue (bladedancer-leveling-guide/sb62zd0e)",
+          "rogue/falconer vs Rogue/Rogue (falconer-leveling-guide/dz3y3005)"
+        ]
+      },
+      "ability": {
+        "count": 2,
+        "distinct": 2,
+        "examples": [
+          "426 (reflect-shaman-guide/1o6jp50q mainset)",
+          "430 (anurok-frogs-beastmaster-guide/rl6jp20q mainset)"
+        ]
+      },
+      "skill_node": {
+        "count": 3,
+        "distinct": 1,
+        "examples": [
+          "vr53sl:3 (shield-rush-forge-guard-guide/7f5tdu0o/Starter)"
+        ]
+      },
+      "item_key": {
+        "count": 212,
+        "distinct": 1,
+        "examples": [
+          "[object Object] (anurok-frogs-beastmaster-guide/rl6jp20q/Starter/body)"
+        ]
+      }
+    },
+    "unnamed_properties": [
+      {
+        "property": 120,
+        "enum_name": "EffectOfAilmentOnYou",
+        "lines": 13
+      }
+    ]
   }
 }
