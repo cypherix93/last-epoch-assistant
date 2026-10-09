@@ -94,7 +94,7 @@ digraph flow {
    - level requirement of the unique and of the base (they can differ: quote both);
    - class requirement (`item_subtypes.class_requirement_names`);
    - primordial, set or WW status;
-   - LP: whether it can become legendary, and which affixes roll on that base (Q10);
+   - LP: `lp_eligible` (derived: not a set item and `legendary_type` 0; the game data has no per-unique LP flag, `legendary_type` 1 = Weaver Will item), and which affixes roll on that base (Q10);
    - corruption: a corrupted item cannot become legendary (`knowledge/reference/uniques-sets-legendary.md`).
    Note what the slot forbids, for example a 2H weapon rules out shields and many uniques.
 
@@ -233,7 +233,7 @@ ORDER BY source_ord, sub_ord;
 Q3. Slot, base, restrictions and legendary fields:
 <!-- params: [33] -->
 ```sql
-SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.is_legendary_capable,
+SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.legendary_type, u.lp_eligible,
        u.effective_level_for_lp, u.can_drop_randomly, bt.name AS slot, bt.category,
        st.name AS base_item, st.level_requirement AS base_level, st.class_requirement_names
 FROM uniques u

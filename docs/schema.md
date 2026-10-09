@@ -139,6 +139,13 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 (`grid_index` ordering is unverified) |
 | `blessings` | blessing sub types with timeline, difficulty (0 normal, 1 empowered = grand) and slot list; the stat is mods `blessing` | sub_type_id | 224 |
 
+**Legendary fields of `uniques` (what the columns mean).**
+
+- `legendary_type` is the raw `.legendaryType` enum: **0 = LegendaryPotential, 1 = WeaversWill**. It says which upgrade system the unique carries (LP or Weaver's Will, sharing the same 5 save bits); it is NOT "can roll LP". 1 on exactly 18 uniques (the Erased and Weaver items). This column used to be called `is_legendary_capable`, which was a misreading.
+- `can_drop_as_legendary` is the raw `.canDropAsLegendary`: 1 on 4 uniques (Exulis, Unsated Rage, Withstand the Elements, Frostborn Solitude), all with `drops_specific_legendary_affixes = 1` (a fixed pool of legendary affixes).
+- `effective_level_for_lp` / `override_effective_level_for_lp`: the level used for legendary potential, only when the override flag is 1 (0 with override 1 occurs on 3 uniques; 0 with override 0, 271 uniques, means "not set": LP then presumably uses the item's own level, unverified).
+- **LP eligibility is not in the data.** No raw field says whether a unique can roll legendary potential. `lp_eligible` is DERIVED by the loader: 1 when the unique is not a set item and `legendary_type = 0` (all non-set, non-Weaver-Will uniques can drop with LP in the game; set items cannot). `weavers_will` is derived: 1 when `legendary_type = 1`. Treat both as game knowledge, not data (label U/G). `get` on a unique repeats this in its `note`.
+
 Example rows:
 
 | table | example |

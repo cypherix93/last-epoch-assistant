@@ -2632,7 +2632,7 @@ Example (record #5, trimmed):
 | `hideFromPlayers` | number | always | values 0,1 | `0` | Hidden from players (internal). |
 | `notTimelineExclusive` | number | always | values 0,1 | `0` | Not timeline-exclusive flag. |
 | `baseTypeId` | number | always | 0..33 (>12 distinct) | `0` | Base item type id (see enums.md "base types"). |
-| `legendaryType` | number | always | values 0,1 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `legendaryType` | number | always | values 0,1 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `subTypeIds` | array | always | len 1..1 | `[1]` | Allowed sub type ids. |
 | `subTypeIds[]` | number | 486 occurrences | 0..72 (>12 distinct) | `1` | Allowed sub type ids. |
 | `oldSubTypeId` | number | always | values 0,1,2,3,4,5,6,7,8 | `1` | Legacy sub type id. |

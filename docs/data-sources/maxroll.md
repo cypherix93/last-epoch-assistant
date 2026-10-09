@@ -1765,7 +1765,7 @@ Example (record #2, trimmed):
 | `isCocoonedItem` | boolean | always | values false,true | `false` | Cocooned item. |
 | `overrideLevelRequirement` | boolean | always | values false,true | `false` | Level requirement overridden. |
 | `levelRequirement` | number | always | 0..87 (>12 distinct) | `0` | Level required to equip/use. |
-| `legendaryType` | number | always | values 0,1 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `legendaryType` | number | always | values 0,1 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `overrideEffectiveLevelForLegendaryPotential` | boolean | always | values true,false | `true` | Flag. |
 | `effectiveLevelForLegendaryPotential` | number | always | 0..200 (>12 distinct) | `40` | Effective level used for legendary potential. |
 | `hideFromPlayers` | boolean | always | values false,true | `false` | Hidden from players (internal). |
@@ -2061,7 +2061,7 @@ Example (record #1, trimmed):
 | `itemsInSet[].isCocoonedItem` | boolean | 61 occurrences | values false | `false` | Cocooned item. |
 | `itemsInSet[].overrideLevelRequirement` | boolean | 61 occurrences | values false,true | `false` | Level requirement overridden. |
 | `itemsInSet[].levelRequirement` | number | 61 occurrences | 0..80 (>12 distinct) | `0` | Level required to equip/use. |
-| `itemsInSet[].legendaryType` | number | 61 occurrences | values 0 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `itemsInSet[].legendaryType` | number | 61 occurrences | values 0 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `itemsInSet[].overrideEffectiveLevelForLegendaryPotential` | boolean | 61 occurrences | values false | `false` | Flag. |
 | `itemsInSet[].effectiveLevelForLegendaryPotential` | number | 61 occurrences | values 0 | `0` | Effective level used for legendary potential. |
 | `itemsInSet[].hideFromPlayers` | boolean | 61 occurrences | values false | `false` | Hidden from players (internal). |

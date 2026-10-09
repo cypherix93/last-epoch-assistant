@@ -53,6 +53,23 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(text).not.toContain("40..25");
   });
 
+  it("legendary fields: legendary_type is the raw enum, lp_eligible/weavers_will are derived", () => {
+    const db = get().db;
+    const cols = (db.prepare("PRAGMA table_info(uniques)").all() as { name: string }[]).map((c) => c.name);
+    expect(cols).toContain("legendary_type");
+    expect(cols).not.toContain("is_legendary_capable");
+    const by = db
+      .prepare("SELECT legendary_type, is_set_item, lp_eligible, weavers_will, count(*) AS n FROM uniques GROUP BY 1, 2, 3, 4 ORDER BY 1, 2")
+      .all();
+    expect(by).toEqual([
+      { legendary_type: 0, is_set_item: 0, lp_eligible: 1, weavers_will: 0, n: 407 },
+      { legendary_type: 0, is_set_item: 1, lp_eligible: 0, weavers_will: 0, n: 61 },
+      { legendary_type: 1, is_set_item: 0, lp_eligible: 0, weavers_will: 1, n: 18 },
+    ]);
+    const cdal = db.prepare("SELECT count(*) AS n FROM uniques WHERE can_drop_as_legendary = 1").get() as { n: number };
+    expect(cdal.n).toBe(4);
+  });
+
   it("stores affix tier roll ranges", () => {
     const db = get().db;
     const a = db.prepare("SELECT name, tier_count FROM affixes WHERE affix_id = 0").get() as { name: string; tier_count: number };

@@ -203,6 +203,10 @@ function treeSummary(ctx: Ctx, row: Row, raw: boolean): Row {
   return { tree: clean(row, raw), node_count: n, note: "Full nodes: use the skill_tree / passive_tree tool." };
 }
 
+/** Legendary Potential is not stored per unique in the game data; `lp_eligible` is derived (see docs/schema.md, table uniques). */
+const UNIQUE_LP_NOTE =
+  "lp_eligible is DERIVED, not in the data: the game data has no per-unique 'can roll legendary potential' flag. Non-set uniques with legendary_type 0 can drop with LP; set items cannot; legendary_type 1 (weavers_will) uniques use Weaver's Will instead. legendary_type is the raw .legendaryType enum (0 LegendaryPotential, 1 WeaversWill), can_drop_as_legendary is .canDropAsLegendary (4 uniques with fixed legendary affix pools), effective_level_for_lp counts only when override_effective_level_for_lp = 1 (0 + override 0 = no override, so LP presumably uses the item's own level: unverified).";
+
 export const GETTERS: Record<string, Getter> = {
   unique(ctx, id, raw) {
     const u = need(one(ctx, "SELECT * FROM uniques WHERE unique_id = ?", int(id, "unique")), "unique", id);
@@ -224,6 +228,7 @@ export const GETTERS: Record<string, Getter> = {
         u.unique_id,
       ),
       set: u.set_id == null ? null : one(ctx, "SELECT set_id, name, item_count FROM sets WHERE set_id = ?", u.set_id),
+      note: UNIQUE_LP_NOTE,
     };
   },
   affix(ctx, id, raw) {

@@ -402,16 +402,18 @@ CREATE TABLE uniques (
   sub_type_id   INTEGER,               -- .subTypeIds[0] (all of them in unique_subtypes)
   is_set_item   INTEGER NOT NULL,      -- .isSetItem
   set_id        INTEGER REFERENCES sets (set_id), -- .setId (NULL when not a set item)
-  is_legendary_capable INTEGER,        -- .legendaryType (1 = legendary-capable base)
+  legendary_type INTEGER,              -- .legendaryType RAW enum: 0 LegendaryPotential, 1 WeaversWill (which affix-upgrade system the item uses; NOT "can roll LP": 1 on exactly 18 Erased/Weaver uniques)
+  lp_eligible   INTEGER,               -- DERIVED (not in the raw data): 1 when the unique can roll Legendary Potential = not a set item and legendary_type = 0
+  weavers_will  INTEGER,               -- DERIVED: 1 when legendary_type = 1 (the item uses Weaver's Will instead of Legendary Potential)
   unified_type  INTEGER,               -- .unifiedType
   level_requirement INTEGER,           -- .levelRequirement
   override_level_requirement INTEGER,  -- .overrideLevelRequirement
   can_drop_randomly INTEGER,           -- .canDropRandomly
-  can_drop_as_legendary INTEGER,       -- .canDropAsLegendary
+  can_drop_as_legendary INTEGER,       -- .canDropAsLegendary (1 on 4 uniques: Exulis, Unsated Rage, Withstand the Elements, Frostborn Solitude; they all drop_specific_legendary_affixes)
   hide_from_players INTEGER,           -- .hideFromPlayers
   unknown_drop  INTEGER,               -- .unknownDrop
   not_timeline_exclusive INTEGER,      -- .notTimelineExclusive
-  effective_level_for_lp INTEGER,      -- .effectiveLevelForLegendaryPotential
+  effective_level_for_lp INTEGER,      -- .effectiveLevelForLegendaryPotential (only used when override_effective_level_for_lp = 1; 0 with override 0 = not set, LP uses the item's own level)
   override_effective_level_for_lp INTEGER, -- .overrideEffectiveLevelForLegendaryPotential
   drops_specific_legendary_affixes INTEGER, -- .dropsSpecificLegendaryAffixes
   droppable_legendary_affix_count INTEGER,  -- .droppableLegendaryAffixCount
@@ -1022,7 +1024,8 @@ SELECT
   u.level_requirement,
   u.is_set_item,
   s.name AS set_name,
-  u.is_legendary_capable,
+  u.legendary_type,
+  u.lp_eligible,
   u.mod_count,
   (SELECT group_concat(
             coalesce(m.property_name, m.label, '?') || ' ' ||

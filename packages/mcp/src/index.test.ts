@@ -53,6 +53,9 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(u.unique.name).toBe("Calamity");
     expect(u.mods).toHaveLength(3);
     expect(u.unique).not.toHaveProperty("raw_json");
+    expect(u.note).toMatch(/lp_eligible is DERIVED/);
+    expect(u.unique.lp_eligible).toBe(1);
+    expect(u.unique.legendary_type).toBe(0);
     expect((getTool(ctx, "unique", 0, true) as R).unique.raw).toBeTruthy();
     const a = getTool(ctx, "affix", 0) as R;
     expect(a.affix.name).toBe("Void Penetration");
