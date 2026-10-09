@@ -73,6 +73,7 @@ engine heuristic for the capped case: DPS = λ·D·(a + 0.4)/(T + 0.4), a = max/
 uptime (single-instance ailments) = 1 − e^(−λ·T)                                                # D (ENGINE §9.11)
 ```
 
+- Ramp: stacks need one full duration to build; damage dealt by t < T is `λ·D·t²/(2T)`, from t ≥ T it is `λ·D·(t − T/2)` ([damage-pipeline.md](damage-pipeline.md#15-calibration-convention-ailment-ramp-and-caps)). **D** (derived)
 - Unlimited ailments (Ignite, Bleed, Poison, Electrify, Frostbite, Damned, Hemorrhage) are limited only by application rate and duration. **G/A**
 - Season 5 (1.5): when an ailment's duration resets, its remaining total damage also resets to its value at application. **G** (patch notes via 02 §5.1)
 - Replacement flags exist per ailment (`dontReplaceHigherDurationStacks`, `prioritiseStrongestStacks`, `replaceLowestDamageStacksInsteadOfOldest`); all are 0 on Ignite, Poison, Frostbite, Shock, Chill. **A**

@@ -261,6 +261,23 @@ total     : 268.9 + 105.1 = 374.0 vs level-100 normal monster (inputs U, formula
 
 Source: [damage-pipeline.md#worked-example], [ailments.md#worked-example]. Report both numbers (dummy and monster) and state that the monster figure is 7.7x lower purely from level DR.
 
+## Calibration convention
+
+Whenever a DPS figure is going to be compared with another build (a community guide, a calibration build, a second proposal) or used as a boss figure, report **two numbers** and compare on the first. [damage-pipeline.md#15-calibration-convention-ailment-ramp-and-caps] **U** (project convention)
+
+| Number | Contents |
+|---|---|
+| (a) own-debuff-free boss DPS | gear, tree and attribute multipliers, penetration, the rate capped by the resource budget (mana per second, cooldown, charges); **no** resistance shred, **no** negative armour, **no** damage-taken debuffs the build applies itself, and **no** "against shocked / ailed enemies" multiplier whose ailment comes from the removed debuffs |
+| (b) with the build's own debuffs | (a) times those debuffs at a stated uptime, stack count and boss penalty (shred -2% per stack against bosses, 10 stacks) |
+
+Rules:
+- **Always compare builds on (a).** Say which number a figure is, in the report header.
+- The rate in (a) is `min(speed rate, cooldown rate, mana-sustainable rate)`: compute mana spent per second against regen and the other income before trusting a cast rate (a build that casts 1.88 times per second but can pay for 1.39 is a 1.39 build).
+- The two challenge calibrations (Erasing Strike Void Knight 983k, Lightning Blast Runemaster 407k) differed **2.41x** on this alone: one counted its own void shred and armour shred (x1.99) and its mana cap, the other dropped shred but kept shock-conditional multipliers and skipped mana. Stripped to (a) they differ 1.22x.
+- Bosses: health pools are not in the data, so only relative DPS (this convention) and per-second figures can be reported, never a kill time ([enemies-and-corruption.md#boss-health-is-not-in-the-data]).
+- Ailment builds: add the ramp. Damage dealt by time `t < T` is `lambda * D * t^2 / (2T)` (`lambda` stacks per second, `D` total damage of one stack over its duration `T`); from `t >= T` it is `lambda * D * (t - T/2)`, steady-state DPS `lambda * D`. Stacks need one full duration (3 s base, about 4 s with typical duration bonuses) to build. [damage-pipeline.md#15-calibration-convention-ailment-ramp-and-caps] **D** (derived)
+- Penetration: no cap found in data or decompile (**U**); do not invent one, and do not claim there is none. Whether the implicit base 1.0 of the freeze rate multiplier counts toward a "per 10% Freeze Rate Multiplier" conversion (Snowdrift, uid 233) is **U**: model it both ways.
+
 ## Report template
 
 ```
@@ -270,6 +287,7 @@ Buckets: type | base | ADE x added | increased (sum, list) | more (list) | hit
 Crit: cc, cm, E_crit      Rate: uses/s, source of speed (or "speed missing: per-hit only / U")
 Enemy: res, shred, pen, DT, level DR, armour
 Avg hit (vs dummy | vs level N): ...
+Boss DPS: (a) own-debuff-free ... | (b) with own debuffs ... (compare builds on (a))
 Hit DPS: ...   Ailment DPS: ...   Total: ...   (labels: formulas D/G, inputs A from ids, assumptions U)
 Bounds / interpretation spread: <low>-<high> and what drives it
 Not modelled / undetermined: <list>

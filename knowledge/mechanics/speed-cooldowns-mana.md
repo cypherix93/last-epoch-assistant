@@ -126,6 +126,18 @@ mana spent/s = cost × uses/s (+ channel/s while channelling)                   
 - Example costs: Fireball 3, Smite 3, Javelin 9, Shurikens 3, Static 15, Lunge 8, Meteor 56, Volcanic Orb 50. **A**
 - Full mana model and negative-mana rules: [ward-health-sustain.md](ward-health-sustain.md#6-mana). **G/X**
 
+
+### 5.0 Cost order, confirmed in game (G)
+
+The cost formula above was labelled **D** from the engine spec and **X** for the LE Tools form; two in-game tooltip readings now pin the order **flat first, then increased**: `cost = (base + flat) x (1 + increased)`. **G** (observed tooltips) on top of **A** (the inputs are tree and item data)
+
+| Case | Inputs (A) | `(base + flat) x (1 + increased)` | Tooltip |
+|---|---|---|---|
+| Fireball, 4 Piercing Heat points | base 3 (`fi9`); Fire Spray `fi9:7` +5 flat; Mana Sphere `fi9:22` -1 per point x 3 = -3 flat; Moon Staff implicit `15:7` -3 flat (roll of -3 to -4); Piercing Heat `fi9:2` +33% increased per point x 4 = +132% | (3 + 5 - 3 - 3) x (1 + 1.32) = 2 x 2.32 = **4.64** | 4.64 |
+| Frost Claw with Volley of Glass | base 12 (`frc87w`); Gift of Winter `frc87w:4` -2 per point x 3 = -6 flat; Frozen Reign `frc87w:30` -3 flat; staff -3 flat; Volley of Glass `frc87w:29` +100% increased | (12 - 6 - 3 - 3) x (1 + 1.0) = 0 x 2 = **0** | 0 |
+
+The other order ("increased first, flat last", `base x (1 + increased) + flat`) also reproduces Fireball's 4.64, but only with 1 Piercing Heat point: (3 + 5) x 1.33 - 6 = 4.64. It gives 12 for the Frost Claw case ((12) x 2 - 12 = 12), not the 0 on the tooltip, so it is ruled out. Consequences: a positive flat sum cannot be taken to 0 by removing "increased cost" points (with a flat sum of +2, no number of removed Piercing Heat points goes below 2.0); an "increased mana cost" node costs nothing once the flat-reduced base is 0 or lower; and tooltip costs shown to one decimal (4.6) hide the second decimal. The same evidence supports reading Frost Claw's cost floor as 0, not negative. Exact rounding of the displayed value is not confirmed. **G/U**
+
 ### 5.1 Mana sustain toolbox
 
 Every generic way the data exposes to keep mana up or to make it last longer, found with `sql` over `stat_properties`, `player_properties` and `v_mods_named` (1.5.2). "SP" is a stat property id, "PP" a PlayerProperty index (SP 98 rows store the PP index in `tags`, read `value_min` as the magnitude). Ranges are the min..max over all tiers or rolls of the quoted source (A); mechanics labelled G come from the in-game guide, X from community planners, U is our inference.

@@ -58,6 +58,13 @@ Full unique tooltips are in `knowledge/interactions/unique-effects-index.md`.
 - **Involved:** Bane of Winter uid 345, Heorot's Repose uid 472, corrupted affix 988.
 - **Confidence:** D — `vendor/lastepochbuilder/research/data/game/unique_effects.json` (uid 345 effect formula, D?); A — `vendor/lastepochbuilder/research/data/game/affixes.json` (affixId 988); `vendor/lastepochbuilder/research/data/game/uniques.json` (uid 472).
 
+### Spellblade mastery: added melee damage on weapons is also gained as added spell damage
+- **Tags:** conversion, tag-matching, double-dip, scaling-oddity
+- **Rule:** The Spellblade mastery bonus reads "40% of added melee damage on weapons is also gained as added spell damage" (plus "12 ward gained on melee use and hit at least one enemy"). The data carries it as the mastery field `CharacterMutator.addedMeleeGainedAsAddedSpell = 0.4` (the corrupted sword affix 988, PP646, uses a different field name, `addedMeleeFromWeaponsGainedAsAddedSpell`, so the two may not behave identically). **Known:** the text, the 0.4 value and the words "on weapons" (A). **Not verified (U):** whether a weapon *implicit* counts as "added melee damage on weapons" (for example implicit `14:14` Rat City Impaler: Melee +160 untyped and Void Spell +92..108); whether the copy is untyped Spell damage or keeps the source damage type; whether it follows the skill's conversion (base and untyped added damage follow, typed added damage keeps its type, [damage-pipeline.md](../mechanics/damage-pipeline.md#10-conversion)); whether added melee damage from non-weapon sources (rings, passives) is excluded; whether the copied damage is then scaled by the spell's added-damage effectiveness. The engine code for the field is not in the vendored research (only the field name and its value are).
+- **Why it matters for builds:** it can turn a weapon roll into a second damage source for a spell on the same bar (a Spellblade running a spell as its main skill). A model that counts the weapon implicit and the full typed copy is the optimistic reading; the judge-run sensitivity for a Volcanic Orb Spellblade was -19% if the implicit is not copied, and -23.6% if the whole bonus does nothing (both **U**, judge and proposal figures). State the scope assumption and run the model both ways.
+- **Involved:** Spellblade mastery (Mage, `mg-1` mastery 2), `masteries.passive_bonus_labels`, corrupted sword affix 988 (10-35% by tier), Bane of Winter uid 345 and Heorot's Repose uid 472 (similar effects, see the entry above).
+- **Confidence:** A — `data/le.sqlite` table `masteries` (`passive_bonus_labels`, Spellblade), `vendor/lastepochbuilder/research/data/game/passive_node_effects.json` (field and value 0.4), `vendor/lastepochbuilder/research/data/game/player_property_fields.json` (PP646 field name); scope and conversion behaviour U.
+
 ### Ailment-chance conversion uniques funnel every source into one ailment
 - **Tags:** conversion, ailment, shred
 - **Rule:** Carrion of Creation (uid 431) converts 100% of Ignite, Frostbite, Shock, Time Rot, Damned and Poison chance to Bleed chance (AilmentConversion, SP 100); Apex of Thought (uid 316) converts Ignite/Chill/Shock chance to the matching resistance-shred chance while you stand on Glyph of Dominion; Vial of Volatile Ice (uid 331) turns all poison chance into frostbite for Acid Flask; Tu'rani's Bident (uid 226) turns bleed and ignite chance into electrify for Javelin.
@@ -166,6 +173,21 @@ Full unique tooltips are in `knowledge/interactions/unique-effects-index.md`.
 - **Why it matters for builds:** these work on remaining cooldown, so a fast multi-hit filler turns a long-cooldown nuke into a near-rotation skill.
 - **Involved:** Black Blade of Chaos uid 339 (PP412), Razorfall uid 337 (PP409), Talons of Valor uid 334 (PP404).
 - **Confidence:** D — `vendor/lastepochbuilder/research/data/game/unique_effects.json` (formulas D?, constants from code).
+
+### Harbinger of Stars: the triggered Meteor pays Meteor's mana, and Meteor's own crits do not re-trigger
+- **Tags:** trigger, proc, mana, crit
+- **Rule:** Harbinger of Stars (uid 288, belt) has "Chance to Cast Meteor on Crit if above 0 Mana" (PP247, 6-9%). Its alt text is "This consumes Meteor's Mana Cost. Does not include crits from Meteor itself." (A, `player_properties` idx 247). So (1) every triggered Meteor spends Meteor's full cost (56 base, less flat reductions such as a staff implicit); it is not free; (2) crits dealt by Meteor do not trigger another Meteor; (3) the gate is "above 0 mana", not "enough mana": at 1 mana a Meteor still fires and takes mana to about -51. Mana can go negative when a skill is used at mana > 0 (**G**, [ward-health-sustain.md](../mechanics/ward-health-sustain.md#6-mana)), and a skill costing 1 or more cannot be used at negative mana (**G**), so a fast cost-4.6 Fireball build stalls whenever a Meteor has driven mana below 0 and resumes only when regeneration lifts it above 0. A cost-0 main skill is never blocked, but then the Meteors self-throttle: they only trigger while mana is above 0. Same item: 1% less damage taken per Meteor cast recently, up to 18 (PP246, multiplicative); mana on potion use per recent Meteor, 9-12, up to 200 (PP248; "recently" is 4 s and a Meteor shower counts once); +3 potion slots at 900 mana or more (PP249). **A**
+- **Not verified (U):** whether the negative-mana rule applies to the triggered cast the same way as to a direct cast; whether cost reductions (staff implicit, Bluefeather Band's less spell mana cost, Twin Meteors' +50) apply to the consumed cost; whether the Meteor skill tree applies when Meteor is specialised but not on the bar; any internal cooldown (none in the data); whether the Craterborn buff (Meteor tree, "Casting Meteor") comes from triggered Meteors.
+- **Why it matters for builds:** a mana-hungry main skill plus Harbinger of Stars makes the Meteors the largest mana sink; budget mana per second with the Meteor rate (cast rate x crit chance x 6-9%) before trusting a cast rate, and do not pair it with a negative-mana loop (the trigger is off at mana <= 0).
+- **Involved:** Harbinger of Stars uid 288; Meteor `me27` (mana cost 56), Aftermath `me27:24` (recover 20% of the mana per point over 3 s, one cast at a time), Craterborn `me27:25`, Cycle of Fire `me27:26` (pays on *direct* Fireball casts), Fireball `fi9`.
+- **Confidence:** A — `data/le.sqlite` tables `player_properties` (idx 246-249) and `mods` (unique 288); G — Game Guide negative-mana rule; the engine behaviour of the triggered consumption is U (no decompile trace for PP247).
+
+### Heat Flux (Meteor) charges 120% of Frost Claw's mana cost: which cost is U
+- **Tags:** trigger, mana, anti-synergy
+- **Rule:** Heat Flux (`me27:27`, up to 3 points, "Frost Claws: 1" per point) reads "Meteors cast Frost Claw towards a nearby enemy on impact, consuming 120% of Frost Claw's mana cost" (A). There is no consumption stat row; the 120% exists only in the node text. Frost Claw's base cost is 12 (A). **Open (U):** whether "Frost Claw's mana cost" is the *current, modified* cost (a build that has taken Frost Claw to 0 pays 0) or a cost without the reductions that apply to a *direct* cast: Gift of Winter (`frc87w:4`) reads "Directly casting Frost Claw costs less mana" (-2 per point). If direct-only reductions do not apply, an example Frost Claw costs (12 - 3 - 3) x 2 = 12 and Heat Flux charges 12 x 1.2 = 14.4 per Frost Claw, 43.2 per Meteor impact at 3 points. Gift of Winter's 12% chance to gain 12 mana is "on Direct Cast" and gives nothing from Heat Flux casts.
+- **Why it matters for builds:** on a mana-bound loop Heat Flux can be a pure cost node, not a free extra hit; test it in game (cast Meteor on a target, read the mana change) before counting it as free damage.
+- **Involved:** Heat Flux `me27:27`, Frost Claw `frc87w`, Gift of Winter `frc87w:4`, Harbinger of Stars uid 288.
+- **Confidence:** A — `data/le.sqlite` `v_skill_node_summary` (`me27`, `frc87w`); the cost basis is U.
 
 ---
 
@@ -347,6 +369,13 @@ Full unique tooltips are in `knowledge/interactions/unique-effects-index.md`.
 - **Involved:** all stacking ailments; Morditas' Reach uid 45.
 - **Confidence:** G — `vendor/lastepochbuilder/research/02_assets/ingame_gameguide_en_v1.5.0.txt` (GameGuide.AilmentMechanics_Paragraph_2, _5).
 
+### Rive's Foe Cleaver doubles the ailment-chance lines on a two-handed weapon
+- **Tags:** ailment, double-dip, scaling-oddity
+- **Rule:** Foe Cleaver (`sndr1:24`, Rive, 1 point) reads "If you are using a two handed weapon, stats on that weapon that directly add damage, increase damage or add a chance to apply an ailment on hit, have double effect for Rive." Its stat lines are "Effect of Damage Stats on a 2h Weapon: +100%" and "Effect of Ailment Chance Stats on a 2h Weapon: +100%" (A for the text). So an ailment-chance line on the weapon (for example Morditas' Reach's +500% frostbite chance, uid 45, special_tag Frostbite, Melee) would count twice for Rive: **A for the text, U for the engine** (the property is a skill-local code, not decompiled; the tree rows carry no `modifier_type`). Lines that are not on the weapon are not covered by the text.
+- **Why it matters for builds:** doubles an already large ailment chance (and, above 100%, the number of stacks per hit), so it can be the largest single link of a frostbite Rive build; label the link U and run the model without it.
+- **Involved:** Foe Cleaver `sndr1:24`, Rive `sndr1`, Morditas' Reach uid 45; see "Ailment chance above 100% applies extra stacks".
+- **Confidence:** A — `data/le.sqlite` `v_skill_node_summary` (`sndr1:24`); engine effect U.
+
 ### Duration raises DPS for uncapped ailments only
 - **Tags:** ailment, dot, scaling-oddity
 - **Rule:** Increased duration lengthens each stack (more total damage per stack, same damage per second per stack). For ailments with unlimited stacks the number of concurrent stacks = applications/s x duration, so duration raises sustained DPS linearly; for capped ailments (Time Rot 12, Doom 4, shred 10, Chill 3) it only raises uptime.
@@ -385,9 +414,16 @@ Full unique tooltips are in `knowledge/interactions/unique-effects-index.md`.
 ### Freeze chance multiplies chill and frostbite
 - **Tags:** freeze, chill, ailment
 - **Rule:** Freeze chance = FreezeRate x (1 + FreezeRatePerChill x chill stacks) x FreezeRateMultiplier / (MaxHealth + Ward) x (1 + 0.2 x min(frostbite, 15)); bosses count health x 1.5. The guide's example goes from 2.4% to 24% with 3 chill stacks and 15 frostbite.
-- **Why it matters for builds:** freeze rate multiplier, chill and frostbite are three multiplicative layers, so spreading investment beats stacking one; Snowdrift (uid 233) also converts freeze rate multiplier into frostbite effect.
-- **Involved:** freeze formula; Snowdrift uid 233 (PP182: frostbite effect = pp x FRM x 10), Frozen Ire uid 32 (+2% FRM per level).
+- **Why it matters for builds:** freeze rate multiplier, chill and frostbite are three multiplicative layers, so spreading investment beats stacking one; Snowdrift (uid 233) also converts freeze rate multiplier into frostbite effect (next entry).
+- **Involved:** freeze formula; Snowdrift uid 233 (PP182, see the next entry), Frozen Ire uid 32 (+2% FRM per level).
 - **Confidence:** A — `vendor/lastepochbuilder/research/02_le_formulas.md` §5.4 (guide image r-35); D — `vendor/lastepochbuilder/research/data/game/unique_effects.json` (PP182).
+
+### Snowdrift turns Freeze Rate Multiplier into Cold penetration for Frostbite
+- **Tags:** freeze, ailment, penetration, scaling-oddity
+- **Rule:** Snowdrift (uid 233, boots) carries PP182 "Cold Penetration with Frostbite per 10% Freeze Rate Multiplier" (0.01). The decompiled formula adds Increased Ailment Effect for Frostbite (specialTag 23) equal to `pp x FreezeRateMultiplier x 10`; Frostbite's `effectOfIncreasedEffectiveness` is `AdditionalPenetration`, which the engine reading turns into penetration (the open question in [ailments.md](../mechanics/ailments.md#open-questions); the in-game wording "Cold Penetration" supports it), so the result is Cold penetration on the Frostbite DoT: 18.23 FRM gives 0.01 x 182.3 = +182% (**D?**). Alt text (A): "Does not include Freeze Rate Multiplier granted by individual skills' trees or Freeze Rate Multiplier for specific ability types", so only the general stat store (gear, passives, blessings) counts. **U:** whether the base 100% of the freeze rate multiplier is in that input (worth +10% penetration); whether penetration is capped (none found in data or decompile). Earlier text of this catalogue said "frostbite effect"; the in-game wording is Cold penetration with Frostbite.
+- **Why it matters for builds:** FRM becomes a damage multiplier on the Frostbite DoT; every 10% FRM is +1% penetration, which adds to the `1 - res + pen` multiplier (a large factor against a target with 0% resistance).
+- **Involved:** Snowdrift uid 233 (PP182, AP782:2), Frostbite Shackles uid 213 (FRM 1.43-1.83), affix 14 (Freeze Rate Multiplier and Cold Resistance, T7 2.71-3.50), affix 11, Frozen Ire uid 32.
+- **Confidence:** D — `vendor/lastepochbuilder/research/data/game/unique_effects.json` (PP182 `frostbiteEffectPer10percentFreezeRateMulti`); A — `data/le.sqlite` `player_properties` idx 182 alt text.
 
 ### Shred is weak against bosses, penetration is not
 - **Tags:** shred, penetration, shock
