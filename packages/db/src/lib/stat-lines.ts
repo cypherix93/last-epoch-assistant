@@ -230,6 +230,8 @@ export interface ModInput {
   setRequirement?: number | null;
   hidden?: boolean | number | null;
   isDownside?: boolean | number | null;
+  /** Tree node stats only: stats[].noScaling (true = not per point). Leave undefined for every other source. */
+  noScaling?: boolean | number | null;
   /** Override the resolved property name (default: StatNamer.lineName). */
   propertyName?: string | null;
   /** The source stat line object (stored as raw_json). Required. */
@@ -271,10 +273,10 @@ export function validateMod(m: ModInput): void {
 
 const insertSql = `INSERT INTO mods (source_kind, source_id, source_ord, sub_ord, tier, property, property_name,
   special_tag, tags, tag_names, extra_tag, modifier_type, value_min, value_max, display, label, label_key,
-  context, set_requirement, hidden, is_downside, raw_json)
+  context, set_requirement, hidden, is_downside, no_scaling, raw_json)
   VALUES (@source_kind, @source_id, @source_ord, @sub_ord, @tier, @property, @property_name,
   @special_tag, @tags, @tag_names, @extra_tag, @modifier_type, @value_min, @value_max, @display, @label, @label_key,
-  @context, @set_requirement, @hidden, @is_downside, @raw_json)`;
+  @context, @set_requirement, @hidden, @is_downside, @no_scaling, @raw_json)`;
 const stmts = new WeakMap<DB, Database.Statement>();
 
 const flag = (v: boolean | number | null | undefined) => (v ? 1 : 0);
@@ -318,6 +320,7 @@ export function insertMod(db: DB, m: ModInput, namer: StatNamer): number {
     set_requirement: m.setRequirement ?? null,
     hidden: flag(m.hidden),
     is_downside: flag(m.isDownside),
+    no_scaling: m.noScaling === null || m.noScaling === undefined ? null : flag(m.noScaling),
     raw_json: JSON.stringify(m.raw ?? null),
   });
   return Number(info.lastInsertRowid);

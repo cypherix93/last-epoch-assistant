@@ -45,6 +45,7 @@ modifier = { property  (stat property id, SP 0..133; 5000+ skill-local ids in tr
 | `display`, `label` | source text: `display` is the value text of tree node stats (`'+25%'`), `label` the line name (`'Pierce Chance'`, affix line display name). |
 | `context` | qualifier, e.g. `'attribute:2'` (ability scaling per point of Intelligence) or `'per_level'`. |
 | `set_requirement`, `hidden`, `is_downside` | set pieces needed; `hideInTooltip`; tree node stat marked as a downside. |
+| `no_scaling` | tree node stats only (else NULL): raw `noScaling`. 0 = the value is per point allocated; 1 = does not scale per point (fixed, or a lump at the point threshold). See "Tree node semantics". |
 
 `source_kind` values:
 
@@ -167,10 +168,16 @@ Example rows:
 | `entities` | minion / summoned actors | entity_id | 96 |
 | `trees` | 136 skill trees, 5 class passive trees, the Weaver tree | tree_id | 142 |
 | `tree_nodes` | all nodes with names, descriptions, max points, mastery, UI position; stats are mods `skill_node` / `passive_node` / `weaver_node` | (tree_id, node_id) | 3,956 + 541 + 80 |
-| `tree_node_requirements` | prerequisite node and points | (tree_id, node_id, ord) | 4,928 |
+| `tree_node_requirements` | adjacency: the node can be taken when ANY ONE listed node holds the given points (not all; see "Tree node semantics") | (tree_id, node_id, ord) | 4,928 |
 | `relations` | abilities / ailments referred to, triggered or levelled by affix / unique / set / implicit lines and by tree nodes | id | 2,207 + 3,236 |
 
 Example rows: `abilities ('fi9', name 'Fireball', ability_index 1, is_player_ability 1, has_skill_tree 1, tags 264 'Fire,Spell', mana_cost 3)`; `tree_nodes ('fi9', 2, 'skill', name 'Piercing Heat', max_points 4, description 'Fireball now pierces enemies (continue through targets it hits), but costs more mana.')`; `tree_node_requirements ('fi9', 2, 0, required_node_id 0, required_points 0)`; `ailments (7, 'Poison', duration 3, dmg_poison 28, damage_types 'Poison', tags 4096 'DoT')`.
+
+**Tree node semantics (verified against the raw LE Tools trees).**
+
+- `tree_node_requirements` is an ADJACENCY list read as ANY ONE: node `N` can be taken as soon as at least ONE listed `required_node_id` holds `required_points` points (`required_points` 0 = plain link, the neighbour only has to be allocated, e.g. the root). It is NOT "needs all of them". Evidence: in `es6ai` node 8 lists 11 and 12 while node 11 lists 9, 10 and 8, so the AND reading can never be satisfied; of the 136 active skill trees only 25 could be fully allocated under AND, all 136 under ANY (a simulation over the raw data). The 5 class passive trees are fully reachable under both readings, so ANY is the rule inferred from the shared format (U for passives). Many edges are mutual (A lists B and B lists A): the list is connectivity, not a prerequisite chain.
+- The tree tools therefore return `unlocked_by` (`[{node_id, node_name, points}]`) and `unlocked_by_text` (`'11>=2|12>=1'`, `|` = OR), and `v_skill_node_summary.unlocked_by` uses the same `|` text. `requires` / `requires_text` / `v_skill_node_summary.requires` are DEPRECATED aliases (comma separated, which reads as AND; kept for one release, remove after).
+- Node stat values (`mods` rows of `skill_node`, `passive_node`, `weaver_node`) are display text parsed to numbers (`display`, `value_min`) and are PER POINT allocated unless `mods.no_scaling = 1` (raw `stats[].noScaling`): total = value x points. A `no_scaling = 1` line does not scale: in a node with `tree_nodes.no_scaling_type = 0` (SinglePoint) it is given once from the first point (fixed), in a node with `no_scaling_type = 1` (PointThreshold) it is a lump granted when `no_scaling_point_threshold` points are allocated, together with `point_bonus_description`. The tree tools replace the raw flag by `scales_with_points` (boolean) and `scaling` (`per_point` | `fixed` | `at_threshold`, plus `threshold`) on every node stat line; `mods.no_scaling` is NULL for every other source. Source: raw `stats[].noScaling`, `noScalingType`, `noScalingPointThreshold`; the per_point/fixed/threshold reading follows vendor/lastepochbuilder/client/docs/UI.md and knowledge/reference/skills-and-trees.md (A); the exact in-game timing of threshold lumps is unverified (U).
 
 ### 3.6 Endgame and world
 
@@ -203,8 +210,8 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 |---|---|---|
 | `v_mods_named` | mods row | mods columns + `source_name`, `property_enum`, `modifier_name` |
 | `v_unique_summary` | unique | name, base_type, sub_type, set_name, `mods_text` (all mods flattened), `tooltip_text`, lore |
-| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers), `rolls_on_text` |
-| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list), `requires` |
+| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers and its tag names in brackets, e.g. `Damage added 3..100 [Void,Melee]`), `rolls_on_text` |
+| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list, `(no scaling)` marks non-per-point lines), `unlocked_by` (`node>=points` entries joined by a vertical bar = any one of; `requires` is the deprecated comma-separated alias) |
 | `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, special_tag, tags, tag_names, modifier_name, value_min, value_max |
 
 ## 4. Example queries

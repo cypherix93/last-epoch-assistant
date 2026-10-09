@@ -26,7 +26,7 @@
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
 
 export const MOD_COLS =
-  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside";
+  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling";
 
 export type Id = string | number | { [k: string]: string | number };
 
@@ -82,6 +82,22 @@ export function decorateMod<T extends Row>(ctx: Ctx, m: T): T {
     if (bt) out.drop_target = bt;
   }
   return out as T;
+}
+
+/**
+ * Tree node stat lines: replace the raw no_scaling flag by `scales_with_points` and `scaling`.
+ *   per_point     noScaling 0: the displayed value is PER POINT allocated (total = value x points)
+ *   fixed         noScaling 1 in a SinglePoint node (no_scaling_type 0): given once, from the first point, regardless of points
+ *   at_threshold  noScaling 1 in a PointThreshold node (no_scaling_type 1): a lump granted when `threshold` points are allocated
+ */
+export function applyNodeScaling(m: Row, node: { no_scaling_type?: unknown; no_scaling_point_threshold?: unknown }): Row {
+  const { no_scaling, ...rest } = m;
+  if (no_scaling === undefined || no_scaling === null) return m;
+  if (!no_scaling) return { ...rest, scales_with_points: true, scaling: "per_point" };
+  if (node.no_scaling_type) {
+    return { ...rest, scales_with_points: false, scaling: "at_threshold", threshold: node.no_scaling_point_threshold };
+  }
+  return { ...rest, scales_with_points: false, scaling: "fixed" };
 }
 
 export function modsFor(ctx: Ctx, sourceKind: string, sourceId: string | number): Row[] {
@@ -208,7 +224,7 @@ function nodeGetter(treeKind: string): Getter {
     return {
       node: clean(n, raw),
       tree: t,
-      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`),
+      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => applyNodeScaling(m, n)),
       requirements: all(
         ctx,
         "SELECT r.required_node_id, r.required_points, n.name AS required_name FROM tree_node_requirements r LEFT JOIN tree_nodes n ON n.tree_id = r.tree_id AND n.node_id = r.required_node_id WHERE r.tree_id = ? AND r.node_id = ? ORDER BY r.ord",

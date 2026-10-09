@@ -645,7 +645,7 @@ CREATE INDEX tree_nodes_name ON tree_nodes (name);
 
 CREATE TABLE tree_node_requirements (
   tree_id       TEXT NOT NULL,
-  node_id       INTEGER NOT NULL,      -- the node that has the requirement
+  node_id       INTEGER NOT NULL,      -- the node that has the requirement; it can be taken when ANY ONE row (its ord set) is satisfied: required_node_id holds >= required_points points. NOT all of them (OR/adjacency semantics, see docs/schema.md)
   ord           INTEGER NOT NULL,      -- index in .requirements[]
   required_node_id INTEGER NOT NULL,   -- .requirements[].nodeId
   required_points INTEGER NOT NULL,    -- .requirements[].requirement (points in required node)
@@ -943,6 +943,7 @@ CREATE TABLE mods (
   set_requirement INTEGER,             -- set_bonus: setBonusList[].mods[].setRequirement
   hidden        INTEGER NOT NULL DEFAULT 0, -- .hideInTooltip
   is_downside   INTEGER NOT NULL DEFAULT 0, -- tree node stats[].downside
+  no_scaling    INTEGER,               -- tree node stats[].noScaling (0 = value is PER POINT allocated; 1 = does not scale per point: fixed, or a lump at the threshold, see tree_nodes.no_scaling_type); NULL for every other source
   raw_json      TEXT NOT NULL          -- the source stat line object
 );
 CREATE INDEX mods_property ON mods (property, modifier_type);
@@ -1010,7 +1011,8 @@ SELECT
   m.context,
   m.set_requirement,
   m.hidden,
-  m.is_downside
+  m.is_downside,
+  m.no_scaling
 FROM mods m
 LEFT JOIN stat_properties sp ON sp.property = m.property;
 
@@ -1088,11 +1090,15 @@ SELECT
   n.mastery,
   n.mastery_requirement,
   n.description,
-  (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), ''),
+  (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), '') ||
+                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END,
                        '; ' ORDER BY m.source_ord, m.sub_ord)
      FROM mods m
     WHERE m.source_kind IN ('skill_node', 'passive_node', 'weaver_node')
       AND m.source_id = n.tree_id || ':' || n.node_id) AS stats_text,
+  (SELECT group_concat(r.required_node_id || '>=' || r.required_points, '|' ORDER BY r.ord)
+     FROM tree_node_requirements r WHERE r.tree_id = n.tree_id AND r.node_id = n.node_id) AS unlocked_by,
+  -- DEPRECATED alias of unlocked_by with ',' separators (read as AND, which is wrong: the node needs ANY ONE of the entries); kept for one release
   (SELECT group_concat(r.required_node_id || '>=' || r.required_points, ',' ORDER BY r.ord)
      FROM tree_node_requirements r WHERE r.tree_id = n.tree_id AND r.node_id = n.node_id) AS requires
 FROM tree_nodes n

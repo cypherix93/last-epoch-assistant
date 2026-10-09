@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { applyNodeScaling, classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -409,7 +409,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   const nodeKind = tree.tree_kind === "skill" ? "skill_node" : tree.tree_kind === "class" ? "passive_node" : "weaver_node";
   const nodes = all(
     ctx,
-    `SELECT node_id AS id, name, description, alt_text, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
+    `SELECT node_id AS id, name, description, alt_text, point_bonus_description, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
     treeId,
   );
   const mods = all(
@@ -422,7 +422,8 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   for (const m of mods) {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateMod(ctx, dropNulls(rest)));
+    const node = nodes.find((x) => x.id === nid) ?? {};
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node));
   }
   const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();
@@ -459,6 +460,10 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       return dropNulls({
         ...n,
         mods: modsByNode.get(id) ?? [],
+        // Semantics (docs/schema.md, tree_node_requirements): the node can be taken when ANY ONE listed node has the given points.
+        unlocked_by: req,
+        unlocked_by_text: req?.map((r) => `${r.node_id}>=${r.points}`).join("|"),
+        // DEPRECATED aliases of unlocked_by / unlocked_by_text (kept for one release; the comma form suggested AND, which is wrong).
         requires: req,
         requires_text: req?.map((r) => `${r.node_id}>=${r.points}`).join(","),
       });

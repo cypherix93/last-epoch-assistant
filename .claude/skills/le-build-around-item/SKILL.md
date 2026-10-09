@@ -41,7 +41,7 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
 - `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
-- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `requires` is `[{node_id, node_name, points}]`. Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
 - `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
 
 Without MCP, run `yarn mcp:call <tool> [args]` from the repo root, for example `yarn mcp:call lookup '{"name":"Culnivar","kinds":["unique"]}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. The Q-recipes below contain single quotes, `<`, `>`, `%` or `|`: write the args JSON to a file and pass `@file.json` (or raw SQL with `--query-file`), or pipe it on stdin; inline they can break or be silently corrupted, and item names with apostrophes ("Ignivar's Head") break inline quoting outright (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
@@ -273,7 +273,7 @@ WHERE ca.ability_id = ?;
 Q6. Rule-changing nodes in one skill tree:
 <!-- params: ["lb23il"] -->
 ```sql
-SELECT tree_id || ':' || node_id AS node, name, max_points, requires, description, stats_text
+SELECT tree_id || ':' || node_id AS node, name, max_points, unlocked_by, description, stats_text
 FROM v_skill_node_summary
 WHERE tree_kind = 'skill' AND ability_id = ?
   AND (description LIKE '%convert%' OR description LIKE '%instead%' OR description LIKE '%no longer%'

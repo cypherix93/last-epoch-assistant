@@ -82,14 +82,14 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "skill_tree",
     description:
-      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires). requires is an array of {node_id, node_name, points}: the node needs that many points allocated in each listed node (requires_text is the compact form, e.g. '2>=2,6>=2' = node 2 needs 2 points AND node 6 needs 2 points). Accepts an ability id (fi9) or a tree id. Optional filter (case-insensitive text matched against node name, description, mod label/property_name; keeps only matching nodes) and compact (drop description and x/y).",
+      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires). unlocked_by is an array of {node_id, node_name, points}: the node can be taken when ANY ONE listed node holds that many points (adjacency, not a list of prerequisites; unlocked_by_text is the compact form, e.g. '2>=2|6>=2' = node 2 with 2 points OR node 6 with 2 points; requires/requires_text are deprecated aliases). Each node stat line carries scales_with_points and scaling (per_point: the value is per point allocated, total = value x points; fixed: no scaling, given once; at_threshold: a lump granted at `threshold` points). Accepts an ability id (fi9) or a tree id. Optional filter (case-insensitive text matched against node name, description, mod label/property_name; keeps only matching nodes) and compact (drop description and x/y).",
     shape: { ability_id: z.string(), filter: z.string().optional(), compact: z.boolean().optional() },
     run: (ctx, a) => t.skillTree(ctx, a.ability_id, { filter: a.filter, compact: a.compact }),
   },
   {
     name: "passive_tree",
     description:
-      "A class passive tree with all nodes, mods, requires ({node_id,node_name,points}[] plus requires_text '2>=2,6>=2') and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver). Optional filter (keeps only nodes whose name/description/mod text contains it) and compact (drop description and x/y).",
+      "A class passive tree with all nodes, mods (with scales_with_points / scaling per stat line), unlocked_by ({node_id,node_name,points}[], ANY ONE of; unlocked_by_text '2>=2|6>=2'; requires/requires_text are deprecated aliases) and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver). Optional filter (keeps only nodes whose name/description/mod text contains it) and compact (drop description and x/y).",
     shape: { class_id: z.union([z.number(), z.string()]), filter: z.string().optional(), compact: z.boolean().optional() },
     run: (ctx, a) => t.passiveTree(ctx, a.class_id, { filter: a.filter, compact: a.compact }),
   },

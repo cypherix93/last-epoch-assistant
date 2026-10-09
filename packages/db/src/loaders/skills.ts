@@ -374,6 +374,7 @@ export function loadSkills(ctx: LoaderContext): void {
           label: t(s.statNameKey),
           labelKey: str(s.statNameKey),
           isDownside: bool(s.downside),
+          noScaling: bool(s.noScaling),
           raw: s,
         }),
       );

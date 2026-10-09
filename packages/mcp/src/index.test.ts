@@ -152,7 +152,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     const n4 = t.nodes.find((n: R) => n.id === 4);
     expect(n4.requires[0]).toEqual({ node_id: 2, node_name: "Piercing Heat", points: 2 });
     expect(n4.requires[1].node_id).toBe(6);
-    expect(n4.requires_text).toBe("2>=2,6>=2");
+    expect(n4.requires_text).toBe("2>=2,6>=2"); // deprecated alias
+    // requirements are ANY-ONE-OF (adjacency): es6ai nodes 8 and 11 list each other, so AND could never be satisfied
+    expect(n4.unlocked_by_text).toBe("2>=2|6>=2");
+    expect(n4.unlocked_by).toEqual(n4.requires);
+    const es = skillTree(ctx, "es6ai") as R;
+    const e8 = es.nodes.find((n: R) => n.id === 8);
+    const e11 = es.nodes.find((n: R) => n.id === 11);
+    expect(e8.unlocked_by_text).toBe("11>=2|12>=1");
+    expect(e11.unlocked_by.map((r: R) => r.node_id)).toContain(8);
+    const sum = sql(ctx, "SELECT unlocked_by, requires FROM v_skill_node_summary WHERE tree_id = 'es6ai' AND node_id = 8") as R;
+    expect(sum.rows[0]).toEqual({ unlocked_by: "11>=2|12>=1", requires: "11>=2,12>=1" });
     const all_ = passiveTree(ctx, 1) as R;
     const f = passiveTree(ctx, 1, { filter: "ward" }) as R;
     expect(f.nodes.length).toBeGreaterThan(0);
@@ -161,6 +171,23 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
     expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("tree node stats say whether they scale with points", () => {
+    const av = skillTree(ctx, "av75ch", { filter: "Precision" }) as R;
+    const [perPoint, fixed] = av.nodes[0].mods;
+    expect(perPoint).toMatchObject({ scales_with_points: true, scaling: "per_point" });
+    expect(fixed).toMatchObject({ scales_with_points: false, scaling: "fixed", display: "60%" });
+    expect(fixed).not.toHaveProperty("no_scaling");
+    const chase = (passiveTree(ctx, "pr-1", { filter: "The Chase" }) as R).nodes[0];
+    expect(chase).toMatchObject({ no_scaling_type: 1, no_scaling_point_threshold: 5 });
+    expect(chase.point_bonus_description).toMatch(/cannot be damaged/);
+    expect(chase.mods.at(-1)).toMatchObject({ scales_with_points: false, scaling: "at_threshold", threshold: 5 });
+    const node = getTool(ctx, "skill_node", "av75ch:3") as R;
+    expect(node.mods.map((m: R) => m.scaling)).toEqual(["per_point", "fixed"]);
+    const rows = sql(ctx, "SELECT no_scaling, count(*) AS n FROM mods WHERE source_kind = 'skill_node' GROUP BY 1 ORDER BY 1") as R;
+    expect(rows.rows.map((r: R) => r.no_scaling)).toEqual([0, 1]);
+    expect((sql(ctx, "SELECT count(*) AS n FROM mods WHERE source_kind = 'unique_mod' AND no_scaling IS NOT NULL") as R).rows[0].n).toBe(0);
   });
 
   it("search node hits carry tree_id and node_id", () => {
