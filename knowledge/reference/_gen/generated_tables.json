@@ -63,6 +63,34 @@
   "rows": 136
  },
  {
+  "page": "community-builds",
+  "table": "community.counts",
+  "script": "gen_community.cjs",
+  "source": "data/le.sqlite (community_* tables, v_build_summary)",
+  "rows": 12
+ },
+ {
+  "page": "community-builds",
+  "table": "community.by_mastery",
+  "script": "gen_community.cjs",
+  "source": "data/le.sqlite (community_* tables, v_build_summary)",
+  "rows": 20
+ },
+ {
+  "page": "community-builds",
+  "table": "community.tiers",
+  "script": "gen_community.cjs",
+  "source": "data/le.sqlite (community_* tables, v_build_summary)",
+  "rows": 3
+ },
+ {
+  "page": "community-builds",
+  "table": "community.builds",
+  "script": "gen_community.cjs",
+  "source": "data/le.sqlite (community_* tables, v_build_summary)",
+  "rows": 74
+ },
+ {
   "page": "endgame-systems",
   "table": "misc.timelines",
   "script": "gen_misc.cjs",
