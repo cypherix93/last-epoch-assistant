@@ -3,11 +3,12 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { formatTools } from "./list.js";
 import { createServer } from "./server.js";
 
 const USAGE = `usage:
   cli start                          run the le-data MCP server on stdio
-  cli list                           list the server's tools (via an MCP client over stdio)
+  cli list [--json]                  list the server's tools with their input schemas (--json: the raw tools/list result)
   cli call <tool> [args] [--pretty]  call a tool; ONLY the JSON result goes to stdout (single-line unless --pretty); logs go to stderr
   cli call sql --query-file <path>   run the SQL text in <path>
 
@@ -103,7 +104,7 @@ async function main(): Promise<number> {
   }
   if (cmd === "list") {
     const tools = await withClient(async (c) => (await c.listTools()).tools);
-    for (const t of tools) console.log(`${t.name}\t${(t.description ?? "").split(/(?<=\.)\s/)[0]}`);
+    console.log(rest.includes("--json") ? JSON.stringify(tools, null, 2) : formatTools(tools));
     return 0;
   }
   if (cmd === "call") {

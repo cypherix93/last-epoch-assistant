@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
+import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, scanSql, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
 
 const dbPath = resolveDbPath();
 const have = existsSync(dbPath);
@@ -174,6 +174,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((sql(ctx, "select count(*) n from uniques where unique_id = ?;", [0]) as R).rows[0].n).toBe(1);
   });
 
+  it("sql tolerates ';' inside literals/comments but not between statements", () => {
+    expect((sql(ctx, "SELECT group_concat(name, '; ') AS g FROM classes") as R).rows[0].g).toContain("; ");
+    expect((sql(ctx, "SELECT 'it''s; ok' AS a, \"x;y\" AS b FROM (SELECT 1 AS \"x;y\")") as R).rows[0].a).toBe("it's; ok");
+    expect((sql(ctx, ["SELECT 1 AS a -- trailing; comment", ""].join("\n")) as R).rows[0].a).toBe(1);
+    expect((sql(ctx, "SELECT /* a;b */ 2 AS a;") as R).rows[0].a).toBe(2);
+    expect((sql(ctx, "SELECT 3 AS a; -- done") as R).rows[0].a).toBe(3);
+    expect(() => sql(ctx, "SELECT 'a'; SELECT 'b'")).toThrow(/single/);
+    expect(() => sql(ctx, "SELECT 1 /* ; */ ; DELETE FROM meta")).toThrow(/single/);
+    expect(scanSql("select ';' ; x").semicolonAt).toBeGreaterThan(0);
+  });
+
   it("sql allows only the read-only schema pragmas", () => {
     const info = sql(ctx, "PRAGMA table_info(affixes)") as R;
     expect(info.rows.map((r: R) => r.name)).toContain("affix_id");
@@ -276,5 +287,16 @@ describe.skipIf(!have)("@le/mcp CLI call arg forms", () => {
     const bad = run(["sql", '{"query":']);
     expect(bad.status).toBe(1);
     expect(bad.stderr).toContain("Invalid JSON args");
+  }, 60_000);
+
+  it("list prints argument schemas; list --json is the raw tool list", () => {
+    const sh = (args: string[]) => spawnSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: REPO_ROOT, encoding: "utf8" });
+    const txt = sh(["list"]).stdout;
+    expect(txt).toMatch(/^ {4}query\tstring\trequired/m);
+    expect(txt).toMatch(/^ {4}limit\tinteger \[1\.\.500\]\toptional \(default 500\)/m);
+    expect(txt).toMatch(/^ {4}ability_id\tstring\trequired/m);
+    const raw = JSON.parse(sh(["list", "--json"]).stdout) as { name: string; inputSchema: { properties: object } }[];
+    expect(raw.map((t) => t.name)).toContain("sql");
+    expect(Object.keys(raw.find((t) => t.name === "sql")!.inputSchema.properties)).toEqual(["query", "params", "limit"]);
   }, 60_000);
 });

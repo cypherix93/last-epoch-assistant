@@ -485,8 +485,50 @@ export function passiveTree(ctx: Ctx, classId: string | number, opts: TreeOpts =
 }
 
 // ---------------------------------------------------------------- sql
-function stripSqlComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+/**
+ * Tokenize SQL just enough to find statement separators: string literals ('..' with '' escapes), quoted
+ * identifiers (".." , `..`, [..]) and comments (-- line, block) are skipped. Returns the text with comments
+ * replaced by a space (literals and identifiers kept verbatim) and the offset of the first `;` outside all of those (-1: none).
+ */
+export function scanSql(sql: string): { text: string; semicolonAt: number } {
+  let out = "";
+  let semicolonAt = -1;
+  let i = 0;
+  const n = sql.length;
+  const quoted = (close: string) => {
+    const start = i;
+    i++;
+    while (i < n) {
+      if (sql[i] === close) {
+        if (sql[i + 1] === close && close !== "]") i += 2; // doubled quote = escaped quote
+        else {
+          i++;
+          break;
+        }
+      } else i++;
+    }
+    out += sql.slice(start, i);
+  };
+  while (i < n) {
+    const c = sql[i];
+    if (c === "'") quoted("'");
+    else if (c === '"') quoted('"');
+    else if (c === "`") quoted("`");
+    else if (c === "[") quoted("]");
+    else if (c === "-" && sql[i + 1] === "-") {
+      while (i < n && sql[i] !== "\n") i++;
+      out += " ";
+    } else if (c === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      i = end < 0 ? n : end + 2;
+      out += " ";
+    } else {
+      if (c === ";" && semicolonAt < 0) semicolonAt = out.length;
+      out += c;
+      i++;
+    }
+  }
+  return { text: out, semicolonAt };
 }
 
 const PRAGMA_ARG = /^pragma\s+(table_info|index_list)\s*\(\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'|"([A-Za-z_][A-Za-z0-9_]*)"|([A-Za-z_][A-Za-z0-9_]*))\s*\)$/i;
@@ -513,9 +555,11 @@ function rewritePragma(text: string): { text: string; params: unknown[] } | unde
  * no time limit: keep queries selective (the row cap bounds output only).
  */
 export function sql(ctx: Ctx, query: string, params: unknown[] = [], limit = 500): Row {
-  let text = stripSqlComments(query).trim().replace(/;\s*$/, "").trim();
+  let text = scanSql(query).text.trim();
+  // A trailing ';' (plus whitespace/comments after it) is tolerated; any other ';' outside literals/comments is not.
+  text = text.replace(/(?:\s*;)+\s*$/, "").trim();
   if (!text) throw new ToolError("Empty query");
-  if (text.includes(";")) throw new ToolError("Only a single statement is allowed (found ';')");
+  if (scanSql(text).semicolonAt >= 0) throw new ToolError("Only a single statement is allowed (found ';')");
   const pragma = rewritePragma(text);
   if (pragma) ({ text, params } = pragma);
   if (!/^(select|with)\b/i.test(text)) {
