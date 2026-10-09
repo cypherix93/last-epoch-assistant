@@ -225,6 +225,15 @@ describe.skipIf(!hasRawData())("community loader (fixture against the real game 
     // ground-truth.md section 5 tree point totals; si4lgl / hh7pa3 are planner leftovers (not specialized)
     const pts = Object.fromEntries(skills.map((s) => [s.ability_id, [s.points, s.is_specialized]]));
     expect(pts).toMatchObject({ es6ai: [26, 1], do5vr: [22, 1], an0my: [22, 1], v01cv: [22, 1], ab0lh: [22, 1], si4lgl: [23, 0], hh7pa3: [23, 0] });
+    // node_count / has_tree_points expose the leftover trees: tree points on a skill that is not specialized
+    const flags = Object.fromEntries(
+      all(`SELECT ability_id, node_count, has_tree_points, is_specialized FROM community_build_skills WHERE build_profile_id = ?`, id).map((s) => [s.ability_id, [s.node_count, s.has_tree_points, s.is_specialized]]),
+    );
+    expect(flags.es6ai).toEqual([12, 1, 1]);
+    expect((flags.si4lgl as number[])[1]).toBe(1);
+    expect((flags.si4lgl as number[])[2]).toBe(0);
+    expect((flags.si4lgl as number[])[0]).toBeGreaterThan(0);
+    expect(one(`SELECT count(*) AS n FROM community_build_skills WHERE has_tree_points <> (points > 0) OR (node_count > 0) <> (points > 0)`).n).toBe(0);
     const es = all(`SELECT node_name, points FROM v_build_nodes_named WHERE build_profile_id = ? AND tree_id = 'es6ai'`, id);
     expect(Object.fromEntries(es.map((r) => [r.node_name, r.points]))).toEqual({
       "Dust To Wind": 3, "Rifts of Decay": 2, Merciful: 2, "Erasure of the Living": 5, "Time Loop": 1, "Shattered Continuity": 1,

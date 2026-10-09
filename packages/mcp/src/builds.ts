@@ -274,15 +274,20 @@ export function builds(ctx: Ctx, a: BuildsArgs = {}): Row {
     rows = rows.filter((b) => b.class_id === cid);
     applied.class = cid;
   }
+  const byGuideCard = new Set<number>();
   if (a.mastery) {
     const m = resolveMasteryArg(ctx, a.mastery);
     rows = rows.filter((b) => (m.mastery_index === 0 ? b.class_id === m.class_id : isMastery(b, m)));
+    // leveling guides open on a base-class tab: they match through the guide card's mastery
+    if (m.mastery_index !== 0) for (const b of rows) if (b.mastery_index !== m.mastery_index) byGuideCard.add(b.build_id);
     applied.mastery = m.name;
   }
   // tabs considered by the ability (any_skill) / item / affix filters
   const tabsOf = (b: BuildRow) => pickTabs(tabsBy.get(b.build_id) ?? [], a.tab, "any");
+  let abilityId: string | undefined;
   if (a.ability) {
     const ab = resolveAbilityArg(ctx, a.ability);
+    abilityId = ab.ability_id;
     applied.ability = ab.name;
     if (a.any_skill) {
       const spec = new Set(
@@ -319,7 +324,37 @@ export function builds(ctx: Ctx, a: BuildsArgs = {}): Row {
     rows = rows.filter((b) => String(b.season ?? "").toLowerCase().includes(s));
   }
   const lim = Math.max(1, Math.min(a.limit ?? 50, 500));
-  const out = rows.slice(0, lim).map((b) => buildHeader(b, ms, tabsBy.get(b.build_id) ?? []));
+  // with an ability filter: how every tab of the build uses that skill (specialized, on the bar, tree points / nodes;
+  // a tree with points on a non-specialized skill is a planner leftover with no effect in game)
+  const skillRows = abilityId
+    ? all(
+        ctx,
+        `SELECT s.build_profile_id, s.is_specialized, s.on_bar, s.points, s.node_count FROM community_build_skills s WHERE s.ability_id = ?`,
+        abilityId,
+      )
+    : [];
+  const skillBy = new Map<number, Row>(skillRows.map((r) => [r.build_profile_id as number, r]));
+  const out = rows.slice(0, lim).map((b) => {
+    const h = buildHeader(b, ms, tabsBy.get(b.build_id) ?? []);
+    if (byGuideCard.has(b.build_id)) h.mastery_match = "guide card (the profile opens on another tab, e.g. a leveling guide's base-class tab)";
+    if (abilityId) {
+      const uses = (tabsBy.get(b.build_id) ?? [])
+        .filter((t) => skillBy.has(t.build_profile_id))
+        .map((t) => {
+          const s = skillBy.get(t.build_profile_id)!;
+          return dropNulls({
+            tab: t.name,
+            specialized: s.is_specialized === 1,
+            on_bar: s.on_bar === 1,
+            points: s.points,
+            node_count: s.node_count,
+            leftover_tree: s.is_specialized !== 1 && (s.points as number) > 0 ? true : undefined,
+          });
+        });
+      if (uses.length) h.ability_tabs = uses;
+    }
+    return h;
+  });
   return {
     builds: out,
     count: out.length,
@@ -590,7 +625,7 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
     );
     out.skills = all(
       ctx,
-      `SELECT s.ability_id, a.name, s.maxroll_key, s.tree_id, s.is_specialized, s.spec_slot, s.on_bar, s.bar_slot, s.points
+      `SELECT s.ability_id, a.name, s.maxroll_key, s.tree_id, s.is_specialized, s.spec_slot, s.on_bar, s.bar_slot, s.points, s.node_count
          FROM community_build_skills s LEFT JOIN abilities a ON a.ability_id = s.ability_id
         WHERE s.build_profile_id = ? ORDER BY s.is_specialized DESC, coalesce(s.spec_slot, 99), s.on_bar DESC, coalesce(s.bar_slot, 99), s.ord`,
       pid,
@@ -604,9 +639,10 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
         bar_slot: s.bar_slot,
         tree_id: s.tree_id,
         points: s.points,
+        node_count: s.node_count,
         // trees of non-specialized skills are planner leftovers with no in-game effect: listed only for specialized skills
         nodes: s.is_specialized === 1 && s.tree_id ? nodeList(skillNodes.filter((n) => n.tree_id === s.tree_id)) : undefined,
-        note: s.is_specialized !== 1 && (s.points as number) > 0 ? "not specialized: its tree points are a planner leftover (no effect in game)" : undefined,
+        note: s.is_specialized !== 1 && (s.points as number) > 0 ? `not specialized: its ${s.node_count} allocated tree nodes (${s.points} points) are a planner leftover (no effect in game)` : undefined,
       }),
     );
   }

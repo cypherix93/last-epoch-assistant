@@ -317,6 +317,16 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(es.tabs).toEqual(["Starter", "Endgame", "Aspirational"]);
     expect(Object.keys(es.tiers)).toEqual(["corruption", "speed", "bossing"]);
     expect((builds(ctx, { ability: "Erasing Strike" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    // ability filter: every result says how each tab uses the skill; leftover trees (points, not specialized) are flagged
+    const vo = (builds(ctx, { ability: "Volcanic Orb", any_skill: true }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(vo.ability_tabs).toEqual([
+      { tab: "Intermediate Setup (lvl 11 - 37)", specialized: true, on_bar: true, points: 14, node_count: 9 },
+      { tab: "Final Setup (lvl 38 - 80)", specialized: false, on_bar: false, points: 14, node_count: 9, leftover_tree: true },
+    ]);
+    // a Spellblade filter matches this leveling guide through its guide card (its profile opens on the Mage tab)
+    const sb = (builds(ctx, { mastery: "Spellblade" }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(sb).toMatchObject({ mastery: "Mage", guide_mastery: "Spellblade" });
+    expect(sb.mastery_match).toMatch(/guide card/);
     expect((builds(ctx, { ability: "es6ai", class: "Sentinel", item: "World Splitter", tab: "Endgame" }) as R).builds.map((b: R) => b.slug)).toEqual([ES_SLUG]);
     expect((builds(ctx, { affix: 76, mastery: "void-knight" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
     const s = builds(ctx, { tier: "S", tier_list: "bossing" }) as R;

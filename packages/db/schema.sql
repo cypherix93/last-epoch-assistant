@@ -1307,6 +1307,9 @@ CREATE TABLE community_build_skills (
   bar_slot      INTEGER,               -- index in TAB:activeSkills
   points        INTEGER NOT NULL,      -- points in the skill tree (TAB:skillTrees[tree].history[0:position]); a tree of a
                                        -- non-specialized skill is a planner leftover and does not apply in game
+  node_count    INTEGER NOT NULL DEFAULT 0, -- allocated nodes of its tree in this tab (community_build_skill_nodes rows; removed nodes excluded)
+  has_tree_points INTEGER NOT NULL DEFAULT 0, -- 1 when points > 0; has_tree_points 1 with is_specialized 0 = a leftover tree (the skill was
+                                       -- specialized earlier in the planner, e.g. spellblade-leveling-guide 'Final Setup' Volcanic Orb, 9 nodes)
   PRIMARY KEY (build_profile_id, ord)
 ) WITHOUT ROWID;
 CREATE INDEX community_build_skills_ability ON community_build_skills (ability_id);

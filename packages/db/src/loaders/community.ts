@@ -784,6 +784,7 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
             on_bar: s.on_bar,
             bar_slot: s.bar_slot,
             points: s.points,
+            has_tree_points: s.points > 0,
           });
         }
         for (const treeId of sortedKeys(tab.skillTrees ?? {})) {
@@ -805,6 +806,12 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
             });
           }
         }
+        // node_count: allocated nodes of each skill's tree in this tab (also for leftover trees of non-specialized skills)
+        ctx.db
+          .prepare(
+            "UPDATE community_build_skills SET node_count = (SELECT count(*) FROM community_build_skill_nodes n WHERE n.build_profile_id = community_build_skills.build_profile_id AND n.tree_id = community_build_skills.tree_id) WHERE build_profile_id = ? AND tree_id IS NOT NULL",
+          )
+          .run(profileRow);
       });
     }
   }
