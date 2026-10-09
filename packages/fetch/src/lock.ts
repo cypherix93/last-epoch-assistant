@@ -9,6 +9,13 @@ export interface LetoolsFileLock {
   globals: string[];
 }
 
+export interface MaxrollGuidesLockEntry {
+  url: string;
+  sha256: string;
+  bytes: number;
+  fetched_at: string;
+}
+
 export interface SourcesLock {
   fetchedAt: string;
   letools?: {
@@ -25,6 +32,11 @@ export interface SourcesLock {
     lastModified: string | null;
     sha256: string;
     bytes: number;
+  };
+  /** One entry per fetched URL: list page, tier lists, guide pages, planner profiles. */
+  maxrollGuides?: {
+    listUrl: string;
+    files: MaxrollGuidesLockEntry[];
   };
 }
 
