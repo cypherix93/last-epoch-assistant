@@ -1,6 +1,6 @@
 ---
 name: le-build-around-item
-description: Use when a Last Epoch player names, pastes or screenshots an item they found and wants a build designed around it - "I dropped <item>", "build around <item>", "what can I do with <item>", "is this worth building", "theorycraft something weird with this", "make this unique work", or a pasted tooltip with affixes, tiers, LP or WW.
+description: Use when a Last Epoch player names, pastes or screenshots an item they found and wants a build designed around it - "I dropped X", "build around X", "what can I do with X", "is this worth building", "theorycraft something weird with this", "make this unique work", or a pasted tooltip with affixes, tiers, LP or WW.
 ---
 
 # Build Around an Item (Last Epoch 1.5.x)
@@ -40,10 +40,11 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `version({})`, `schema({"table"?})`, `knowledge({"page"?})`
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
-- `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat.
-- `skill_tree({"ability_id": "<id>"})`, `passive_tree({"class_id": "<class>"})`, `sql({"query","params"?,"limit"?})` (read-only).
+- `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `requires` is `[{node_id, node_name, points}]`. Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
 
-Without MCP, run `yarn mcp:call <tool> '<json args>'` from the repo root in Bash, for example `yarn mcp:call lookup '{"name":"Culnivar"}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. On Windows the call goes through `cmd.exe`: JSON containing `<`, `>`, `%`, `&` or `|` (all the Q-recipes below) must go on stdin (`yarn mcp:call sql <<'JSON' ... JSON`) or `@file.json`, otherwise it can be silently corrupted (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
+Without MCP, run `yarn mcp:call <tool> [args]` from the repo root, for example `yarn mcp:call lookup '{"name":"Culnivar","kinds":["unique"]}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. The Q-recipes below contain single quotes, `<`, `>`, `%` or `|`: write the args JSON to a file and pass `@file.json` (or raw SQL with `--query-file`), or pipe it on stdin; inline they can break or be silently corrupted, and item names with apostrophes ("Ignivar's Head") break inline quoting outright (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
 
 **Empty or stub database.** A db built with `LE_DB_ALLOW_STUBS=1` has empty tables, but `meta` is still filled. Read `game_version` and `data_version` from `meta` anyway.
 
@@ -82,8 +83,8 @@ digraph flow {
    - A pasted tooltip: extract the name, item level, rarity, every affix line with its value, any tier markers (T1-T8), LP ("Legendary Potential"), WW ("Weaver's Will"), corrupted or sealed markers, and the class line ("Requires Mage").
    - A screenshot description: as for a pasted tooltip. Ask for any missing affix values only if they change the build; otherwise mark them as assumptions.
    - A rare or exalted item (not a unique): resolve each affix line to an `affix_id` with `search({"query":"<affix line>","kinds":["affix"]})`, then tier it against `mods` rows (`source_kind = 'affix_tier'`). Its "enabling effect" is then the best-in-slot combination, and the rest of the procedure still applies.
-3. **Resolve the item and pull its mods.** Run `get({"kind":"unique","id":<uid>})` (returns `unique`, `mods`, `tooltips`, `subtypes`, `set`), or queries Q1-Q2 below. Record every mod with its property, tags, modifier type and roll range, and every tooltip line. Indirect lines (SP 98 PlayerProperty, SP 58 AbilityProperty) are pointers to coded effects. Record the PP or AP index (`tags`) and do not sum them as stats (`knowledge/mechanics/stat-model.md`, "Special properties").
-4. **Read its model.** Find the row in `knowledge/interactions/unique-effects-index.md` (model column: PP/AP/C kinds). Read its `unique_effects.json` entry: the `effects[].formula`, `condition`, `trigger` and `confidence` fields. Then search `catalogue.md` for its uid and name. The code formula wins over the tooltip; record any D? flag.
+3. **Resolve the item and pull its mods.** Run `get({"kind":"unique","id":<uid>})` (returns `unique`, `mods`, `tooltips`, `subtypes`, `set`), or queries Q1-Q2 below. Record every mod with its property, tags, modifier type and roll range, and every tooltip line. Indirect lines (SP 98 PlayerProperty, SP 58 AbilityProperty) are pointers to coded effects. Record the PP or AP index (`tags`) and do not sum them as stats (`knowledge/mechanics/stat-model.md`, "Special properties"). For SP 58 (and SP 88 "Level of X", and any "AP162" reference) `tags` is an **ability index**, not an ability id: the interesting rule often lives on another ability. Resolve it with `SELECT ability_id, name, is_player_ability FROM abilities WHERE ability_index = ?` (Ignivar's Head: SP 58 `tags` 162 -> `ability_gen98` Fire Aura, not a player skill) and read that ability's properties with Q9b; then `get({"kind":"ability","id":"ability_gen98"})` for its components.
+4. **Read its model.** Find the row in `knowledge/interactions/unique-effects-index.md` (model column: PP/AP/C kinds; grep the file for the name or uid, it is 118 KB). Read its `unique_effects.json` entry (`vendor/lastepochbuilder/research/data/game/unique_effects.json`, 84,583 lines, 550 entries of about 150 lines each): `grep -n '"uniqueID": 74,' vendor/lastepochbuilder/research/data/game/unique_effects.json` gives the start line, then read the next ~150 lines for the `effects[].formula`, `condition`, `trigger` and `confidence` fields. Then search `catalogue.md` for its uid and name. The code formula wins over the tooltip; record any D? flag.
 5. **Split the value.**
    - *Enabling effect*: the line that changes a rule (a conversion, trigger, resource loop, cap change or skill rewrite).
    - *Stat stick*: the plain mods. Note which tag combination the stat stick wants. For example, Lightning|Spell (258) only helps skills that carry both tags.
@@ -102,14 +103,15 @@ digraph flow {
 7. **Write the rate equation.** For any resource, proc or stack the effect creates, write throughput per second in terms of build stats, using the D formula. Then compute it for a plausible endgame value (label it **U** unless every input is sourced). Examples:
    - a "convert X when full" effect yields at most the net X regeneration per second;
    - a proc gives event rate x chance x count, capped by its ICD (`knowledge/mechanics/speed-cooldowns-mana.md`, "6. Trigger frequency").
+   - a damage-over-time ability the item casts (Q17): read its damaging component and its duration. Fire Aura (`ability_gen98`) has fire 14 base, `addedDamageScaling` 0.7, `hit` false and `DestroyAfterDuration` 4 s (**A**); its `alt_text` says "Added spell damage is applied at 140% effectiveness per second", so the 0.7 is per tick and it ticks about twice per second (inferred, **U**): about 28 base fire per second per stack, each stack lasting 4 s, and stacks per second = cast rate. Write the DoT as `stacks alive x per-second damage`, with the cast rate from the trigger chance and its "up to N times per second" cap.
 8. **Benchmark it.** Compare that throughput with a plain alternative: a T7/T8 affix or a common unique doing the same job (Q8 tier ranges). If the enabler loses badly to a plain affix, say so on the Build card. The build must then justify the item some other way, through its stat stick, its burst shape or a rule change.
 
 ### Phase C: Divergent phase (steps 9-14)
 
 Generate **at least 5** candidate archetypes. Ask each question below and log the query you ran and what came back. A candidate that no query supports does not count.
 
-9. **Skills carrying the boosted tags.** Run Q4 with the stat stick's tag mask, `(tags & mask) = mask`, restricted to player skills with a tree. Then run Q5 for who can use each skill (class, mastery and unlock level).
-10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree({"ability_id":"<id>"})`). Also run the global scan Q7 for nodes that mention the item's resource or trigger. Record nodes as `<tree>:<node> Name`. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
+9. **Skills carrying the boosted tags.** Run Q4 with the stat stick's tag mask, `(tags & mask) = mask`, restricted to player skills with a tree. If the enabler keys on a skill **flag** rather than a tag (channelling, transform, traversal, combo, instant cast), run Q4b instead. Channelling is the common case: Ignivar's Head's ignite-chance line carries the Channelling tag bit (262144) and its tooltip says "Cast Fire Aura every second while Channelling", but no player ability has that bit in `abilities.tags` (0 rows), so Q4 finds nothing; the channelled skills are found by the flag `abilities.channelled = 1` (10 player skills). Then run Q5 for who can use each skill (class, mastery and unlock level).
+10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree({"ability_id":"<id>"})`). Also run the global scan Q7 for nodes that mention the item's resource or trigger, and Q16 for every unique, affix and node that mentions the ability the item casts (for example "Fire Aura"). Record nodes as `<tree>:<node> Name`. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
 11. **Catalogue chains.** Pick the tags that describe the enabling effect, using the tag set in `knowledge/interactions/README.md`. Read every catalogue entry that carries them. Then chain each one: converter + engine, engine + payoff. Look explicitly for at least one pairing that no catalogue entry names together. That is the novelty candidate.
 12. **Stack partners.** Find other sources of the same property or PP index: `find_mods({"filters":{"property":<P>},"limit":50})`, or Q8 and Q9 for PP indices. Cover uniques, set bonuses, affixes, idol affixes (Q11) and blessings (Q12). Count how many rare uniques each candidate would need.
 13. **Passive reach.** For each class that owns a candidate skill, find the passives that feed the property (Q13 or `passive_tree({"class_id":"<class>"})`). Note the mastery gating (`mastery_requirement`).
@@ -136,11 +138,13 @@ Archetype prompts, so you do not stop at the obvious one:
 | Gear accessibility | 3+ other chase uniques or a primordial needed | 1-2 other uniques | the item plus rares or exalted items only |
 | Novelty | standard archetype that only incidentally uses the item | known catalogue chain applied | pairing not named together in any catalogue entry or skill text |
 
+Anchors for the in-between scores: 2 = the 1-column description with one mitigating fact (Damage 2: one more-multiplier but the stat stick is wasted; Novelty 2: the item's own tooltip suggests the build); 4 = the 5-column description minus one element (Defense 4: capped resistances and two layers but no stun answer; Novelty 4: a catalogue entry names one half of the pairing, the other half comes from a skill node or a second item). Write one clause of justification per score.
+
 **Gate:** drop any candidate with Damage < 2 or Defense < 2, unless the player asked for a meme build. Total = sum. Break ties toward Gear accessibility. Never call a score "tier" or "meta".
 
 ### Phase E: Convergent phase (steps 16-26)
 
-Pick the top 1-2 candidates. For each, fill in the skeleton:
+Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second may be an outline (class/mastery, five skills, key uniques, defense layer, top three tests), labelled as an outline. For each full skeleton:
 
 16. **Class and mastery**, with the mastery's base bonuses (`knowledge/reference/classes-and-masteries.md`, "Masteries, mastery skills and base mastery bonuses").
 17. **Five skills**, each with:
@@ -195,6 +199,8 @@ Pick the top 1-2 candidates. For each, fill in the skeleton:
 
 31. Fill `templates/proposal.md` exactly: every section, in order, with the Build card on top and the Data citations table at the bottom. Then run **le-build-audit** on the skeleton if it is available, and fix what it finds.
 
+**Minimum viable proposal.** For a casual question ("what can I do with this?", "is it worth anything?"), you may stop at a short form: Phases A-B in full (item resolved, enabling effect, rate equation, benchmark), Phase C with at least 5 candidates as one line each plus the query that backs it, the Phase D scoring table, one skeleton outline (as above) and the 3 riskiest in-game tests. Label it "outline, not a full proposal" and offer the full template. The honesty rules still apply in full.
+
 Worked example of the whole procedure, with real data values: `examples/culnivars-claim.md`.
 
 ## Query cookbook
@@ -207,7 +213,7 @@ yarn mcp:call sql <<'JSON'
 JSON
 ```
 
-Q1. Resolve a unique by name:
+Q1. Resolve a unique by name (`v_unique_summary` has no `is_primordial` or legendary-drop columns: those are on `uniques`, see Q3):
 <!-- params: ["Culnivar"] -->
 ```sql
 SELECT unique_id, name, base_type, sub_type, level_requirement, set_name, mods_text, tooltip_text
@@ -244,6 +250,14 @@ SELECT ability_id, name, tag_names, mana_cost, channel_cost, channelled, max_cha
 FROM abilities
 WHERE is_player_ability = 1 AND has_skill_tree = 1 AND (tags & ?) = ?
 ORDER BY mana_cost;
+```
+
+Q4b. Player skills by a flag instead of a tag (here channelled; swap in `is_transform`, `is_traversal`, `is_combo`, `instant_cast` or `counts_as_movement`):
+```sql
+SELECT ability_id, name, tag_names, mana_cost, channel_cost, has_skill_tree
+FROM abilities
+WHERE is_player_ability = 1 AND channelled = 1
+ORDER BY name;
 ```
 
 Q5. Who can use a skill, and from when:
@@ -296,6 +310,18 @@ JOIN player_properties pp ON pp.idx = m.tags
 WHERE m.property = 98 AND m.tags = ?;
 ```
 
+Q9b. Every source of one AbilityProperty (SP 58: `tags` = ability index, `special_tag` = property index), with the ability it belongs to (162 = Fire Aura):
+<!-- params: [162] -->
+```sql
+SELECT m.source_kind, m.source_id, m.source_name, ap.ability_id, a.name AS ability, ap.prop_index,
+       ap.name AS ability_property, m.value_min, m.value_max
+FROM v_mods_named m
+JOIN ability_properties ap ON ap.ability_index = m.tags AND ap.prop_index = m.special_tag
+LEFT JOIN abilities a ON a.ability_id = ap.ability_id
+WHERE m.property = 58 AND m.tags = ?
+ORDER BY ap.prop_index, m.source_kind;
+```
+
 Q10. Affixes that roll on the item's base type (LP and legendary plan, plus the rare slots):
 <!-- params: [8] -->
 ```sql
@@ -316,17 +342,20 @@ WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(? AS TEXT)
 ORDER BY m.tier, m.source_ord;
 ```
 
-Q11. Idol affixes for a property, with class and shape:
+Q11. Idol affixes for a property, with class and idol sizes (base types 25-33):
 <!-- params: [18] -->
 ```sql
-SELECT a.affix_id, a.name, a.class_names, a.stats_text, a.rolls_on_text
+SELECT a.affix_id, a.name, a.class_names, a.stats_text, group_concat(bt.name, ', ') AS idol_sizes
 FROM v_affix_summary a
+JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.base_type_id BETWEEN 25 AND 33
 WHERE a.rolls_on = 1
   AND a.affix_id IN (SELECT CAST(source_id AS INTEGER) FROM mods WHERE source_kind = 'affix_tier' AND property = ?)
+GROUP BY a.affix_id
 ORDER BY a.name;
 ```
 
-Q12. Blessings for a property, by timeline:
+Q12. Blessings for a property, by timeline (the timelines: `SELECT timeline_id, name FROM timelines ORDER BY timeline_id`, ids 1-10; one blessing per timeline). For text-heavy needs swap `property = ?` for `property_name LIKE '%' || ? || '%'`:
 <!-- params: [8] -->
 ```sql
 SELECT timeline_name, name, is_grand, slot_kind, property_name, tag_names, modifier_name, value_min, value_max
@@ -335,26 +364,31 @@ WHERE property = ?
 ORDER BY timeline_id, is_grand, name;
 ```
 
-Q13. Class passives that mention a stat (per class and mastery):
+Q13. Class passives that mention a stat (per class and mastery; mastery 0 is the base class tree):
 <!-- params: ["ward", "ward"] -->
 ```sql
-SELECT c.name AS class, s.mastery, s.tree_id || ':' || s.node_id AS node, s.name, s.max_points,
-       s.mastery_requirement, s.stats_text
+SELECT c.name AS class, s.mastery, coalesce(ms.name, c.name) AS mastery_name, s.tree_id || ':' || s.node_id AS node,
+       s.name, s.max_points, s.mastery_requirement, s.stats_text
 FROM v_skill_node_summary s
 JOIN trees t ON t.tree_id = s.tree_id
 JOIN classes c ON c.class_id = t.class_id
+LEFT JOIN masteries ms ON ms.class_id = t.class_id AND ms.mastery_index = s.mastery
 WHERE s.tree_kind = 'class' AND (s.stats_text LIKE '%' || ? || '%' OR s.description LIKE '%' || ? || '%')
 ORDER BY c.name, s.mastery, s.mastery_requirement;
 ```
 
-Q14. Drawback clauses on the planned uniques (anti-synergy sweep; pass a JSON array of ids):
-<!-- params: ["[33, 368, 440]"] -->
+Q14. Drawback clauses on the planned uniques (anti-synergy sweep; pass a JSON array of ids). `tooltip_text` is NULL for 167 uniques whose text is only in `mods_text` (Dark Shroud of Cinders 117, Herkir's Vessel 163), so search both columns. No row means no drawback **wording** was found, not that the item has no drawback: also read its `unique-effects-index.md` row.
+<!-- params: ["[33, 368, 440, 117]"] -->
 ```sql
-SELECT unique_id, name, tooltip_text
-FROM v_unique_summary
-WHERE unique_id IN (SELECT value FROM json_each(?))
-  AND (tooltip_text LIKE '%cannot%' OR tooltip_text LIKE '%no ward%' OR tooltip_text LIKE '%do not%'
-       OR tooltip_text LIKE '%less%' OR tooltip_text LIKE '%lose%');
+WITH t AS (
+  SELECT unique_id, name, coalesce(tooltip_text, '') || ' ' || coalesce(mods_text, '') AS text
+  FROM v_unique_summary
+  WHERE unique_id IN (SELECT value FROM json_each(?))
+)
+SELECT unique_id, name, text
+FROM t
+WHERE text LIKE '%cannot%' OR text LIKE '%no ward%' OR text LIKE '%do not%'
+   OR text LIKE '%less%' OR text LIKE '%lose%';
 ```
 
 Q15. Abilities that a unique triggers or levels (Melvern's Writ, uid 108, has relations; Culnivar's Claim has none):
@@ -364,6 +398,35 @@ SELECT r.relation, r.target_kind, r.target_id, a.name, r.value
 FROM relations r
 LEFT JOIN abilities a ON a.ability_id = r.target_id
 WHERE r.source_kind = 'unique' AND r.source_id = CAST(? AS TEXT);
+```
+
+Q16. Everything that mentions a word or an ability name, across uniques, affixes and tree nodes (for example every source of "Fire Aura"; the word is bound once through the CTE):
+<!-- params: ["Fire Aura"] -->
+```sql
+WITH p(w) AS (SELECT '%' || ? || '%')
+SELECT 'unique' AS kind, CAST(u.unique_id AS TEXT) AS id, u.name,
+       coalesce(u.tooltip_text, '') || ' ' || coalesce(u.mods_text, '') AS text
+FROM v_unique_summary u, p WHERE coalesce(u.tooltip_text, '') || ' ' || coalesce(u.mods_text, '') LIKE p.w
+UNION ALL
+SELECT 'affix', CAST(a.affix_id AS TEXT), a.name, a.stats_text
+FROM v_affix_summary a, p WHERE a.name LIKE p.w OR a.stats_text LIKE p.w
+UNION ALL
+SELECT s.tree_kind || '_node', s.tree_id || ':' || s.node_id, s.name, coalesce(s.stats_text, '') || ' ' || coalesce(s.description, '')
+FROM v_skill_node_summary s, p WHERE s.stats_text LIKE p.w OR s.description LIKE p.w;
+```
+
+Q17. The components of an ability by its index (the ability an SP 58 line or a trigger points at; damage, ADE, hit flag, duration):
+<!-- params: [162] -->
+```sql
+SELECT a.ability_id, a.name, a.alt_text, c.ord, c.component_type,
+       json_extract(c.raw_json, '$.baseDamageStats.damage') AS damage_by_type,
+       json_extract(c.raw_json, '$.baseDamageStats.addedDamageScaling') AS ade,
+       json_extract(c.raw_json, '$.baseDamageStats.hit') AS is_hit,
+       json_extract(c.raw_json, '$.duration') AS duration
+FROM abilities a
+JOIN ability_components c ON c.ability_id = a.ability_id
+WHERE a.ability_index = ?
+ORDER BY c.ord;
 ```
 
 ## Honesty rules

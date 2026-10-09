@@ -1,0 +1,136 @@
+[
+ {
+  "id": "Q09",
+  "answer": "Conflagration (Fireball node 13, fi9:13) gives Ignite Chance +30%; max 5 points.",
+  "reasoning": "v_skill_node_summary for Fireball: only node with Ignite Chance stat is Conflagration, max_points 5.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "v_skill_node_summary Fireball stats_text LIKE Ignite Chance OR name Orb of Destruction",
+    "result_summary": "node 13 Conflagration max_points 5 \"Ignite Chance: +30%\""
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "yarn mcp:call runs through cmd.exe: < > % in the JSON query silently break the call (prints garbage / \"system cannot find the path\"); `yarn -s` unsupported."
+  ]
+ },
+ {
+  "id": "Q10",
+  "answer": "Orb of Destruction (node 4, max 2) requires 2 points in Piercing Heat (node 2) AND 2 points in Winged Fire (node 6).",
+  "reasoning": "requires column \"2>=2,6>=2\"; node 2 = Piercing Heat, node 6 = Winged Fire per full node list.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "v_skill_node_summary Fireball all nodes",
+    "result_summary": "node 4 requires \"2>=2,6>=2\"; 2=Piercing Heat (max 4), 6=Winged Fire (max 5)"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "requires string format \"node>=points\" is not documented in SKILL.md; inferred. Root-attached nodes show \"0>=0\"."
+  ]
+ },
+ {
+  "id": "Q11",
+  "answer": "103 nodes (Rogue class passive tree, tree_id rg-1).",
+  "reasoning": "passive_tree(Rogue) node_count=103, confirmed by count(*) on tree_nodes.",
+  "tool_calls": [
+   {
+    "tool": "passive_tree",
+    "args": "{\"class_id\":\"Rogue\"}",
+    "result_summary": "node_count 103"
+   },
+   {
+    "tool": "sql",
+    "args": "count tree_nodes where tree_id rg-1",
+    "result_summary": "103"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "passive_tree accepted class name \"Rogue\" though SKILL.md says class_id numeric 0-4 (works)."
+  ]
+ },
+ {
+  "id": "Q12",
+  "answer": "Weaver nodes whose description mentions Boss: Warden’s Echo (54), Twinned Tyrants (60), Outrider Souls (64), Call of the Firstborn (105), Bountiful Sarcophagy (126), Regal Foes (168).",
+  "reasoning": "SQL instr(lower(description),\"boss\") on tree_nodes of the weaver tree gives 6. FTS search also returned 121,123,125,127,128,129 (Altar Guardian boss) which match in tooltip/other text, not description.",
+  "tool_calls": [
+   {
+    "tool": "search",
+    "args": "boss kinds weaver_node",
+    "result_summary": "12 hits incl. 6 description matches + 6 tooltip-only matches"
+   },
+   {
+    "tool": "sql",
+    "args": "tree_nodes weaver description contains boss",
+    "result_summary": "6 rows"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "FTS search over-matches (tooltip + labels) vs. description; ambiguous which the question intends.",
+   "weaver nodes live in tree_nodes with tree_id \"weaver\", no separate table; not stated in SKILL.md."
+  ]
+ },
+ {
+  "id": "Q13",
+  "answer": "Ignite (ailment id 1): duration 2.5 s; base damage 40 Fire (damage_types Fire, DoT tag).",
+  "reasoning": "ailments row: duration 2.5, dmg_fire 40, other dmg columns 0.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "SELECT * FROM ailments WHERE name IN Ignite,Shock,Chill",
+    "result_summary": "Ignite duration 2.5 dmg_fire 40 max_instances 0"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q14",
+  "answer": "Ailments with poison base damage: Poison (id 7, 28), Serpent Venom (15, 400), Plague (18, 150), Pestilence (40, 30), Snake Infection (101, 300), Acid Skin (120, 80), Exposed Flesh (137, 80; deals_damage=0 flag).",
+  "reasoning": "ailments where dmg_poison != 0 returns 7 rows; all damage_types Poison.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "ailments WHERE dmg_poison != 0",
+    "result_summary": "7 rows"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "Exposed Flesh has poison base damage but deals_damage=0; inclusion ambiguous.",
+   "yarn mcp:call runs through cmd.exe: < > % in the JSON query silently break the call (prints garbage / \"system cannot find the path\"); `yarn -s` unsupported."
+  ]
+ },
+ {
+  "id": "Q15",
+  "answer": "Shock max_instances = 10 stacks.",
+  "reasoning": "ailments.max_instances for Shock (id 5) = 10.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "ailments Shock",
+    "result_summary": "max_instances 10, duration 4"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q16",
+  "answer": "Per Chill stack (ailment 3, buff mods): -12% more Attack Speed, -12% more Cast Speed, -12% more Movement Speed (value -0.12, modifier_type 2 more). Max 3 stacks; boss/player effect -50%.",
+  "reasoning": "mods source_kind ailment_buff source_id 3 has three rows property 2,3,9 each more -0.12; raw_json confirms moreValues[-0.12].",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "v_mods_named ailment_buff source_id 3",
+    "result_summary": "AttackSpeed, CastSpeed, MovementSpeed more -0.12 each"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ }
+]

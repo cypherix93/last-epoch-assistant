@@ -1,0 +1,1566 @@
+[
+  {
+    "id": "Q01",
+    "question": "What base type is the unique item \"Ravenous Void\"?",
+    "category": "name_lookup",
+    "expected": {
+      "answer": "Gloves",
+      "tolerance": "exact (case-insensitive)"
+    },
+    "ground_truth_sql": "SELECT u.unique_id, u.name, bt.name AS base_type, st.name AS sub_type\nFROM uniques u\nJOIN item_base_types bt ON bt.base_type_id = u.base_type_id\nJOIN item_subtypes st ON st.base_type_id = u.base_type_id AND st.sub_type_id = u.sub_type_id\nWHERE u.name = 'Ravenous Void'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "unique_id": 208,
+        "name": "Ravenous Void",
+        "base_type": "Gloves",
+        "sub_type": "Gluttonous Gloves"
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "unique name",
+        "sql": "SELECT COUNT(*) n FROM uniques WHERE name='Ravenous Void'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "uniques",
+      "item_base_types",
+      "item_subtypes"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Answer is the base type \"Gloves\". The specific subtype \"Gluttonous Gloves\" is an acceptable extra; \"Gluttonous Gloves\" alone is PARTIAL (it is the sub type, not the base type). \"Glove\" accepted."
+  },
+  {
+    "id": "Q02",
+    "question": "What does the unique \"Ravenous Void\" do? List its stat mods with their roll ranges (ignore flavour/tooltip text).",
+    "category": "name_lookup",
+    "expected": {
+      "answer": [
+        "Endurance Threshold: +60 to +100",
+        "Physical Damage Taken as Void: 10% to 15%",
+        "More Void Damage Taken (multiplicative): -15% to -10% (i.e. 10% to 15% less void damage taken)"
+      ],
+      "tolerance": "set-equality (judge matches each line by stat + min/max; DB stores percents as fractions, 0.1 = 10%)"
+    },
+    "ground_truth_sql": "SELECT m.source_ord, m.property_name, m.tag_names, m.modifier_type, m.value_min, m.value_max, m.hidden\nFROM mods m JOIN uniques u ON m.source_id = CAST(u.unique_id AS TEXT)\nWHERE m.source_kind = 'unique_mod' AND u.name = 'Ravenous Void' AND m.hidden = 0\nORDER BY m.source_ord",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "source_ord": 1,
+        "property_name": "Endurance Threshold",
+        "tag_names": null,
+        "modifier_type": 0,
+        "value_min": 60,
+        "value_max": 100,
+        "hidden": 0
+      },
+      {
+        "source_ord": 2,
+        "property_name": "Damage Taken as Void",
+        "tag_names": "Physical",
+        "modifier_type": 0,
+        "value_min": 0.1,
+        "value_max": 0.15,
+        "hidden": 0
+      },
+      {
+        "source_ord": 3,
+        "property_name": "Damage Taken",
+        "tag_names": "Void",
+        "modifier_type": 2,
+        "value_min": -0.15,
+        "value_max": -0.1,
+        "hidden": 0
+      }
+    ],
+    "evidence_total_rows": 3,
+    "name_uniqueness_checks": [
+      {
+        "check": "unique name",
+        "sql": "SELECT COUNT(*) n FROM uniques WHERE name='Ravenous Void'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "uniques",
+      "mods"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Three visible mods (a hidden text mod about a Void Barrier stack exists). The third mod may be phrased \"10-15% less Void damage taken\". Void Barrier / Mimic Feast tooltip mechanics are optional bonus."
+  },
+  {
+    "id": "Q03",
+    "question": "Which item set does the unique \"Isadora's Revenge\" belong to, and what are the set bonuses (pieces required and effect)?",
+    "category": "name_lookup",
+    "expected": {
+      "answer": {
+        "set": "Isadora's",
+        "bonuses": [
+          "2 pieces: +100% Chance to apply Damned on hit with Necrotic Spells",
+          "3 pieces: +30% Mana Efficiency with Necrotic Spells"
+        ]
+      },
+      "tolerance": "multi-field: set exact; bonuses set-equality"
+    },
+    "ground_truth_sql": "SELECT u.name AS item, s.name AS set_name, st.set_requirement, st.text\nFROM uniques u\nJOIN sets s ON s.set_id = u.set_id\nJOIN set_tooltips st ON st.set_id = s.set_id\nWHERE u.name = 'Isadora''s Revenge'\nORDER BY st.set_requirement",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "item": "Isadora's Revenge",
+        "set_name": "Isadora's",
+        "set_requirement": 2,
+        "text": "+100% Chance to apply Damned on hit with Necrotic Spells"
+      },
+      {
+        "item": "Isadora's Revenge",
+        "set_name": "Isadora's",
+        "set_requirement": 3,
+        "text": "+30% Mana Efficiency with Necrotic Spells"
+      }
+    ],
+    "evidence_total_rows": 2,
+    "name_uniqueness_checks": [
+      {
+        "check": "unique name",
+        "sql": "SELECT COUNT(*) n FROM uniques WHERE name='Isadora''s Revenge'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "uniques",
+      "sets",
+      "set_tooltips"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Set is \"Isadora's\" (3 items). 2 pieces: +100% chance to apply Damned on hit with Necrotic Spells; 3 pieces: +30% Mana Efficiency with Necrotic Spells. A hidden third set mod (increased ailment effect 30% at 3 pieces) exists in the mods table but not the tooltip; mentioning it is fine."
+  },
+  {
+    "id": "Q04",
+    "question": "Which affix is called \"Minion Damage\", is it a prefix or suffix, and on which equipment base types can it roll?",
+    "category": "name_lookup",
+    "expected": {
+      "answer": {
+        "type": "prefix",
+        "base_types": [
+          "Amulet",
+          "Belt",
+          "Gloves",
+          "Off-Hand Catalyst",
+          "Quiver",
+          "Relic",
+          "Ring"
+        ]
+      },
+      "tolerance": "multi-field: type exact; base_types set-equality"
+    },
+    "ground_truth_sql": "SELECT a.affix_id, a.name, a.affix_type_name, bt.name AS base_type\nFROM affixes a\nJOIN affix_can_roll_on r ON r.affix_id = a.affix_id\nJOIN item_base_types bt ON bt.base_type_id = r.base_type_id\nWHERE a.name = 'Minion Damage'\nORDER BY bt.name",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Amulet"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Belt"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Gloves"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Off-Hand Catalyst"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Quiver"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Relic"
+      },
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "affix_type_name": "prefix",
+        "base_type": "Ring"
+      }
+    ],
+    "evidence_total_rows": 7,
+    "name_uniqueness_checks": [
+      {
+        "check": "affix name",
+        "sql": "SELECT COUNT(*) n FROM affixes WHERE name='Minion Damage'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "affixes",
+      "affix_can_roll_on",
+      "item_base_types"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Prefix. Base types: Amulet, Belt, Gloves, Off-Hand Catalyst, Quiver, Relic, Ring. Missing 1 item = partial; extra items = wrong."
+  },
+  {
+    "id": "Q05",
+    "question": "For the player skill Fireball (the Mage skill): what is its mana cost, its base fire damage, and its added damage effectiveness?",
+    "category": "abilities",
+    "expected": {
+      "answer": {
+        "mana_cost": 3,
+        "base_fire_damage": 25,
+        "added_damage_effectiveness": 1.25
+      },
+      "tolerance": "multi-field: each numeric within +/-1% (effectiveness 1.25 == 125%)"
+    },
+    "ground_truth_sql": "SELECT a.ability_id, a.name, a.mana_cost,\n  json_extract(c.raw_json,'$.baseDamageStats.damage') AS damage_array,\n  json_extract(c.raw_json,'$.baseDamageStats.addedDamageScaling') AS added_damage_scaling\nFROM abilities a\nJOIN ability_components c ON c.ability_id = a.ability_id AND c.component_type = 'DamageEnemyOnHit'\nWHERE a.ability_id = 'fi9'\nORDER BY c.ord",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ability_id": "fi9",
+        "name": "Fireball",
+        "mana_cost": 3,
+        "damage_array": "[0,25,0,0,0,0,0]",
+        "added_damage_scaling": 1.25
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "player ability name",
+        "sql": "SELECT COUNT(*) n FROM abilities WHERE name='Fireball' AND is_player_ability=1",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "abilities",
+      "ability_components"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Mana 3, base damage 25 fire (damage array [phys,fire,cold,lightning,necrotic,void,poison] = [0,25,0,0,0,0,0]), added damage effectiveness 125% (1.25). Non-player duplicates named Fireball (minion/monster versions) exist; ground truth is the player skill id fi9."
+  },
+  {
+    "id": "Q06",
+    "question": "What is the base damage of the player skill Elemental Nova, per damage type, and its added damage effectiveness?",
+    "category": "abilities",
+    "expected": {
+      "answer": {
+        "fire": 8,
+        "cold": 8,
+        "lightning": 8,
+        "physical": 0,
+        "added_damage_effectiveness": 1.2
+      },
+      "tolerance": "multi-field: each numeric within +/-1%"
+    },
+    "ground_truth_sql": "SELECT a.ability_id, a.name,\n  json_extract(c.raw_json,'$.baseDamageStats.damage') AS damage_array,\n  json_extract(c.raw_json,'$.baseDamageStats.addedDamageScaling') AS added_damage_scaling\nFROM abilities a\nJOIN ability_components c ON c.ability_id = a.ability_id AND c.component_type = 'DamageEnemyOnHit'\nWHERE a.is_player_ability = 1 AND a.name = 'Elemental Nova'\nORDER BY c.ord",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ability_id": "en6",
+        "name": "Elemental Nova",
+        "damage_array": "[0,8,8,8,0,0,0]",
+        "added_damage_scaling": 1.2
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "player ability name",
+        "sql": "SELECT COUNT(*) n FROM abilities WHERE name='Elemental Nova' AND is_player_ability=1",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "abilities",
+      "ability_components"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "8 fire + 8 cold + 8 lightning (array [0,8,8,8,0,0,0]); added damage effectiveness 120% (1.2). Other types 0 or omitted."
+  },
+  {
+    "id": "Q07",
+    "question": "How many charges does the player skill Black Hole have and what is its cooldown (time to regain a charge) in seconds?",
+    "category": "abilities",
+    "expected": {
+      "answer": {
+        "max_charges": 1,
+        "cooldown_seconds": 14
+      },
+      "tolerance": "multi-field: max_charges exact; cooldown numeric +/-1% (14.0 s)"
+    },
+    "ground_truth_sql": "SELECT ability_id, name, max_charges, charges_gained_per_second, ROUND(1.0/charges_gained_per_second, 2) AS recharge_seconds\nFROM abilities WHERE name = 'Black Hole'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ability_id": "bh2",
+        "name": "Black Hole",
+        "max_charges": 1,
+        "charges_gained_per_second": 0.07143,
+        "recharge_seconds": 14
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "ability name",
+        "sql": "SELECT COUNT(*) n FROM abilities WHERE name='Black Hole'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "abilities"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "maxCharges 1, chargesGainedPerSecond 0.07143 => cooldown = 1/0.07143 ~= 14.0 seconds. Rate form (\"0.0714 charges/s\") also acceptable."
+  },
+  {
+    "id": "Q08",
+    "question": "Which ailment does the player skill Venom Strike apply on hit, and with what chance?",
+    "category": "abilities",
+    "expected": {
+      "answer": {
+        "ailment": "Poison",
+        "chance_percent": 100
+      },
+      "tolerance": "multi-field: ailment exact (ci); chance numeric +/-1%"
+    },
+    "ground_truth_sql": "SELECT a.name AS ability, al.name AS ailment, json_extract(j.value,'$.chance') AS chance\nFROM abilities a\nJOIN ability_components c ON c.ability_id = a.ability_id AND c.component_type = 'ChanceToApplyAilmentsOnHit'\nJOIN json_each(c.raw_json, '$.ailments') j\nJOIN ailments al ON al.ailment_id = json_extract(j.value,'$.ailment')\nWHERE a.is_player_ability = 1 AND a.name = 'Venom Strike'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ability": "Venom Strike",
+        "ailment": "Poison",
+        "chance": 1
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "player ability name",
+        "sql": "SELECT COUNT(*) n FROM abilities WHERE name='Venom Strike' AND is_player_ability=1",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "abilities",
+      "ability_components",
+      "ailments"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Poison, 100% chance (stored 1.0). \"Always poisons / guaranteed\" accepted."
+  },
+  {
+    "id": "Q09",
+    "question": "In the Fireball skill tree, which node gives \"+30% Ignite Chance\", and how many points can be put into it at most?",
+    "category": "trees",
+    "expected": {
+      "answer": {
+        "node": "Conflagration",
+        "max_points": 5
+      },
+      "tolerance": "multi-field: node exact (ci); max_points exact"
+    },
+    "ground_truth_sql": "SELECT n.node_id, n.name, n.max_points, m.label, m.display\nFROM trees t\nJOIN tree_nodes n ON n.tree_id = t.tree_id\nJOIN mods m ON m.source_kind = 'skill_node' AND m.source_id = n.tree_id || ':' || n.node_id\nWHERE t.tree_kind = 'skill' AND t.name = 'Fireball' AND m.label = 'Ignite Chance'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "node_id": 13,
+        "name": "Conflagration",
+        "max_points": 5,
+        "label": "Ignite Chance",
+        "display": "+30%"
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "skill tree name",
+        "sql": "SELECT COUNT(*) n FROM trees WHERE tree_kind='skill' AND name='Fireball'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "trees",
+      "tree_nodes",
+      "mods"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Node \"Conflagration\" (node id 13), max 5 points."
+  },
+  {
+    "id": "Q10",
+    "question": "In the Fireball skill tree, what are the prerequisites of the node \"Orb of Destruction\" (which nodes and how many points in each)?",
+    "category": "trees",
+    "expected": {
+      "answer": [
+        "Piercing Heat: 2 points",
+        "Winged Fire: 2 points"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT n.name AS node, rn.name AS required_node, r.required_node_id, r.required_points\nFROM tree_nodes n\nJOIN tree_node_requirements r ON r.tree_id = n.tree_id AND r.node_id = n.node_id\nJOIN tree_nodes rn ON rn.tree_id = r.tree_id AND rn.node_id = r.required_node_id\nWHERE n.tree_id = 'fi9' AND n.name = 'Orb of Destruction'\nORDER BY r.ord",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "node": "Orb of Destruction",
+        "required_node": "Piercing Heat",
+        "required_node_id": 2,
+        "required_points": 2
+      },
+      {
+        "node": "Orb of Destruction",
+        "required_node": "Winged Fire",
+        "required_node_id": 6,
+        "required_points": 2
+      }
+    ],
+    "evidence_total_rows": 2,
+    "name_uniqueness_checks": [
+      {
+        "check": "node name in tree",
+        "sql": "SELECT COUNT(*) n FROM tree_nodes WHERE tree_id='fi9' AND name='Orb of Destruction'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "trees",
+      "tree_nodes",
+      "tree_node_requirements"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "\"Piercing Heat: 2 points\" and \"Winged Fire: 2 points\". Node ids 2 and 6 acceptable in place of names. The data does not state AND/OR semantics; do not penalise either reading."
+  },
+  {
+    "id": "Q11",
+    "question": "How many nodes does the Rogue class passive tree have?",
+    "category": "trees",
+    "expected": {
+      "answer": 103,
+      "tolerance": "exact"
+    },
+    "ground_truth_sql": "SELECT t.tree_id, t.name, t.node_count, (SELECT COUNT(*) FROM tree_nodes n WHERE n.tree_id = t.tree_id) AS counted_nodes,\n  (SELECT COUNT(*) FROM tree_nodes n WHERE n.tree_id = t.tree_id AND n.max_points = 0) AS zero_point_root_nodes\nFROM trees t WHERE t.tree_kind = 'class' AND t.name = 'Rogue'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "tree_id": "rg-1",
+        "name": "Rogue",
+        "node_count": 103,
+        "counted_nodes": 103,
+        "zero_point_root_nodes": 0
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "class tree name",
+        "sql": "SELECT COUNT(*) n FROM trees WHERE tree_kind='class' AND name='Rogue'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "trees",
+      "tree_nodes"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "103 nodes (trees.node_count == COUNT(tree_nodes); no zero-point root node is present in this tree). Any other number is wrong."
+  },
+  {
+    "id": "Q12",
+    "question": "List the Weaver tree nodes whose description mentions \"Boss\".",
+    "category": "trees",
+    "expected": {
+      "answer": [
+        "Bountiful Sarcophagy",
+        "Call of the Firstborn",
+        "Outrider Souls",
+        "Regal Foes",
+        "Twinned Tyrants",
+        "Warden’s Echo"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT n.node_id, n.name, n.max_points\nFROM tree_nodes n JOIN trees t ON t.tree_id = n.tree_id\nWHERE t.tree_kind = 'weaver' AND n.description LIKE '%Boss%'\nORDER BY n.node_id",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "node_id": 54,
+        "name": "Warden’s Echo",
+        "max_points": 2
+      },
+      {
+        "node_id": 60,
+        "name": "Twinned Tyrants",
+        "max_points": 2
+      },
+      {
+        "node_id": 64,
+        "name": "Outrider Souls",
+        "max_points": 2
+      },
+      {
+        "node_id": 105,
+        "name": "Call of the Firstborn",
+        "max_points": 4
+      },
+      {
+        "node_id": 126,
+        "name": "Bountiful Sarcophagy",
+        "max_points": 3
+      },
+      {
+        "node_id": 168,
+        "name": "Regal Foes",
+        "max_points": 2
+      }
+    ],
+    "evidence_total_rows": 6,
+    "name_uniqueness_checks": [],
+    "tables_joined": [
+      "trees",
+      "tree_nodes"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Matching is a case-insensitive substring of the node DESCRIPTION. Node ids acceptable in place of names. Nodes that only mention it in the name would be extras (check evidence)."
+  },
+  {
+    "id": "Q13",
+    "question": "What is the duration of the Ignite ailment and its base damage (type and amount)?",
+    "category": "ailments",
+    "expected": {
+      "answer": {
+        "duration_seconds": 2.5,
+        "base_damage": 40,
+        "damage_type": "Fire"
+      },
+      "tolerance": "multi-field: numerics +/-1%; type exact (ci)"
+    },
+    "ground_truth_sql": "SELECT ailment_id, name, duration, damage_types, dmg_fire, deals_damage FROM ailments WHERE name = 'Ignite'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ailment_id": 1,
+        "name": "Ignite",
+        "duration": 2.5,
+        "damage_types": "Fire",
+        "dmg_fire": 40,
+        "deals_damage": 1
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "ailment name",
+        "sql": "SELECT COUNT(*) n FROM ailments WHERE name='Ignite'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "ailments"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "2.5 seconds, 40 base fire damage."
+  },
+  {
+    "id": "Q14",
+    "question": "Which ailments deal poison damage (have a poison base damage)?",
+    "category": "ailments",
+    "expected": {
+      "answer": [
+        "Acid Skin",
+        "Exposed Flesh",
+        "Pestilence",
+        "Plague",
+        "Poison",
+        "Serpent Venom",
+        "Snake Infection"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT ailment_id, name, duration, dmg_poison FROM ailments WHERE dmg_poison > 0 ORDER BY ailment_id",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ailment_id": 7,
+        "name": "Poison",
+        "duration": 3,
+        "dmg_poison": 28
+      },
+      {
+        "ailment_id": 15,
+        "name": "Serpent Venom",
+        "duration": 3,
+        "dmg_poison": 400
+      },
+      {
+        "ailment_id": 18,
+        "name": "Plague",
+        "duration": 4,
+        "dmg_poison": 150
+      },
+      {
+        "ailment_id": 40,
+        "name": "Pestilence",
+        "duration": 0.5,
+        "dmg_poison": 30
+      },
+      {
+        "ailment_id": 101,
+        "name": "Snake Infection",
+        "duration": 12,
+        "dmg_poison": 300
+      },
+      {
+        "ailment_id": 120,
+        "name": "Acid Skin",
+        "duration": 5,
+        "dmg_poison": 80
+      },
+      {
+        "ailment_id": 137,
+        "name": "Exposed Flesh",
+        "duration": 8,
+        "dmg_poison": 80
+      }
+    ],
+    "evidence_total_rows": 7,
+    "name_uniqueness_checks": [
+      {
+        "check": "no duplicate names among poison ailments",
+        "sql": "SELECT COUNT(*) - COUNT(DISTINCT name) n FROM ailments WHERE dmg_poison > 0",
+        "n": 0
+      }
+    ],
+    "tables_joined": [
+      "ailments"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "Exactly 7: Poison, Serpent Venom, Plague, Pestilence, Snake Infection, Acid Skin, Exposed Flesh. 5-6 of 7 with no extras = partial."
+  },
+  {
+    "id": "Q15",
+    "question": "What is the maximum number of stacks (max instances) of the Shock ailment?",
+    "category": "ailments",
+    "expected": {
+      "answer": 10,
+      "tolerance": "exact"
+    },
+    "ground_truth_sql": "SELECT ailment_id, name, max_instances, duration FROM ailments WHERE name = 'Shock'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ailment_id": 5,
+        "name": "Shock",
+        "max_instances": 10,
+        "duration": 4
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "ailment name",
+        "sql": "SELECT COUNT(*) n FROM ailments WHERE name='Shock'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "ailments"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "10 stacks (maxInstances = 10, duration 4 s). Note max_instances=0 means no stack limit for e.g. Ignite/Frostbite (not asked here)."
+  },
+  {
+    "id": "Q16",
+    "question": "What stat penalties does a stack of the Chill ailment apply to the afflicted enemy (per the ailment buff mods)?",
+    "category": "ailments",
+    "expected": {
+      "answer": [
+        "Attack Speed: -12% (more/less multiplier)",
+        "Cast Speed: -12% (more/less multiplier)",
+        "Movement Speed: -12% (more/less multiplier)"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT al.name, m.source_ord, m.property_name, m.modifier_type, m.value_min, m.value_max, al.max_instances\nFROM ailments al\nJOIN mods m ON m.source_kind = 'ailment_buff' AND m.source_id = CAST(al.ailment_id AS TEXT)\nWHERE al.name = 'Chill' ORDER BY m.source_ord",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "name": "Chill",
+        "source_ord": 0,
+        "property_name": "Attack Speed",
+        "modifier_type": 2,
+        "value_min": -0.12,
+        "value_max": -0.12,
+        "max_instances": 3
+      },
+      {
+        "name": "Chill",
+        "source_ord": 1,
+        "property_name": "Cast Speed",
+        "modifier_type": 2,
+        "value_min": -0.12,
+        "value_max": -0.12,
+        "max_instances": 3
+      },
+      {
+        "name": "Chill",
+        "source_ord": 2,
+        "property_name": "Movement Speed",
+        "modifier_type": 2,
+        "value_min": -0.12,
+        "value_max": -0.12,
+        "max_instances": 3
+      }
+    ],
+    "evidence_total_rows": 3,
+    "name_uniqueness_checks": [
+      {
+        "check": "ailment name",
+        "sql": "SELECT COUNT(*) n FROM ailments WHERE name='Chill'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "ailments",
+      "mods"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "12% less Attack Speed, 12% less Cast Speed, 12% less Movement Speed per stack (max 3 stacks). Additive \"-12%\" phrasing acceptable."
+  },
+  {
+    "id": "Q17",
+    "question": "How many unique items grant \"Ward per Second\", and which ones?",
+    "category": "aggregate_mods",
+    "expected": {
+      "answer": {
+        "count": 10,
+        "names": [
+          "Abandoned Chitin of the Weaver",
+          "Celestial Doom",
+          "Chronostasis",
+          "Keplahan's Pyrolith",
+          "Liath's Machinations",
+          "Mana Guide",
+          "Shroud of Obscurity",
+          "Strands of Souls",
+          "Stygian Coal",
+          "Wall of Nothing"
+        ]
+      },
+      "tolerance": "multi-field: count exact; names set-equality"
+    },
+    "ground_truth_sql": "SELECT DISTINCT u.unique_id, u.name FROM mods m\nJOIN uniques u ON CAST(m.source_id AS INTEGER) = u.unique_id\nWHERE m.source_kind = 'unique_mod' AND m.property_name = 'Ward per Second'\nORDER BY u.name",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "unique_id": 455,
+        "name": "Abandoned Chitin of the Weaver"
+      },
+      {
+        "unique_id": 367,
+        "name": "Celestial Doom"
+      },
+      {
+        "unique_id": 223,
+        "name": "Chronostasis"
+      },
+      {
+        "unique_id": 467,
+        "name": "Keplahan's Pyrolith"
+      },
+      {
+        "unique_id": 276,
+        "name": "Liath's Machinations"
+      },
+      {
+        "unique_id": 368,
+        "name": "Mana Guide"
+      },
+      {
+        "unique_id": 106,
+        "name": "Shroud of Obscurity"
+      },
+      {
+        "unique_id": 112,
+        "name": "Strands of Souls"
+      },
+      {
+        "unique_id": 328,
+        "name": "Stygian Coal"
+      },
+      {
+        "unique_id": 354,
+        "name": "Wall of Nothing"
+      }
+    ],
+    "evidence_total_rows": 10,
+    "name_uniqueness_checks": [
+      {
+        "check": "no duplicate names",
+        "sql": "SELECT COUNT(*) - COUNT(DISTINCT u.name) n FROM uniques u WHERE u.unique_id IN (SELECT CAST(source_id AS INTEGER) FROM mods WHERE source_kind='unique_mod' AND property_name='Ward per Second')",
+        "n": 0
+      }
+    ],
+    "tables_joined": [
+      "mods",
+      "uniques"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Count 10 (stat \"Ward per Second\", SP92). Items with ability-bound \"ward gained each second per X\" lines are separate stats and are NOT in the ground truth; an agent that lists those as extra context but includes all 10 base ones gets partial/full at the grader's discretion (count must be stated as 10 for full credit)."
+  },
+  {
+    "id": "Q18",
+    "question": "Which regular equipment affix is a plain single-stat \"increased Minion Damage\" affix, and what is its tier 7 roll range?",
+    "category": "aggregate_mods",
+    "expected": {
+      "answer": {
+        "affix": "Minion Damage",
+        "t7_min_percent": 96,
+        "t7_max_percent": 120
+      },
+      "tolerance": "multi-field: affix exact (ci); min/max numeric +/-1%"
+    },
+    "ground_truth_sql": "SELECT a.affix_id, a.name, m.tier, m.value_min, m.value_max, m.tag_names, m.modifier_type\nFROM affixes a\nJOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT)\nWHERE a.rolls_on = 0 AND a.special_affix_type = 0 AND a.stat_count = 1\n  AND m.property_name = 'Damage' AND m.tag_names = 'Minion' AND m.modifier_type = 1 AND m.tier = 7",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "affix_id": 26,
+        "name": "Minion Damage",
+        "tier": 7,
+        "value_min": 0.96,
+        "value_max": 1.2,
+        "tag_names": "Minion",
+        "modifier_type": 1
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [],
+    "tables_joined": [
+      "affixes",
+      "mods"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Affix \"Minion Damage\"; T7 = 96% to 120% increased Minion Damage (stored 0.96..1.2). Multi-stat affixes such as \"Minion Melee and Spell Damage\" are out of scope."
+  },
+  {
+    "id": "Q19",
+    "question": "Which blessings grant Ward per Second, and in which timeline do they drop?",
+    "category": "aggregate_mods",
+    "expected": {
+      "answer": {
+        "blessings": [
+          "Grand Resonance of the Sea",
+          "Resonance of the Sea"
+        ],
+        "timeline": "Ending the Storm"
+      },
+      "tolerance": "multi-field: blessings set-equality; timeline exact (ci)"
+    },
+    "ground_truth_sql": "SELECT b.sub_type_id, b.name AS blessing, t.name AS timeline, b.is_grand, m.value_min, m.value_max\nFROM mods m\nJOIN blessings b ON m.source_id = '34:' || b.sub_type_id\nJOIN timelines t ON t.timeline_id = b.timeline_id\nWHERE m.source_kind = 'blessing' AND m.property_name = 'Ward per Second'\nORDER BY b.sub_type_id",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "sub_type_id": 82,
+        "blessing": "Resonance of the Sea",
+        "timeline": "Ending the Storm",
+        "is_grand": 0,
+        "value_min": 17,
+        "value_max": 25
+      },
+      {
+        "sub_type_id": 83,
+        "blessing": "Grand Resonance of the Sea",
+        "timeline": "Ending the Storm",
+        "is_grand": 1,
+        "value_min": 30,
+        "value_max": 42
+      }
+    ],
+    "evidence_total_rows": 2,
+    "name_uniqueness_checks": [],
+    "tables_joined": [
+      "mods",
+      "blessings",
+      "timelines"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Resonance of the Sea (17-25 ward/s) and Grand Resonance of the Sea (30-42), both in \"Ending the Storm\". Only the base one = partial."
+  },
+  {
+    "id": "Q20",
+    "question": "Which unique items grant a \"more\" (multiplicative) damage modifier tagged Spell?",
+    "category": "aggregate_mods",
+    "expected": {
+      "answer": [
+        "Mad Alchemist's Ladle",
+        "Soulfire",
+        "Swaddling of the Erased"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT DISTINCT u.unique_id, u.name, m.property_name, m.value_min, m.value_max\nFROM mods m JOIN uniques u ON CAST(m.source_id AS INTEGER) = u.unique_id\nWHERE m.source_kind = 'unique_mod' AND m.modifier_type = 2 AND m.tag_names = 'Spell' AND m.property_name LIKE '%Damage%'\nORDER BY u.name",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "unique_id": 321,
+        "name": "Mad Alchemist's Ladle",
+        "property_name": "Global Conditional Damage",
+        "value_min": 0.06,
+        "value_max": 0
+      },
+      {
+        "unique_id": 70,
+        "name": "Soulfire",
+        "property_name": "Global Conditional Damage",
+        "value_min": 0.06,
+        "value_max": 0.1
+      },
+      {
+        "unique_id": 293,
+        "name": "Swaddling of the Erased",
+        "property_name": "Global Conditional Damage",
+        "value_min": 0.12,
+        "value_max": 0.17
+      }
+    ],
+    "evidence_total_rows": 3,
+    "name_uniqueness_checks": [
+      {
+        "check": "no duplicate names",
+        "sql": "SELECT COUNT(*) - COUNT(DISTINCT u.name) n FROM uniques u WHERE u.unique_id IN (SELECT CAST(source_id AS INTEGER) FROM mods WHERE source_kind='unique_mod' AND modifier_type=2 AND tag_names='Spell' AND property_name LIKE '%Damage%')",
+        "n": 0
+      }
+    ],
+    "tables_joined": [
+      "mods",
+      "uniques"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Swaddling of the Erased (12-17% more spell damage), Mad Alchemist's Ladle (6%), Soulfire (6-10%). Bluefeather Band has a 'more' Spell mod but it is Mana Cost (less mana cost), so it must NOT be included."
+  },
+  {
+    "id": "Q21",
+    "question": "Which passive nodes in the Sentinel class tree have a stat line about Endurance Threshold?",
+    "category": "aggregate_mods",
+    "expected": {
+      "answer": [
+        "Defiance",
+        "Penance",
+        "Prayer Aegis",
+        "Void Aegis"
+      ],
+      "tolerance": "set-equality"
+    },
+    "ground_truth_sql": "SELECT DISTINCT n.node_id, n.name, n.max_points, n.mastery\nFROM trees t\nJOIN tree_nodes n ON n.tree_id = t.tree_id\nJOIN mods m ON m.source_kind = 'passive_node' AND m.source_id = n.tree_id || ':' || n.node_id\nWHERE t.tree_kind = 'class' AND t.name = 'Sentinel'\n  AND (m.label LIKE '%Endurance Threshold%' OR m.property_name LIKE '%Endurance Threshold%')\nORDER BY n.node_id",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "node_id": 24,
+        "name": "Void Aegis",
+        "max_points": 5,
+        "mastery": 1
+      },
+      {
+        "node_id": 71,
+        "name": "Defiance",
+        "max_points": 8,
+        "mastery": 3
+      },
+      {
+        "node_id": 81,
+        "name": "Penance",
+        "max_points": 8,
+        "mastery": 3
+      },
+      {
+        "node_id": 91,
+        "name": "Prayer Aegis",
+        "max_points": 8,
+        "mastery": 3
+      }
+    ],
+    "evidence_total_rows": 4,
+    "name_uniqueness_checks": [
+      {
+        "check": "class tree name",
+        "sql": "SELECT COUNT(*) n FROM trees WHERE tree_kind='class' AND name='Sentinel'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "mods",
+      "tree_nodes",
+      "trees"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Void Aegis, Defiance, Penance, Prayer Aegis. Penance only has a conditional \"Bleed Duration per 20 Endurance Threshold\" line; omitting only Penance = PARTIAL (3/4); adding extras = wrong."
+  },
+  {
+    "id": "Q22",
+    "question": "For the timeline \"Ending the Storm\": what are the area level and the corruption range of its normal difficulty, and of its empowered difficulty?",
+    "category": "world",
+    "expected": {
+      "answer": {
+        "normal": {
+          "level": 78,
+          "corruption_min": 0,
+          "corruption_max": 50
+        },
+        "empowered": {
+          "level": 100,
+          "corruption_min": 100,
+          "corruption_max": null
+        }
+      },
+      "tolerance": "multi-field: numerics exact"
+    },
+    "ground_truth_sql": "SELECT t.name, d.difficulty_index, d.level, d.minimum_corruption, d.maximum_corruption\nFROM timelines t JOIN timeline_difficulties d ON d.timeline_id = t.timeline_id\nWHERE t.name = 'Ending the Storm' ORDER BY d.difficulty_index",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "name": "Ending the Storm",
+        "difficulty_index": 0,
+        "level": 78,
+        "minimum_corruption": 0,
+        "maximum_corruption": 50
+      },
+      {
+        "name": "Ending the Storm",
+        "difficulty_index": 1,
+        "level": 100,
+        "minimum_corruption": 100,
+        "maximum_corruption": null
+      }
+    ],
+    "evidence_total_rows": 2,
+    "name_uniqueness_checks": [
+      {
+        "check": "timeline name",
+        "sql": "SELECT COUNT(*) n FROM timelines WHERE name='Ending the Storm'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "timelines",
+      "timeline_difficulties"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Normal: level 78, corruption 0 to 50. Empowered: level 100, corruption from 100 with no maximum (null). \"100+\" accepted."
+  },
+  {
+    "id": "Q23",
+    "question": "What does the monster modifier titled \"Patient\" do (its description) and what minimum level does it need?",
+    "category": "world",
+    "expected": {
+      "answer": {
+        "description": "Deadly if Not Damaged Recently",
+        "minimum_level": 14
+      },
+      "tolerance": "multi-field: description contains (ci, same meaning); level exact"
+    },
+    "ground_truth_sql": "SELECT mod_id, title, description, minimum_level FROM monster_mods WHERE title = 'Patient'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "mod_id": 84,
+        "title": "Patient",
+        "description": "Deadly if Not Damaged Recently",
+        "minimum_level": 14
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "monster mod title",
+        "sql": "SELECT COUNT(*) n FROM monster_mods WHERE title='Patient'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "monster_mods"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "\"Deadly if Not Damaged Recently\", minimum level 14."
+  },
+  {
+    "id": "Q24",
+    "question": "What are the Mage class base mana and the base health gained per character level?",
+    "category": "world",
+    "expected": {
+      "answer": {
+        "base_mana": 50,
+        "health_per_level": 10
+      },
+      "tolerance": "multi-field: numerics +/-1%"
+    },
+    "ground_truth_sql": "SELECT class_id, name, base_mana, base_health, health_per_level, mana_per_level FROM classes WHERE name = 'Mage'",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "class_id": 1,
+        "name": "Mage",
+        "base_mana": 50,
+        "base_health": 100,
+        "health_per_level": 10,
+        "mana_per_level": 0.50506
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "class name",
+        "sql": "SELECT COUNT(*) n FROM classes WHERE name='Mage'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "classes"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "Base mana 50; health per level 10 (base health 100). Identical for all 5 classes. Mana per level 0.50506 (bonus)."
+  },
+  {
+    "id": "Q25",
+    "question": "Which unique items are Body Armor and have at least one stat mod whose maximum roll value is 100 or more?",
+    "category": "cross_cutting",
+    "expected": {
+      "answer": [
+        "Aaron's Will",
+        "Apiarist's Suit",
+        "Architects of Astral Blood",
+        "Caretaker's Regrowth",
+        "Doppelganger's Deception",
+        "Doublet of Onos Tull",
+        "Shroud of Obscurity",
+        "Sunforged Cuirass",
+        "Thicket of Blinding Light",
+        "Titan Heart",
+        "Unstable Core",
+        "Vestige of Imprisonment",
+        "Wall of Nothing",
+        "Wings of Discord",
+        "Yrun's Wisdom"
+      ],
+      "tolerance": "set-equality (13+ of 15 and no extras = partial; raw stored value_max, not displayed percent)"
+    },
+    "ground_truth_sql": "SELECT u.unique_id, u.name, MAX(m.value_max) AS max_roll\nFROM uniques u\nJOIN item_base_types bt ON bt.base_type_id = u.base_type_id AND bt.name = 'Body Armor'\nJOIN mods m ON m.source_kind = 'unique_mod' AND m.source_id = CAST(u.unique_id AS TEXT)\nGROUP BY u.unique_id, u.name\nHAVING MAX(m.value_max) >= 100\nORDER BY u.name",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "unique_id": 272,
+        "name": "Aaron's Will",
+        "max_roll": 240
+      },
+      {
+        "unique_id": 78,
+        "name": "Apiarist's Suit",
+        "max_roll": 400
+      },
+      {
+        "unique_id": 448,
+        "name": "Architects of Astral Blood",
+        "max_roll": 168
+      },
+      {
+        "unique_id": 482,
+        "name": "Caretaker's Regrowth",
+        "max_roll": 600
+      },
+      {
+        "unique_id": 452,
+        "name": "Doppelganger's Deception",
+        "max_roll": 210
+      },
+      {
+        "unique_id": 8,
+        "name": "Doublet of Onos Tull",
+        "max_roll": 100
+      },
+      {
+        "unique_id": 106,
+        "name": "Shroud of Obscurity",
+        "max_roll": 130
+      },
+      {
+        "unique_id": 86,
+        "name": "Sunforged Cuirass",
+        "max_roll": 850
+      },
+      {
+        "unique_id": 426,
+        "name": "Thicket of Blinding Light",
+        "max_roll": 209
+      },
+      {
+        "unique_id": 13,
+        "name": "Titan Heart",
+        "max_roll": 100
+      },
+      {
+        "unique_id": 275,
+        "name": "Unstable Core",
+        "max_roll": 120
+      },
+      {
+        "unique_id": 487,
+        "name": "Vestige of Imprisonment",
+        "max_roll": 140
+      },
+      {
+        "unique_id": 354,
+        "name": "Wall of Nothing",
+        "max_roll": 185
+      },
+      {
+        "unique_id": 436,
+        "name": "Wings of Discord",
+        "max_roll": 512
+      },
+      {
+        "unique_id": 12,
+        "name": "Yrun's Wisdom",
+        "max_roll": 145
+      }
+    ],
+    "evidence_total_rows": 15,
+    "name_uniqueness_checks": [
+      {
+        "check": "no duplicate names among body armour uniques",
+        "sql": "SELECT COUNT(*) - COUNT(DISTINCT name) n FROM uniques WHERE base_type_id = 1",
+        "n": 0
+      }
+    ],
+    "tables_joined": [
+      "uniques",
+      "item_base_types",
+      "mods"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "Raw stored value_max >= 100 (percent mods stored as 0.x never qualify; flat mods such as +100 health or 250 armor do). 15 items. Edge items with max exactly 100 (Doublet of Onos Tull, Titan Heart) are included in ground truth."
+  },
+  {
+    "id": "Q26",
+    "question": "What is the highest-tier (best) stored roll range of the \"Melee Physical Damage\" affix, which can roll on two-handed axes? State the tier number and min-max.",
+    "category": "cross_cutting",
+    "expected": {
+      "answer": {
+        "tier": 8,
+        "min": 85,
+        "max": 100
+      },
+      "tolerance": "multi-field: tier exact; min/max numeric +/-1%"
+    },
+    "ground_truth_sql": "SELECT a.name, t.tier, m.value_min, m.value_max, m.tag_names\nFROM affixes a\nJOIN affix_tiers t ON t.affix_id = a.affix_id\nJOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.tier = t.tier\nWHERE a.name = 'Melee Physical Damage'\n  AND EXISTS (SELECT 1 FROM affix_can_roll_on r JOIN item_base_types b ON b.base_type_id = r.base_type_id\n              WHERE r.affix_id = a.affix_id AND b.name = 'Two-Handed Axe')\nORDER BY t.tier DESC LIMIT 1",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "name": "Melee Physical Damage",
+        "tier": 8,
+        "value_min": 85,
+        "value_max": 100,
+        "tag_names": "Physical,Melee"
+      }
+    ],
+    "evidence_total_rows": 1,
+    "name_uniqueness_checks": [
+      {
+        "check": "affix name",
+        "sql": "SELECT COUNT(*) n FROM affixes WHERE name='Melee Physical Damage'",
+        "n": 1
+      }
+    ],
+    "tables_joined": [
+      "affixes",
+      "affix_tiers",
+      "mods",
+      "affix_can_roll_on",
+      "item_base_types"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "T8: 85-100 added melee physical damage (stored tier range; per-base-type affix effectiveness is ignored). Accept \"T8 85-100\"."
+  },
+  {
+    "id": "Q27",
+    "question": "Which player skills that have a skill tree belong to the Rogue class (default, known, unlockable or mastery skills)?",
+    "category": "cross_cutting",
+    "expected": {
+      "answer": [
+        "Acid Flask",
+        "Aerial Assault",
+        "Ballista",
+        "Bladestorm",
+        "Cinder Strike",
+        "Dark Quiver",
+        "Decoy",
+        "Dive Bomb",
+        "Dreamslash",
+        "Explosive Trap",
+        "Flurry",
+        "Hail of Arrows",
+        "Heartseeker",
+        "Lethal Mirage",
+        "Multishot",
+        "Net",
+        "Puncture",
+        "Shadow Cascade",
+        "Shadow Rend",
+        "Shift",
+        "Shurikens",
+        "Smoke Bomb",
+        "Synchronized Strike",
+        "Umbral Blades"
+      ],
+      "tolerance": "set-equality (24 items; Jaccard >= 0.9 pass, >= 0.6 partial)"
+    },
+    "ground_truth_sql": "SELECT DISTINCT a.ability_id, a.name\nFROM class_abilities ca\nJOIN classes c ON c.class_id = ca.class_id\nJOIN abilities a ON a.ability_id = ca.ability_id\nWHERE c.name = 'Rogue' AND a.has_skill_tree = 1 AND a.is_player_ability = 1\nORDER BY a.name",
+    "ground_truth_source": null,
+    "evidence": [
+      {
+        "ability_id": "aacfl",
+        "name": "Acid Flask"
+      },
+      {
+        "ability_id": "aa989",
+        "name": "Aerial Assault"
+      },
+      {
+        "ability_id": "ba1574",
+        "name": "Ballista"
+      },
+      {
+        "ability_id": "bl5st",
+        "name": "Bladestorm"
+      },
+      {
+        "ability_id": "cstri",
+        "name": "Cinder Strike"
+      },
+      {
+        "ability_id": "dqv5",
+        "name": "Dark Quiver"
+      },
+      {
+        "ability_id": "deeco",
+        "name": "Decoy"
+      },
+      {
+        "ability_id": "db992",
+        "name": "Dive Bomb"
+      },
+      {
+        "ability_id": "dr4sl",
+        "name": "Dreamslash"
+      },
+      {
+        "ability_id": "ex4tp",
+        "name": "Explosive Trap"
+      },
+      {
+        "ability_id": "flur3",
+        "name": "Flurry"
+      },
+      {
+        "ability_id": "exvol8",
+        "name": "Hail of Arrows"
+      },
+      {
+        "ability_id": "htsk5",
+        "name": "Heartseeker"
+      },
+      {
+        "ability_id": "mira59",
+        "name": "Lethal Mirage"
+      },
+      {
+        "ability_id": "mush9",
+        "name": "Multishot"
+      },
+      {
+        "ability_id": "ne01t",
+        "name": "Net"
+      },
+      {
+        "ability_id": "pun22",
+        "name": "Puncture"
+      },
+      {
+        "ability_id": "dagg3",
+        "name": "Shadow Cascade"
+      },
+      {
+        "ability_id": "sh4re",
+        "name": "Shadow Rend"
+      },
+      {
+        "ability_id": "shiif",
+        "name": "Shift"
+      },
+      {
+        "ability_id": "srk21",
+        "name": "Shurikens"
+      },
+      {
+        "ability_id": "smbmb",
+        "name": "Smoke Bomb"
+      },
+      {
+        "ability_id": "sync5",
+        "name": "Synchronized Strike"
+      },
+      {
+        "ability_id": "ub5d9",
+        "name": "Umbral Blades"
+      }
+    ],
+    "evidence_total_rows": 24,
+    "name_uniqueness_checks": [
+      {
+        "check": "class name",
+        "sql": "SELECT COUNT(*) n FROM classes WHERE name='Rogue'",
+        "n": 1
+      },
+      {
+        "check": "no duplicate skill names in result",
+        "sql": "SELECT COUNT(*) - COUNT(DISTINCT a.name) n FROM (SELECT DISTINCT a.ability_id, a.name FROM class_abilities ca JOIN abilities a ON a.ability_id=ca.ability_id WHERE ca.class_id=4 AND a.has_skill_tree=1 AND a.is_player_ability=1) a",
+        "n": 0
+      }
+    ],
+    "tables_joined": [
+      "class_abilities",
+      "abilities",
+      "classes"
+    ],
+    "requires_join": true,
+    "hints_for_grader": "24 skills (see expected.answer). Includes mastery skills of all three Rogue masteries and the default/known skill Flurry. Only 7 are \"unlockable\" kind; do not require agent to separate by kind."
+  },
+  {
+    "id": "Q28",
+    "question": "According to the project knowledge base, what is the ward decay formula and its constants (quadratic and linear coefficients, and how ward retention enters)?",
+    "category": "knowledge",
+    "expected": {
+      "answer": {
+        "page": "knowledge/mechanics/ward-health-sustain.md (section 3.1 Decay)",
+        "formula": "decay per second = (5e-5 * d^2 + 0.2 * d) / (1 + 0.5 * R), d = max(0, ward - ward decay threshold), R = ward retention as a fraction",
+        "quadratic": 0.00005,
+        "linear": 0.2,
+        "retention_divisor": "1 + 0.5*R"
+      },
+      "tolerance": "multi-field: quadratic 5e-5, linear 0.2, divisor (1 + 0.5*R) all required"
+    },
+    "ground_truth_sql": null,
+    "ground_truth_source": {
+      "file": "knowledge/mechanics/ward-health-sustain.md",
+      "quotes": [
+        "decay(W)   = (quadraticWardDecay·d² + linearWardDecay·d) / (1 + 0.5 × R)",
+        "quadraticWardDecay = 5e−5 ; linearWardDecay = 0.2"
+      ]
+    },
+    "evidence": [],
+    "evidence_total_rows": 0,
+    "name_uniqueness_checks": [],
+    "tables_joined": [],
+    "requires_join": false,
+    "hints_for_grader": "Must give 0.00005 (5e-5) quadratic, 0.2 linear, divided by (1 + 0.5 x retention). The superseded pre-1.1 formula 0.4*W/(1+0.5R) is WRONG as an answer. Page citation preferred."
+  },
+  {
+    "id": "Q29",
+    "question": "According to the project knowledge base, how much base health does a character gain per level, and which source wins when the in-game guide text conflicts with the asset data?",
+    "category": "knowledge",
+    "expected": {
+      "answer": {
+        "page": "knowledge/reference/classes-and-masteries.md",
+        "health_per_level": 10,
+        "winner": "asset data (A) beats guide text (which says +8 in one paragraph)"
+      },
+      "tolerance": "multi-field: health_per_level numeric exact (10); source preference contains \"asset\""
+    },
+    "ground_truth_sql": "SELECT name, base_health, health_per_level FROM classes ORDER BY class_id",
+    "ground_truth_source": {
+      "file": "knowledge/reference/classes-and-masteries.md",
+      "quotes": [
+        "asset data says +10 health and +0.14 regen per level (A). Use A.",
+        "`Health = RoundHalfEven((baseHealth + L*healthPerLevel + Σadded)"
+      ]
+    },
+    "evidence": [
+      {
+        "name": "Primalist",
+        "base_health": 100,
+        "health_per_level": 10
+      },
+      {
+        "name": "Mage",
+        "base_health": 100,
+        "health_per_level": 10
+      },
+      {
+        "name": "Sentinel",
+        "base_health": 100,
+        "health_per_level": 10
+      },
+      {
+        "name": "Acolyte",
+        "base_health": 100,
+        "health_per_level": 10
+      },
+      {
+        "name": "Rogue",
+        "base_health": 100,
+        "health_per_level": 10
+      }
+    ],
+    "evidence_total_rows": 5,
+    "name_uniqueness_checks": [],
+    "tables_joined": [
+      "classes"
+    ],
+    "requires_join": false,
+    "hints_for_grader": "Health per level = 10 (asset/classes.json; same value in the classes DB table, see evidence). Guide paragraphs say +8 in one place and +10 in another; asset data is preferred. Answer 8 is wrong. Page citation preferred."
+  },
+  {
+    "id": "Q30",
+    "question": "According to the project knowledge base, how does enemy resistance penetration against the player scale with area level, and what is the cap?",
+    "category": "knowledge",
+    "expected": {
+      "answer": {
+        "page": "knowledge/mechanics/defenses.md (Summary rule 1, table row \"Enemy penetration vs players\")",
+        "per_area_level_percent": 1,
+        "cap_percent": 75,
+        "cap_reached_at_area_level": 75,
+        "note": "applied after the 75% resistance cap, so capped 75% resistance mitigates 0% at area level >= 75"
+      },
+      "tolerance": "multi-field: 1% per area level, 75% cap, cap reached at area level 75"
+    },
+    "ground_truth_sql": null,
+    "ground_truth_source": {
+      "file": "knowledge/mechanics/defenses.md",
+      "quotes": [
+        "Enemies have 1% penetration per area level, capped at 75% from area level 75",
+        "Enemy penetration vs players | +1% per area level, max 75% at area level ≥ 75"
+      ]
+    },
+    "evidence": [],
+    "evidence_total_rows": 0,
+    "name_uniqueness_checks": [],
+    "tables_joined": [],
+    "requires_join": false,
+    "hints_for_grader": "Must state 1% per area level up to a 75% cap (area level 75+). Extra remark that over-capped resistance does not help against it is correct. Page citation preferred."
+  }
+]

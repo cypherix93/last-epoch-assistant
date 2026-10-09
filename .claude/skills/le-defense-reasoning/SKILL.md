@@ -15,16 +15,19 @@ Core principle: compute **per incoming damage type**, at the **area level the bu
 
 ### Step 0: context
 
-Fix: character level, area level `a` (empowered monolith 100; normal timelines 62-90, +1 per 5 or 10 corruption, max 100), corruption `c`, attacker (normal, rare, boss, DoT), main incoming damage types. Without them, report at area 100 and say so.
+Fix: character level, area level `a` (empowered monolith 100; normal timelines 62-90, +1 per 5 or 10 corruption, max 100), corruption `c`, attacker (normal, rare, boss, DoT), main incoming damage types. Without them, report at area 100 and say so. If the class is unknown, skip the passive-tree queries and say that class passives are not counted.
+
+Stated numbers: a **dodge chance** the user gives as a percent ("30% dodge") is used directly as the dodge probability; only a dodge **rating** goes through the dodge formula in Step 3. The same holds for block chance and glancing blow chance. Character-sheet resistances and armour are totals.
 
 ### Step 1: collect defensive stats
 
-Tool shorthand (MCP names; otherwise `yarn mcp:call <tool> '<json>'` in Bash, with JSON containing `<`, `>`, `%`, `&` or `|` sent on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
+Tool shorthand (MCP names; otherwise `yarn mcp:call <tool> [args]`, with SQL and anything containing quotes, `<`, `>`, `%`, `&` or `|` passed as `@file` / `--query-file` or on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
 
 ```
 find_mods({"filters":{"property":10,"source_kinds":["affix_tier"]},"limit":50})                # Armor affix tiers (property_name is the display name "Armor")
 find_mods({"filters":{"property":30,"min_value":0.1},"limit":50})          # AllResistances sources
 passive_tree({"class_id":2})                                               # Sentinel passive nodes and stats
+passive_tree({"class_id":2,"filter":"endurance","compact":true})           # only the nodes mentioning endurance
 get({"kind":"class","id":2})                                               # base endurance, regen, stun avoidance
 knowledge({"page":"mechanics/defenses"})
 ```
@@ -67,21 +70,52 @@ WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107, 10, 11, 29, 5
 ORDER BY m.property, m.source_kind;
 ```
 
-What defensive affixes can roll on a slot (planning and "what am I missing"):
+What defensive affixes can roll on a slot (planning and "what am I missing"), one row per affix and stat line with its T5 (best craftable) and T7 (best non-Primordial drop) ranges:
 
 ```sql
-SELECT m.property, coalesce(m.property_name, sp.name) AS stat, count(DISTINCT a.affix_id) AS affixes,
-       min(m.value_min) AS t1_low, max(m.value_max) AS t8_high
-FROM affixes a
-JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
-JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.name = 'Body Armor'
-JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT)
-LEFT JOIN stat_properties sp ON sp.property = m.property
-WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107, 10, 11, 29, 53, 62, 75, 7, 17, 16)
-GROUP BY m.property ORDER BY m.property;
+WITH lines AS (
+  SELECT a.affix_id, a.name, a.affix_type_name, m.property, coalesce(m.property_name, sp.name) AS stat,
+         m.tier, m.value_min, m.value_max
+  FROM affixes a
+  JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+  JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.name = 'Body Armor'
+  JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT)
+  LEFT JOIN stat_properties sp ON sp.property = m.property
+  WHERE m.property IN (13, 14, 15, 26, 27, 28, 64, 30, 52, 106, 107, 10, 11, 29, 53, 62, 75, 7, 17, 16)
+    AND m.tags = 0
+)
+SELECT affix_id, name, affix_type_name, property, stat,
+       max(CASE WHEN tier = 5 THEN value_min END) AS t5_min, max(CASE WHEN tier = 5 THEN value_max END) AS t5_max,
+       max(CASE WHEN tier = 7 THEN value_min END) AS t7_min, max(CASE WHEN tier = 7 THEN value_max END) AS t7_max,
+       max(tier) AS top_tier
+FROM lines
+GROUP BY affix_id, property
+ORDER BY property, t5_max DESC;
 ```
 
-(T8 is the highest tier and the Primordial tier; T5 is the best craftable. Check the exact base type name with `SELECT base_type_id, name FROM item_base_types`; body armour is `Body Armor`, id 1, and the slot name here is an example.)
+(T8 is the highest tier and the Primordial tier; T5 is the best craftable. T8 magnitudes are much larger than T7 (affix 13 Fire Resistance: T7 61-75%, T8 120-150%), so plan with T5/T7 and quote T8 separately. An affix name names only its first line: a multi-line affix such as 644 "Level of Warcry" also carries an Endurance Threshold line, and it is a real source of that stat; cite affix id and line. Check the exact base type name with `SELECT base_type_id, name FROM item_base_types`; body armour is `Body Armor`, id 1, and the slot name here is an example.)
+
+Where else a fix can come from. Blessings by property (one blessing per timeline; `timeline_id` 1-10 from `SELECT timeline_id, name FROM timelines`):
+
+```sql
+SELECT timeline_name, name, is_grand, property_name, tag_names, modifier_name, value_min, value_max
+FROM v_blessings
+WHERE property IN (13, 30, 52, 75, 7)
+ORDER BY property, timeline_id, is_grand, name;
+```
+
+Idol affixes by idol size (base types 25-33: Small, Minor, Humble, Stout, Grand, Large, Ornate, Huge, Adorned Idol):
+
+```sql
+SELECT a.affix_id, a.name, a.class_names, bt.name AS idol, m.property_name, max(m.value_max) AS best
+FROM affixes a
+JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.base_type_id BETWEEN 25 AND 33
+JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT)
+WHERE a.rolls_on = 1 AND m.property IN (13, 30, 52, 75, 7)
+GROUP BY a.affix_id, bt.base_type_id, m.property
+ORDER BY m.property, bt.base_type_id, best DESC;
+```
 
 Passive-tree and skill-tree defensive nodes are display-only text; read `stats_text`:
 
@@ -125,7 +159,7 @@ Flag: any type below 75 (or below 75 after expected shred) is a gap; below 0 mea
 
 ### Step 3: armour, dodge, block (hits only)
 
-With `L = a + 5` (area level):
+Plug **`L = area level + 5`** into these formulas: L = 105 for an area-100 empowered monolith (the "At area 100" table below is computed with L = 105; using L = 100 overstates armour slightly, 64.5% instead of 63.7% at 5000).
 
 ```
 armourDR  = min(0.85, 0.30*1.2x/(80+0.05L^2+1.2x) + 0.55*0.0015x^2/(180L+0.0015x^2))   physical
@@ -140,7 +174,7 @@ blockDR   = min(0.85, 0.25*3x/(40+0.03L^2+3x) + 0.60*(1.2x+0.0006x^2)/(60L+1.2x+
 | dodge (rating) | 29.1% | 64.3% | - | - |
 | block DR (effectiveness) | 35.6% | 59.3% | - | - |
 
-Full tables: [defenses.md#armour] **D**, [defenses.md#4-dodge], [defenses.md#5-block]. The guide's "10 x area level = 50% dodge" is wrong. Tables use *area* level, not character level.
+Full tables: [defenses.md#armour] **D**, [defenses.md#4-dodge], [defenses.md#5-block]. The guide's "10 x area level = 50% dodge" is wrong. Tables use *area* level (+5), not character level.
 
 ### Step 4: layer order of one hit (do not reorder)
 
@@ -151,7 +185,9 @@ Full tables: [defenses.md#armour] **D**, [defenses.md#4-dodge], [defenses.md#5-b
 
 Order only matters at caps and at the endurance threshold; all other layers multiply. Players also have a hidden 15% less DoT taken. [defenses.md#1-order-of-layers-for-one-incoming-hit] **D**, [defenses.md#8-damage-taken-modifiers-and-their-order] **D**
 
-Average avoidance factor: `(1-dodge)(1-parry)(1-0.35 glance)(1-block x blockDR)(1 + cc_eff (cm_eff - 1))`.
+Average avoidance factor: `(1-dodge)(1-parry)(1-0.35 glance)(1-block x blockDR)(1 + cc_eff (cm_eff - 1))`, where `glance`, `parry` and `block` are the build's chances (0 unless it has SP 62, 121 or 29; there is no default glancing or parry) and the 0.35 is the damage a glancing blow removes.
+
+DoT in this order: per type `resMult x DamageTaken (SP 6) x 0.85` (the players' hidden 15% less DoT taken is one more multiplier) x `(1 + SP 108)`; no armour (unless SP 118), no avoidance; then the pool step, where endurance applies to the part below the threshold as for hits.
 
 ### Step 5: pool and recovery
 
@@ -163,6 +199,8 @@ ward decay/s = (5e-5 d^2 + 0.2 d) / (1 + 0.5 R), d = max(0, W - T_ward), R = ret
 steady ward  = T_ward + (-0.2 + sqrt(0.04 + 2e-4 G (1 + 0.5R))) / 1e-4        G = ward gained per second
 leech/s = landed damage per second x leech fraction (HealthLeech stat 0.3 = 3%) ; regen = (6 + 0.14 L + added)(1+inc)
 ```
+
+How the endurance threshold works: it is a line on the **health bar**, not a hit-size test. Damage that takes health from above T down to T is taken in full; whatever lands while health is at or below T is reduced by `(1 - e)`, even when one hit started above T ([defenses.md#7-endurance] **G/D**). So a single hit larger than T is partly unreduced and partly reduced. Case (inputs **U**): H 2500, T 500, e 0.40, 687 per landed hit: hits 1-2 take health to 1126 (no endurance); hit 3 takes 626 at full rate to reach 500, the remaining 61 x 0.6 = 36.6 -> 463.4; hit 4: 687 x 0.6 = 412.2 -> 51.2; hit 5 kills. `pool_post / post = 2833 / 687 = 4.12` gives the same answer (dies on the 5th hit), so the pool formula is the right shortcut for a series of hits.
 
 Ward has no maximum and always decays: a ward build must show **ward per second** (SP 92 WardRegen, on-hit WardGain SP 39 with `special_tag` event, mana-spent-as-ward SP 99) and retention. Sustain red flag: ward or leech sources listed but generation per second << pool/10. [ward-health-sustain.md#31-decay], [ward-health-sustain.md#32-steady-state], [ward-health-sustain.md#4-leech] **G/D**
 
@@ -192,13 +230,17 @@ post     = 776 x 1.25 x 0.363 x 0.90 = 316.8 per landed hit
 pool     = (2500 - 500) + 500/(1 - 0.40) = 2833 ; hits to die = 8.9 (dies on the 9th, no recovery)
 maxRawHit = 2833 / (1.25 x 0.363 x 0.90) = 6941 ; dodge(1000) = 29.1% -> avg EHP = 9788 raw
 boss spell proxy (605 fire, res 75% -> resMult 1.00, non-phys armour 44.6%): 605 x 1.00 x 0.554 x 0.90 = 301.6 -> 9.4 hits
+DoT, normal monster, corruption 300, fire res 75%:
+  raw  = 151.03 x 1.2264 x (1 + 0.005 x 280.5) = 445.0 fire/s     (DoT gets half the corruption rate; level factor D?)
+  post = 445.0 x 1.00 (resMult) x 0.90 (DT) x 0.85 (hidden DoT reduction) = 340.4/s ; no armour, no dodge
+  time to empty the pool = 2833 / 340.4 = 8.3 s with no recovery (endurance is already inside pool_post)
 ```
 
 Sources: [defenses.md#worked-example], proxy arithmetic from [enemies-and-corruption.md#monster-damage-reference-monster_damagejson]. Provide both a with-recovery and a no-recovery figure only if sustain numbers were derived.
 
 ### Step 7: threats the pool does not cover
 
-Stun (`stun avoidance 250 + 5 x level` on players; stuns also come from Shock stacks: +8% chance per stack vs players), freeze, ailments on you (Chill/Slow 50% effect, Shock/shred/Poison 60% less), crit multiplier x2 for monster hits, damage over time under 10 seconds of ward decay, delayed damage. [ailments.md#7-ailments-on-the-player], [defenses.md#6-glancing-blow-parry-crit-avoidance]. Monolith monster mods that add resistances, penetration, crit, glancing:
+Stun (`stun avoidance 250 + 5 x level` on players; stuns also come from Shock stacks: +8% chance per stack vs players), freeze, ailments on you (Chill/Slow 50% effect, Shock/shred/Poison 60% less), crit multiplier x2 for monster hits, damage over time under 10 seconds of ward decay, delayed damage. [ailments.md#7-ailments-on-the-player], [defenses.md#6-glancing-blow-parry-crit-avoidance]. Monolith monster mods that add resistances, crit, glancing, endurance and damage taken (the database has no monster mod with Penetration, SP 59; the query keeps 59 in the list to show that):
 
 ```sql
 SELECT source_id, source_name, property_name, tag_names, modifier_name, value_min, value_max
@@ -225,11 +267,14 @@ ORDER BY property, source_id LIMIT 60;
 ```
 Context: area <a>, corruption <c>, attacker <type>
 Resistances: F/C/L/Phys/Void/Necro/Poison = ... (shown, uncapped), gaps: ...
+Per type:    type | res shown | resMult | armour factor (hits) | post per reference hit | hits to die
+             (one row per damage type; name the minimum: "weakest: <type>, <n> hits")
 Mitigation: armour <x> -> <DR>%, dodge <x> -> <p>%, block ..., glance ..., endurance ...%/threshold ...
 Pool: health ..., ward steady-state ..., mana-before-health ... ; pool_post ...
 Reference hits: <hit> raw -> post ; hits to die ; EHP (avg) ; labels
 Sustain: regen, leech, ward/s, potions
 Red flags: ranked
+Fixes:       rank | change | where (slot / blessing / idol / node) | data id | effect (label) | trade-off
 Not determinable: <special effects, boss ability numbers>
 Sources: table+id per stat, page#section per formula
 ```

@@ -15,7 +15,8 @@
     "setup": "yarn fetch && yarn db:build",
     "mcp": "yarn workspace @le/mcp run start",
     "mcp:call": "yarn workspace @le/mcp run call",
-    "mcp:list": "yarn workspace @le/mcp run list"
+    "mcp:list": "yarn workspace @le/mcp run list",
+    "probes:verify": "node tests/probes/make-questions.js --verify"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

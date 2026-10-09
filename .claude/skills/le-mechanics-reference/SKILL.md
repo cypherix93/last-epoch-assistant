@@ -30,6 +30,7 @@ Source priority when pages disagree: weksil research D/A (`vendor/lastepochbuild
 Rules for uncertainty:
 - Prefer D or A; give X as "current community knowledge"; give U only as a hypothesis with how to test it (training dummy or character sheet).
 - Any value that comes from an illustrative input (gear numbers in worked examples) is **U**; do not present it as game data.
+- A value you compute with a D/G formula from a **U** input (an assumed ward pool, a guessed roll) is labelled "D formula, U input": state both, never just the formula's label.
 - Say "vs dummy" or "vs level-N monster" with every damage number; level-100 monster damage reduction alone is x0.13.
 - If a question hits a page's "Open questions" section, say it is open and give the page. Every mechanics page ends with `## Open questions`; read it before claiming a rule is settled (for example `knowledge/mechanics/damage-pipeline.md#open-questions`, `knowledge/mechanics/defenses.md#open-questions`).
 - Special effects of uniques, set bonuses and skill nodes (SP 98 PlayerProperty, SP 58 AbilityProperty, node mutators, skill-local ids 5000+) are coded one by one and are not covered by generic sums: look them up, and when the effect is not in the data say "cannot be determined from data".
@@ -59,10 +60,11 @@ Rules for uncertainty:
 | EHP / hits to die | `knowledge/mechanics/defenses.md#12-effective-health` |
 | Max health, regen, mana, mana regen | `knowledge/mechanics/ward-health-sustain.md#1-health`, `#2-health-regeneration`, `#6-mana` |
 | Ward decay, steady state, sources | `knowledge/mechanics/ward-health-sustain.md#31-decay`, `#32-steady-state`, `#33-ward-generation-sources` |
+| Net ward per second (is ward gained or lost?), ward decay threshold | net ward/s = generation/s - decay/s (rule 5 below); threshold T is SP 119 WardDecayThreshold: `knowledge/mechanics/ward-health-sustain.md#31-decay`, `#32-steady-state` |
 | Leech, on-hit gains, potions | `knowledge/mechanics/ward-health-sustain.md#4-leech`, `#5-health-mana-and-ward-on-events`, `#7-potions` |
 | Attack/cast speed, use rate, weapon rates | `knowledge/mechanics/speed-cooldowns-mana.md#2-use-rate`, `#21-weapon-attack-rates-itemsjson-subtypes` |
 | Cooldowns, charges, channelling, mana cost, triggers, movement | `knowledge/mechanics/speed-cooldowns-mana.md#3-cooldowns-and-charges`, `#4-channelled-skills`, `#5-mana-costs`, `#6-trigger-frequency`, `#8-movement-speed` |
-| Which stats reach minions, minion power | `knowledge/mechanics/minions.md#1-stat-transfer-summonentityondeathsummon`, `#2-minion-power-by-level` |
+| Which stats reach minions, minion power | `knowledge/mechanics/minions.md#1-stat-transfer-summonentityondeathsummon`, `#2-minion-power-by-level`; exceptions that do scale from the player (Manifest Armor, Ballista, Julra's Obsession): `#6-exceptions-that-scale-from-the-player` |
 | Minion base stats, caps, totems, companions | `knowledge/mechanics/minions.md#4-minion-base-stats-minion_base_statsjson`, `#5-companions-totems-limits` |
 | Monster health/damage, rarity, corruption, boss ward | `knowledge/mechanics/enemies-and-corruption.md#monster-rarity`, `#corruption-and-the-monolith`, `#boss-ward` |
 | What is stat property N / tag bit / enum? | `knowledge/mechanics/stat-model.md#property-ids-sp`, `#tag-bitmask-at`, `#other-enums-stat_tag_enumsjson` |
@@ -87,6 +89,8 @@ knowledge({"page":"mechanics/defenses"})                  # one page's text
 yarn mcp:call knowledge '{"page":"interactions/catalogue"}'   # without MCP, from the repo root
 ```
 
+The reply is `{ok, path, lines, text}` with the whole page in one `text` string (there is no section parameter). To read one section, open the file directly (`path` is repo-relative, for example `knowledge/mechanics/defenses.md`): list the headings with `grep -n "^##" knowledge/mechanics/defenses.md`, then read that line range. Large pages (`interactions/unique-effects-index.md`, 118 KB) are best searched with `grep -n "<name or uid>"` on the file rather than fetched whole.
+
 ## Page index (one line each)
 
 | Page | Open it for |
@@ -109,9 +113,9 @@ yarn mcp:call knowledge '{"page":"interactions/catalogue"}'   # without MCP, fro
 2. **Tag matching is a subset test.** A modifier applies only if every tag on it is present on the damage source; Elemental matches Fire, Cold, Lightning. Typed increased (fire) scales only the fire bucket; untyped scales all seven. Melee and Hit modifiers never scale ailments. [damage-pipeline.md#4-tag-matching] **D**
 3. **Ailment scaling.** Ailments have fixed base damage and ADE 0 (Ignite, Bleed, Poison); they scale from generic, type, DoT, Ailment-effect and the applying skill's tree/attribute modifiers, never from Hit/Melee/Bow/Throwing; speed and crit do not scale them; they cannot crit. [ailments.md#2-damage-of-a-stack] **G/D**
 4. **Resistance penetration by area level.** Enemies penetrate your resistances by 1% per area level (max 75% from area level 75), applied after the 75% cap. At area 75+, capped 75% resistance mitigates 0%; it only avoids the 1.75x penalty. [defenses.md#2-resistances] **G/D**
-5. **Ward decays quadratically.** `decay/s = (5e-5 (W-T)^2 + 0.2 (W-T)) / (1 + 0.5R)`; no maximum ward; steady state grows less than linearly with generation. The old `0.4 W` formula is superseded. [ward-health-sustain.md#31-decay] **G/A**
+5. **Ward decays quadratically.** `d = max(0, W - T)` where T is the ward decay threshold (SP 119 WardDecayThreshold, 0 unless the build adds it) and R is ward retention (SP 16) as a **fraction** (50% = 0.5): `decay/s = (5e-5 d^2 + 0.2 d) / (1 + 0.5R)`. Net ward/s = generation/s - decay/s. Example: W 2000, T 0, R 0.5 -> (200 + 400) / 1.25 = 480/s. No maximum ward; steady state grows less than linearly with generation. The old `0.4 W` formula is superseded. [ward-health-sustain.md#31-decay] **G/A**
 6. **Armour does not reduce DoT** (unless SP 118), dodge/block/glancing/parry affect hits only; resistances, endurance and damage-taken modifiers apply to both. Formulas use *area level + 5*, not character level. [defenses.md#armour] **G/D**
-7. **Minion stat transfer.** A player stat reaches minions only if it has the Minion tag (or Totem tag for totems, or `extraTag` = the summon skill); it arrives with the tag stripped, as a snapshot at summon. Player "increased fire damage" does nothing for minions. [minions.md#1-stat-transfer-summonentityondeathsummon] **D/G**
+7. **Minion stat transfer.** A player stat reaches minions only if it has the Minion tag (or Totem tag for totems, or `extraTag` = the summon skill); it arrives with the tag stripped, as a snapshot at summon. Player "increased spell / fire / damage" without the Minion tag does nothing for minions; check `minions.md#6-exceptions-that-scale-from-the-player` (Manifest Armor, Ballista, Julra's Obsession) before saying "never". [minions.md#1-stat-transfer-summonentityondeathsummon] **D/G**
 8. **Monster damage reduction** (87% at level 100) applies to hits and DoT, not to dummies; compare dummy DPS to monolith DPS only with this factor. [damage-pipeline.md#9-monster-level-damage-reduction] **D/A**
 9. **Penetration vs shred.** Shred lowers resistance before the 75% enemy cap; penetration is applied after; shred is reduced against bosses, penetration is not. [damage-pipeline.md#8-resistance-penetration-shred-damage-taken-outgoing] **D/G**
 
@@ -137,7 +141,7 @@ Every row: value, label, page.
 | 14 | Hidden player DoT reduction | 15% less damage over time taken | A | defenses.md#8-damage-taken-modifiers-and-their-order |
 | 15 | Max health | `RHE((100 + 10 L + 6 Vit + added) x (1 + inc) x more)` (1100 at L100 base) | A/D | ward-health-sustain.md#1-health |
 | 16 | Regen and mana | health regen `6 + 0.14 L`; mana regen 8; max mana `50 + 0.50506 L + 2 Att` | A/D | ward-health-sustain.md#2-health-regeneration |
-| 17 | Ward decay | `(5e-5 d^2 + 0.2 d)/(1 + 0.5R)`, `d = W - T` | G/A | ward-health-sustain.md#31-decay |
+| 17 | Ward decay | `(5e-5 d^2 + 0.2 d)/(1 + 0.5R)`, `d = max(0, W - T)`, T = SP 119 threshold (default 0), R = retention as a fraction | G/A | ward-health-sustain.md#31-decay |
 | 18 | Mana before health | 1 mana absorbs 5 damage, after other reductions, not on ward, off at <= 0 mana | G | defenses.md#9-mana-ward-and-the-damage-pool |
 | 19 | Leech | `damage x 0.1 x (HealthLeech value)`; stat 0.3 = 3%; paid over `3 / (1 + rate)` s | D/A | ward-health-sustain.md#4-leech |
 | 20 | Use rate | `S x speedMultiplier x 1.1 / useDuration` (Fireball 1.4667/s at S=1) | D | speed-cooldowns-mana.md#2-use-rate |

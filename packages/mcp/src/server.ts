@@ -95,7 +95,7 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "sql",
     description:
-      "Read-only SQL: a single SELECT or WITH statement. Returns {columns, rows, truncated}. No time limit: keep queries selective. Use the schema tool for tables.",
+      "Read-only SQL: a single SELECT or WITH statement, or one of the schema pragmas PRAGMA table_list, PRAGMA table_info(<table>), PRAGMA index_list(<table>) (every other PRAGMA is rejected). Returns {columns, rows, truncated}. No time limit: keep queries selective. The schema tool also lists tables, columns and sample rows.",
     shape: { query: z.string(), params: z.array(z.any()).optional(), limit: z.number().int().min(1).max(5000).default(500) },
     run: (ctx, a) => t.sql(ctx, a.query, a.params ?? [], a.limit ?? 500),
   },

@@ -1,0 +1,132 @@
+[
+ {
+  "id": "Q24",
+  "answer": "Mage base mana 50; base health 100 at level 0 and +10 health per character level (mana +0.50506 per level also stored).",
+  "reasoning": "classes row class_id=1 Mage: base_health 100, base_mana 50, health_per_level 10, mana_per_level 0.50506.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": {
+     "query": "select class_id,name,base_health,base_mana,health_per_level,mana_per_level from classes"
+    },
+    "result_summary": "5 classes; Mage: 100/50/10/0.50506 (all classes identical)"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q25",
+  "answer": "15 Body Armor uniques with a stat mod value_max >= 100: Doublet of Onos Tull (8, Health 60-100), Yrun's Wisdom (12), Titan Heart (13, Armor 50-100), Apiarist's Suit (78), Sunforged Cuirass (86), Shroud of Obscurity (106, Dodge 93-130), Aaron's Will (272), Unstable Core (275), Wall of Nothing (354), Thicket of Blinding Light (426), Wings of Discord (436), Architects of Astral Blood (448), Doppelganger's Deception (452), Caretaker's Regrowth (482), Vestige of Imprisonment (487).",
+  "reasoning": "uniques.base_type_id=1 (BodyArmor) joined to mods source_kind=unique_mod, value_max between 100 and 1e12 -> 23 rows, 15 distinct uniques. Percent stats are fractions so cannot reach 100; only flat stats qualify. Mods with value_max shown as 0 under a first mangled query were a shell artifact, not data.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": {
+     "query": "select ... where u.base_type_id=1 and m.value_max between 100 and 1e12"
+    },
+    "result_summary": "23 mod rows, 15 distinct uniques"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "'>=' and '<' in yarn mcp:call JSON are consumed by cmd.exe redirection: '>=' gave empty output/path error, '<100' returned wrong rows silently. Worked around with BETWEEN."
+  ]
+ },
+ {
+  "id": "Q26",
+  "answer": "Tier 8 (top tier, highest roll): 85-100 (stored value_min 85, value_max 100, modifier_type 0 added, tags Physical,Melee). Affix 63 'Melee Physical Damage' (Marauder's), 8 tiers: T1 3-6, T2 7-10, T3 11-15, T4 16-20, T5 21-26, T6 40-50, T7 51-65, T8 85-100.",
+  "reasoning": "Affix 63 rolls on base type 12 (Two-Handed Axe) via affix_can_roll_on. Higher tier number = stronger values; knowledge/reference/crafting.md says T8 is top (crafting caps T5, T8 via Rune of Evolution). le-data-query SKILL.md line ~266 says 'tier 1 is the best tier in mods', which contradicts the data and the knowledge base; if one took T1 literally the answer would be 3-6 (wrong).",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": {
+     "query": "affixes join mods affix_tier join affix_can_roll_on base_type_id=12 name like Melee Physical Damage%"
+    },
+    "result_summary": "affix 63 only; T1 3-6, T2 7-10"
+   },
+   {
+    "tool": "sql",
+    "args": {
+     "query": "mods for affix 63 all tiers"
+    },
+    "result_summary": "8 tiers, T8 85-100"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "SKILL.md claims tier 1 is the best tier; data shows T8 has the highest rolls. Skill text is misleading."
+  ]
+ },
+ {
+  "id": "Q27",
+  "answer": "24 Rogue skills with trees: Acid Flask (aacfl), Aerial Assault (aa989), Ballista (ba1574), Bladestorm (bl5st), Cinder Strike (cstri), Dark Quiver (dqv5), Decoy (deeco), Dive Bomb (db992), Dreamslash (dr4sl), Explosive Trap (ex4tp), Flurry (flur3, default+known), Hail of Arrows (exvol8), Heartseeker (htsk5), Lethal Mirage (mira59), Multishot (mush9), Net (ne01t), Puncture (pun22), Shadow Cascade (dagg3), Shadow Rend (sh4re), Shift (shiif), Shurikens (srk21), Smoke Bomb (smbmb), Synchronized Strike (sync5), Umbral Blades (ub5d9).",
+  "reasoning": "class_abilities class_id=4 (Rogue) joined to abilities.has_skill_tree=1. By kind: default 1 (Flurry), known 1 (Flurry), unlockable 7, mastery 16 = 24 distinct (Flurry is both default and known).",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": {
+     "query": "class_abilities ca join abilities where class_id=4 and has_skill_tree=1"
+    },
+    "result_summary": "24 distinct abilities"
+   },
+   {
+    "tool": "sql",
+    "args": {
+     "query": "kind counts for class 4"
+    },
+    "result_summary": "default 6(1 tree),known 2(1),mastery 16(16),unlockable 7(7)"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q28",
+  "answer": "Ward decay per second = (quadraticWardDecay*(W-T)^2 + linearWardDecay*(W-T)) / (1 + 0.5*R), W ward, T ward decay threshold (SP119, no decay below T), R ward retention as a fraction (100% = 1.0). Constants: quadraticWardDecay = 5e-5, linearWardDecay = 0.2 (label A; formula G/A); minimumWardDecayWithoutRegen = 0.5 ward/s (only when ward regeneration is 0; semantics uncertain D?). Retention enters as divisor (1 + 0.5R), not (1 + R).",
+  "reasoning": "knowledge/mechanics/ward-health-sustain.md Summary item 2 and section 3.1 Decay; section on misreadings notes the shorthand 'decay/(1+retention)' is wrong.",
+  "tool_calls": [
+   {
+    "tool": "knowledge",
+    "args": {
+     "page": "knowledge/mechanics/ward-health-sustain.md"
+    },
+    "result_summary": "Summary 2 and 3.1: formula, 5e-5, 0.2, /(1+0.5R)"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q29",
+  "answer": "+10 base health per level (maxHealth = 100 + 10*L + ...; level 100 = 1100 base; guide Levels says +990 at L100). When guide text conflicts with asset data, asset data (label A) wins: the guide's HealthAndRegen '+8 health per level' (and +0.125 regen) is stale; data stores 10 (and 0.14 regen) for all 5 classes.",
+  "reasoning": "knowledge/mechanics/ward-health-sustain.md summary item 1 and base-health table; knowledge/reference/classes-and-masteries.md line ~110 'Use A'.",
+  "tool_calls": [
+   {
+    "tool": "knowledge",
+    "args": {
+     "page": "knowledge/mechanics/ward-health-sustain.md"
+    },
+    "result_summary": "+10/level, guide +8 stale, chosen 10 (A/G)"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q30",
+  "answer": "Enemy penetration vs players = +1% per area level, capped at 75% at area level >= 75 (applied after the resistance cap; over-cap resistance does not help against it, so capped 75% res mitigates 0% at AL75+). Label G/D.",
+  "reasoning": "knowledge/mechanics/defenses.md summary item 1 and table row 'Enemy penetration vs players'.",
+  "tool_calls": [
+   {
+    "tool": "knowledge",
+    "args": {
+     "page": "knowledge/mechanics/defenses.md"
+    },
+    "result_summary": "1% per area level, max 75% at AL>=75, after the cap (G/D)"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ }
+]

@@ -17,19 +17,19 @@ REQUIRED BACKGROUND: `le-data-query` (finding records), `le-damage-reasoning`, `
 
 ### Step 1: normalise the build into a ledger
 
-Resolve every piece to ids before judging anything. Ask once for missing pieces (rolled values, tiers, point allocations); mark guesses **U**.
+Resolve every piece to ids before judging anything. Ask once for missing pieces (rolled values, tiers, point allocations); mark guesses **U**. Give every ledger row a status: **resolved** (id found), **substituted** (closest match used, say which), **invalid** (does not exist, or the class cannot use it).
 
 | Piece | How to resolve | Record |
 |---|---|---|
 | Class / mastery | `SELECT class_id, name FROM classes`; `SELECT mastery_index, name, description, passive_bonus_labels FROM masteries WHERE class_id = 3` | class_id, mastery_index |
 | Passives | `passive_tree({"class_id":1})` (a class name also works); user's allocations by node name | node ids, points |
 | Skills (5) | `lookup({"name":...,"kinds":["ability"]})` (player abilities rank first), then `skill_tree({"ability_id":...})` | ability_id, ability_index, tags, node points |
-| Items | unique by name (`lookup`), rares by affix names -> affix ids + tiers + rolls | affix_id, tier, roll, base type |
-| Idols / altar | idol affixes (`affixes.rolls_on = 1`), altar sub type | affix ids, sub_type_id |
-| Blessings | `v_blessings` by name | sub_type_id (one per timeline) |
+| Items | unique by name (`lookup`), rares by affix names -> affix ids + tiers + rolls; then the class-lock check below | affix_id, tier, roll, base type, class lock |
+| Idols / altar | idol affixes (`affixes.rolls_on = 1`, which does not encode the idol size: check the size with the idol recipe below), altar sub type | affix ids, idol base type, sub_type_id |
+| Blessings | `v_blessings` by name; `lookup` returns both a subtype id `34:101` and a bare `101`; the mods rows use `mods.source_id = '34:<sub_type_id>'` | sub_type_id (one per timeline) |
 | Level, attributes | user; check `abilities` attribute scaling | numbers |
 
-Tool calls for the ledger (MCP names; otherwise `yarn mcp:call <tool> '<json>'` in Bash; JSON containing `<`, `>`, `%`, `&` or `|` goes on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
+Tool calls for the ledger (MCP names; otherwise `yarn mcp:call <tool> [args]`, with SQL and anything containing quotes, `<`, `>`, `%`, `&` or `|` passed as `@file` / `--query-file` or on stdin, see **le-data-query**; `find_mods` arguments are nested under `filters`):
 
 ```
 lookup({"name":"Calamity","kinds":["unique"]})
@@ -61,11 +61,44 @@ FROM mods m WHERE m.source_kind = 'blessing' AND m.source_id = '34:101';
 SELECT unique_id, name, set_name, mods_text, tooltip_text FROM v_unique_summary WHERE name IN ('Calamity');
 ```
 
-Stop and fix the ledger if a name does not resolve; do not audit a guessed item.
+**Class-lock check (every item).** Item bases carry `item_subtypes.class_requirement`, a bit mask `1 << class_id` (1 Primalist, 2 Mage, 4 Sentinel, 8 Acolyte, 16 Rogue; 0 or NULL = any class), with the name in `class_requirement_names`; a unique inherits its base's lock. A row fails when `class_requirement` is non-zero and `(class_requirement & (1 << build class_id)) = 0`; also compare both level requirements with the character level. Rares and exalted items by base name:
+
+```sql
+SELECT base_type_id, sub_type_id, name, level_requirement, class_requirement, class_requirement_names
+FROM item_subtypes WHERE name IN ('Solarum Plate', 'Jewelled Circlet');
+```
+
+Uniques through their base:
+
+```sql
+SELECT u.unique_id, u.name, u.level_requirement, st.name AS base, st.level_requirement AS base_level,
+       st.class_requirement, st.class_requirement_names
+FROM uniques u
+JOIN unique_subtypes us ON us.unique_id = u.unique_id
+JOIN item_subtypes st ON st.base_type_id = us.base_type_id AND st.sub_type_id = us.sub_type_id
+WHERE u.name IN ('Calamity', 'Bastion of Honour');
+```
+
+Class-locked affixes: `affixes.class_names` (for example the Weaver-only idol affixes). Does an affix roll on a given idol size (here: which Minion affixes roll on a Small Idol)?
+
+```sql
+SELECT a.affix_id, a.name, a.class_names, group_concat(bt.name, ', ') AS idol_sizes
+FROM affixes a
+JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+JOIN item_base_types bt ON bt.base_type_id = r.base_type_id
+WHERE a.rolls_on = 1 AND a.name LIKE '%Minion%' AND bt.name = 'Small Idol'
+GROUP BY a.affix_id ORDER BY a.name;
+```
+
+(Idol base types 25-33: Small, Minor, Humble, Stout, Grand, Large, Ornate, Huge, Adorned Idol. A "Minion Damage" Small Idol does not exist in this data: no row is the answer.)
+
+**Unresolved names.** Users often give names that do not exist or are misspelled ("Naga's Fang", "Falcon's Hood", a "Minion Damage" small idol). When `lookup` with `kinds` returns nothing: say so in the ledger (status **invalid** or **substituted**), offer the closest matches from `search({"query":"<fragment>*","kinds":["unique"]})` or a `LIKE '%fragment%'` query, clearly marked as substitutes, and audit the rest of the build. Never audit a guessed item as if it were the user's, and list every unresolved name under "Ledger problems".
+
+**Partial audits.** Minimum inputs per section: Offense needs the main skill and its gear/tree damage lines; Defense needs health, resistances and the main layer (armour, dodge, block or ward); Sustain needs the recovery sources; Bottlenecks (Step 7) need a bucket table with rolls, so skip it without rolls. If fewer than the class, the five skills and the gear names are known, return the ledger plus an input request instead of a full audit. Missing tree allocations: list the tree's downside nodes (Step 9 query) and the few nodes whose tags match the build, and say the allocation was not audited. Every section that cannot be filled gets a "Needed to continue" list naming the exact missing inputs.
 
 ### Step 2: offense summary
 
-For the main skill (and one secondary): run `le-damage-reasoning` Steps 1-11. Report:
+For the main skill (and one secondary): run `le-damage-reasoning` Steps 0-11 (Step 12 as well for a minion skill). Report:
 - skill, tags, damage types, ADE, crit chance/multiplier, uses per second, hit damage, ailment DPS, DPS vs dummy and vs a level-100 monster (state both; level DR alone is x0.13);
 - the **bucket table**: for each damage type the added/increased/more lines counted, with source ids;
 - scaling vector: which multipliers exist (added, generic increased, type increased, crit, speed, penetration, conditional, per-stack, area/projectiles) and which are missing (a build with no more-multiplier beyond tree nodes, no penetration against high-resistance content, no crit when the skill benefits from it);
@@ -84,6 +117,8 @@ ORDER BY m.source_kind, m.source_id;
 
 (Melee, Bow, Throwing, Minion, DoT, Totem, LowLife lines on a Fire|Spell|Hit skill show up here. Minion lines on a non-minion build and melee lines on a spell build are the usual finds.)
 
+Minion builds: the player skill mask is the wrong test. Summon abilities carry no damage tags (`abilities.tags = 0`, `tag_names` NULL for Summon Wolf `wo42` and Summon Scorpion `sc36pi`), so the mask query would flag every Minion-tagged line as dead. For minion lines check the transfer rule instead: a player line reaches the minion only if it has the Minion bit (8192), or the Totem bit for totems, or an `extra_tag` that equals the summon skill's `ability_index` ([minions.md#1-stat-transfer-summonentityondeathsummon]); then test the transferred tags against the minion's own abilities. Run the mask query only for the player's own damage skills.
+
 ### Step 3: defense summary
 
 Run `le-defense-reasoning` Steps 1-6 at area level 100 (and the content the user cares about). Report resistances per type (shown and uncapped), armour/dodge/block percentages at that area level, endurance and threshold, health, ward steady state, hits to die against the 776-physical monolith melee reference and a labelled spell proxy, plus the weakest damage type.
@@ -92,10 +127,13 @@ Run `le-defense-reasoning` Steps 1-6 at area level 100 (and the content the user
 
 Sources of recovery and their rates: health regen `(6 + 0.14 L + added)(1 + inc)`, leech (stat 0.3 = 3%, paid over 3 s; needs damage dealt; check it applies to the skill's tags), ward per second and on-hit ward (SP 92, 39, 99) vs steady state, on-hit/kill health (SP 38), potions (slots SP 49, heal per level), mana-before-health. Verdict: seconds to refill the pool, and whether sustain holds during the time the skill is not hitting (e.g. between channel casts). [ward-health-sustain.md#4-leech] **D**; [ward-health-sustain.md#31-decay] **G/A**.
 
+Replace the `VALUES` list with the build's own sources; the ids below are only an example (affix 1058 Health Regen, 1010 Increased Health and Ward Per Second, 106 Health on Kill):
+
 ```sql
 SELECT property, property_name, tag_names, special_tag, count(*) AS lines, max(value_max) AS best
 FROM mods
-WHERE property IN (17, 38, 39, 40, 51, 92, 99, 93, 48, 49) AND (source_kind, source_id) IN (VALUES ('affix_tier', '1058'), ('affix_tier', '1010'), ('affix_tier', '106'))
+WHERE property IN (17, 38, 39, 40, 51, 92, 99, 93, 48, 49)
+  AND (source_kind, source_id) IN (VALUES ('affix_tier', '1058'), ('affix_tier', '1010'), ('affix_tier', '106'))  -- example ids: use the build's
 GROUP BY property, special_tag ORDER BY property;
 ```
 
@@ -110,7 +148,7 @@ FROM abilities a WHERE a.is_player_ability = 1 AND a.name IN ('Fireball', 'Disin
 
 ### Step 6: mobility
 
-Movement speed (SP 9, base hidden +5% more), traversal skills and Evade (2 charges, 4 s cooldown reduced by +0.5% CDR per level), cooldowns of the build's movement skill, anything that slows (Chill/Slow on enemies) or roots. Content check: does the build need to kite? Is there a traversal skill among the five?
+Movement speed (SP 9, base hidden +5% more), traversal skills and Evade (2 charges, 4 s cooldown reduced by +0.5% CDR per level), cooldowns of the build's movement skill (`get({"kind":"ability",...})` returns `cooldown_seconds`), anything that slows (Chill/Slow on enemies) or roots. Content check: does the build need to kite? Is there a traversal skill among the five, and can this class use it (`class_abilities`)?
 
 ```sql
 SELECT ability_id, name, tag_names, is_traversal, counts_as_movement, max_charges, charges_gained_per_second
@@ -122,7 +160,7 @@ WHERE is_player_ability = 1 AND (is_traversal = 1 OR counts_as_movement = 1) ORD
 
 ### Step 7: bottlenecks and marginal value
 
-For the main skill compute the marginal change from +10% of each pool (generic increased, type increased, a new more of 10%, +10% crit multiplier, +10% cast speed, +10 penetration, +1 skill level, +50 added damage). With a bucket table the ratios are immediate: a new multiplicative source is worth `1 + m`; an increased source is worth `m / (1 + sum_inc)` of the current total. Report the top three levers and any stat at a cap (crit chance 100%, resistance 75%, armour 85%, dodge 85%, endurance 60%, glancing 100%, parry 75%) or at a diminishing-returns zone (armour/dodge rating past ~5000). Name the bottleneck: damage, survivability, sustain, mana, or uptime.
+Skip this step (and say so) when the user gave no rolls: without a bucket table the ratios are invented. Otherwise, for the main skill compute the marginal change from +10% of each pool (generic increased, type increased, a new more of 10%, +10% crit multiplier, +10% cast speed, +10 penetration, +1 skill level, +50 added damage). With a bucket table the ratios are immediate: a new multiplicative source is worth `1 + m`; an increased source is worth `m / (1 + sum_inc)` of the current total. Report the top three levers and any stat at a cap (crit chance 100%, resistance 75%, armour 85%, dodge 85%, endurance 60%, glancing 100%, parry 75%) or at a diminishing-returns zone (armour/dodge rating past ~5000). Name the bottleneck: damage, survivability, sustain, mana, or uptime.
 
 ### Step 8: missing resistances
 
@@ -176,8 +214,9 @@ Each suggestion lists: change, where (slot/node/idol), data id, estimated effect
 
 ```
 # Build audit: <class>/<mastery>, level <L>, game <version>
-Ledger (ids): skills ... | items ... | idols ... | blessings ...
-## Verdict (3 lines): strongest point / weakest point / first fix
+Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | idols ... | blessings ...
+## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size)
+## Verdict (3 lines): strongest point / weakest point / first fix  (or "partial audit: <sections skipped>")
 ## Offense   skill, DPS vs dummy, DPS vs L100 monster, bucket table, scaling gaps, dead stats    [labels]
 ## Defense   resistances (shown/uncapped), armour/dodge/block %, endurance, pool, hits to die    [labels]
 ## Sustain   regen, leech, ward/s vs steady state, potions, time to refill
@@ -188,6 +227,7 @@ Ledger (ids): skills ... | items ... | idols ... | blessings ...
 ## Anti-synergies and traps (catalogue entries by name, with confidence)
 ## Ranked suggestions (rank, change, gain estimate + label, cost/trade-off, ids)
 ## Not determined from data (special effects, 5000+ node properties, inputs assumed U)
+## Needed to continue (exact missing inputs per skipped section)
 ## Sources (table+id, page#section)
 ```
 
