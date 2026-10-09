@@ -187,8 +187,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(f.nodes.length).toBeLessThan(all_.nodes.length);
     expect(f.node_count).toBe(all_.node_count);
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
-    expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("compact trees keep node descriptions (the 'directly' / 'for Rive' scope words live there) unless keep_descriptions is false", () => {
+    const fc = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true }) as R).nodes[0];
+    expect(fc.description).toMatch(/directly add damage.*double effect for Rive/);
+    expect(fc).not.toHaveProperty("x");
+    const bare = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true, keep_descriptions: false }) as R).nodes[0];
+    expect(bare).not.toHaveProperty("description");
+    const long = (skillTree(ctx, "sndr1", { compact: true }) as R).nodes.map((n: R) => String(n.description ?? ""));
+    expect(Math.max(...long.map((d: string) => d.length))).toBeLessThanOrEqual(400);
   });
 
   it("tree node stat lines say what the property is, the modifier kind and label mismatches", () => {

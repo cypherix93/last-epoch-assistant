@@ -415,8 +415,17 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
 export interface TreeOpts {
   /** keep only nodes whose name, description or any mod label/property_name contains this text (case-insensitive) */
   filter?: string;
-  /** drop description and x/y */
+  /** drop x/y and the UI fields; descriptions are kept (truncated) unless keep_descriptions is false */
   compact?: boolean;
+  /** compact mode only: keep description / alt_text (default true; they carry 'directly', 'on hit', 'for Rive' scope words) */
+  keep_descriptions?: boolean;
+}
+
+/** Description length kept in compact mode. */
+export const COMPACT_DESCRIPTION_MAX = 400;
+function truncate(v: unknown, max = COMPACT_DESCRIPTION_MAX): unknown {
+  if (typeof v !== "string" || v.length <= max) return v;
+  return v.slice(0, max - 3).trimEnd() + "...";
 }
 
 function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
@@ -467,8 +476,13 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       const id = n.id as number;
       const req = reqByNode.get(id);
       if (opts.compact) {
-        delete n.description;
-        delete n.alt_text;
+        if (opts.keep_descriptions === false) {
+          delete n.description;
+          delete n.alt_text;
+        } else {
+          n.description = truncate(n.description);
+          n.alt_text = truncate(n.alt_text);
+        }
         delete n.x;
         delete n.y;
       }
