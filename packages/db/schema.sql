@@ -429,9 +429,36 @@ CREATE TABLE uniques (
   reroll_chance REAL,                  -- .rerollChance
   sprite        TEXT,                  -- .sprite (LE atlas id 'I<n>')
   mod_count     INTEGER NOT NULL,      -- .mods.length (lines -> mods 'unique_mod')
+  drop_source   TEXT,                  -- summary of unique_drop_sources ('Formosus the Undying (timeline boss, The Age of Winter); ...'), or a note
+                                       -- for primordial / cocooned uniques without a drop table; NULL when the data names no source
+  drop_source_count INTEGER NOT NULL DEFAULT 0, -- unique_drop_sources rows of this unique
   raw_json      TEXT NOT NULL          -- the unique record (mods/tooltips kept inline)
 );
 CREATE INDEX uniques_name ON uniques (name);
+
+-- Content-specific drop sources of uniques: itemDB.monsterItemDrops[] entries with a uniqueId (bosses, harbingers, dungeons,
+-- woven echoes, loot lizards, arena, ...), randomEncounterData.experimentalUniqueDropInfo[] and oneShotCaches[] guaranteed
+-- uniques. A unique can also drop randomly when uniques.can_drop_randomly = 1. dropBossLoot.json regroups the same data.
+CREATE TABLE unique_drop_sources (
+  unique_id     INTEGER NOT NULL REFERENCES uniques (unique_id),
+  ord           INTEGER NOT NULL,      -- order in the source lists (monsterItemDrops, then experimental, then caches)
+  source_kind   TEXT NOT NULL,         -- harbinger | aberroth | shade_of_orobyss | nemesis | arena | loot_lizard | soul_gambler | rune_prison |
+                                       -- dungeon | timeline_boss | woven_echo | zone | monster | experimental | cache (from the entry's flags)
+  source_name   TEXT,                  -- t(.monsterNameKey) (e.g. 'Formosus the Undying'), else the woven echo / cache name
+  monster_name_key TEXT,               -- .monsterNameKey (cache: .displayNameKey)
+  timeline_id   INTEGER,               -- .timelineInfo.id (timelines.timeline_id)
+  timeline_name TEXT,                  -- t(timelineData.<id>.nameKey)
+  empowered_only INTEGER,              -- .timelineInfo.empoweredOnly
+  dungeon_id    INTEGER,               -- .dungeonInfo.id (dungeons.dungeon_id)
+  dungeon_name  TEXT,                  -- t(dungeonData.<id>.nameKey)
+  woven_echo_id INTEGER,               -- .wovenEcho (woven_echoes.echo_id)
+  woven_echo_name TEXT,                -- t(wovenEchoList[id].displayNameKey)
+  min_corruption INTEGER,              -- .minCorruption
+  chance        REAL,                  -- .chance (base drop chance; experimental: randomEncounterData.experimentalUniqueDropChance)
+  max_chance    REAL,                  -- .maxChance
+  raw_json      TEXT NOT NULL,         -- the source entry
+  PRIMARY KEY (unique_id, ord)
+) WITHOUT ROWID;
 CREATE INDEX uniques_base ON uniques (base_type_id, sub_type_id);
 
 CREATE TABLE unique_subtypes (
@@ -1053,6 +1080,8 @@ SELECT
   s.name AS set_name,
   u.legendary_type,
   u.lp_eligible,
+  u.can_drop_randomly,
+  u.drop_source,
   u.mod_count,
   (SELECT group_concat(
             coalesce(m.property_name, m.label, '?') || ' ' ||

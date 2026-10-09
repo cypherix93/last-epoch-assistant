@@ -314,6 +314,26 @@ function treeSummary(ctx: Ctx, row: Row, raw: boolean): Row {
 const UNIQUE_LP_NOTE =
   "lp_eligible is DERIVED, not in the data: the game data has no per-unique 'can roll legendary potential' flag. Non-set uniques with legendary_type 0 can drop with LP; set items cannot; legendary_type 1 (weavers_will) uniques use Weaver's Will instead. legendary_type is the raw .legendaryType enum (0 LegendaryPotential, 1 WeaversWill), can_drop_as_legendary is .canDropAsLegendary (4 uniques with fixed legendary affix pools), effective_level_for_lp counts only when override_effective_level_for_lp = 1 (0 + override 0 = no override, so LP presumably uses the item's own level: unverified).";
 
+/** Content-specific drop sources of a unique (unique_drop_sources; empty on an older database). */
+function dropSources(ctx: Ctx, uniqueId: number): Row[] {
+  try {
+    return all(
+      ctx,
+      "SELECT source_kind, source_name, timeline_id, timeline_name, empowered_only, dungeon_id, dungeon_name, woven_echo_id, woven_echo_name, min_corruption, chance, max_chance FROM unique_drop_sources WHERE unique_id = ? ORDER BY ord",
+      uniqueId,
+    ).map(dropNulls);
+  } catch {
+    return [];
+  }
+}
+
+/** How a unique is obtained, in one line: random drops (can_drop_randomly) and the content-specific sources. */
+function obtainNote(u: Row): string {
+  const random = u.can_drop_randomly === 1 ? "drops randomly (can_drop_randomly = 1)" : "does NOT drop randomly (can_drop_randomly = 0)";
+  const src = u.drop_source ? `; sources: ${u.drop_source}` : "; the data names no drop source";
+  return random + src;
+}
+
 export const GETTERS: Record<string, Getter> = {
   unique(ctx, id, raw) {
     const u = need(one(ctx, "SELECT * FROM uniques WHERE unique_id = ?", int(id, "unique")), "unique", id);
@@ -335,6 +355,8 @@ export const GETTERS: Record<string, Getter> = {
         u.unique_id,
       ),
       set: u.set_id == null ? null : one(ctx, "SELECT set_id, name, item_count FROM sets WHERE set_id = ?", u.set_id),
+      drop_sources: dropSources(ctx, u.unique_id as number),
+      obtain: obtainNote(u),
       note: UNIQUE_LP_NOTE,
     };
   },

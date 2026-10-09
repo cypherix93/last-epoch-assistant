@@ -125,6 +125,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | items | mods `affix_tier` | 9,711 |
 | items | mods `implicit` / `blessing` / `idol_altar` (= 1,529 implicits) | 1,284 / 234 / 11 |
 | items | uniques (all / set items) / unique_subtypes | 486 / 61 / 486 |
+| items | unique_drop_sources (rows / uniques with a source) | 178 / 106 |
 | items | mods `unique_mod` / unique_tooltips / unique_tooltip_entries | 2,440 / 562 / 2,459 |
 | items | sets / mods `set_bonus` / set_tooltips | 25 / 54 / 18 |
 | items | idol_altars / blessings (all with a timeline) | 13 / 224 |

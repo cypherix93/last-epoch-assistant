@@ -102,6 +102,7 @@
     "tree_nodes": 4577,
     "trees": 142,
     "ui_buffs": 264,
+    "unique_drop_sources": 178,
     "unique_subtypes": 486,
     "unique_tooltip_entries": 2459,
     "unique_tooltips": 562,
@@ -162,7 +163,7 @@
   },
   "foreign_key_violations": {},
   "expected": {
-    "ok": 96,
+    "ok": 98,
     "failed": 0,
     "results": [
       {
@@ -513,6 +514,20 @@
         "expected": 61,
         "op": "=",
         "actual": 61,
+        "ok": true
+      },
+      {
+        "name": "items: unique_drop_sources",
+        "expected": 178,
+        "op": "=",
+        "actual": 178,
+        "ok": true
+      },
+      {
+        "name": "items: uniques[with a drop source]",
+        "expected": 106,
+        "op": "=",
+        "actual": 106,
         "ok": true
       },
       {

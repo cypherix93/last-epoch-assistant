@@ -31,7 +31,7 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
 
   it("schema", () => {
     const s = schema(ctx) as R;
-    expect(s.table_count).toBe(71);
+    expect(s.table_count).toBe(72);
     expect(s.tables.find((t: R) => t.name === "mods").rows).toBeGreaterThan(20000);
     expect(s.docs).toBe("docs/schema.md");
     const m = schema(ctx, "uniques") as R;
@@ -188,6 +188,16 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(f.node_count).toBe(all_.node_count);
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("get unique says how it is obtained (can_drop_randomly + drop sources)", () => {
+    const fs = getTool(ctx, "unique", 213) as R;
+    expect(fs.unique).toMatchObject({ name: "Frostbite Shackles", can_drop_randomly: 0 });
+    expect(fs.obtain).toMatch(/does NOT drop randomly.*Formosus the Undying/);
+    expect(fs.drop_sources[0]).toMatchObject({ source_kind: "timeline_boss", source_name: "Formosus the Undying", timeline_id: 4 });
+    expect((getTool(ctx, "unique", 434) as R).obtain).toMatch(/primordial item/);
+    const v = sql(ctx, "SELECT can_drop_randomly, drop_source FROM v_unique_summary WHERE unique_id = 152") as R;
+    expect(v.rows[0]).toMatchObject({ can_drop_randomly: 0, drop_source: expect.stringContaining("Harton's Husk") });
   });
 
   it("compact trees keep node descriptions (the 'directly' / 'for Rive' scope words live there) unless keep_descriptions is false", () => {

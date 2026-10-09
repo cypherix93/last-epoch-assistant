@@ -83,6 +83,7 @@ import type { LoaderContext } from "../lib/context.js";
 import { insertRow } from "../lib/sqlite.js";
 import { bool, classRequirementNames, classSpecificityNames, int, num, rawJson, sortedEntries, str, type JsonObject } from "../lib/util.js";
 import { affixCompactId, decodeCompactId, implicitCompactId, setCompactId } from "../lib/ids.js";
+import { collectDropSources, dropSummary } from "./items-drops.js";
 
 /** Tables this loader owns (the build and tests check they exist in schema.sql). */
 export const tables = [
@@ -97,6 +98,7 @@ export const tables = [
   "sets",
   "set_tooltips",
   "uniques",
+  "unique_drop_sources",
   "unique_subtypes",
   "unique_tooltips",
   "unique_tooltip_entries",
@@ -125,6 +127,8 @@ export const expected: ExpectedCount[] = [
   count("set_tooltips", 18),
   count("uniques", 486),
   count("uniques", 61, "is_set_item = 1"),
+  count("unique_drop_sources", 178, undefined, undefined, "monsterItemDrops with a uniqueId 173 + experimental 4 + cache 1"),
+  count("uniques", 106, "drop_source_count > 0", "uniques[with a drop source]"),
   count("unique_subtypes", 486),
   count("unique_tooltips", 562),
   count("unique_tooltip_entries", 2459),
@@ -450,6 +454,7 @@ export function loadItems(ctx: LoaderContext): void {
 
   // --- 14..18. uniques ------------------------------------------------------------------------
   const uniqueIds = new Set<number>();
+  const drops = collectDropSources(itemDB, ctx.raw.letools.timelineData as Obj, ctx.raw.letools.dungeonData as Obj, (ctx.raw.letools.wovenEchoList ?? []) as Obj[], t);
   for (const [, u] of sortedEntries<Obj>(itemDB.uniqueList?.uniques)) {
     const id = u.uniqueId as number;
     uniqueIds.add(id);
@@ -491,8 +496,14 @@ export function loadItems(ctx: LoaderContext): void {
       reroll_chance: num(u.rerollChance),
       sprite: str(u.sprite),
       mod_count: mods.length,
+      drop_source: dropSummary(u, drops.get(id)),
+      drop_source_count: drops.get(id)?.length ?? 0,
       raw_json: rawJson(u),
     });
+    for (const d of drops.get(id) ?? []) {
+      const { raw, ...row } = d;
+      insertRow(db, "unique_drop_sources", { unique_id: id, ...row, raw_json: rawJson(raw) });
+    }
     subIds.forEach((sub, ord) => {
       insertRow(db, "unique_subtypes", { unique_id: id, ord, base_type_id: int(u.baseTypeId), sub_type_id: sub });
     });

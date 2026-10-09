@@ -161,6 +161,25 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(r(0)).toBe(100); // added Penetration: Hundredth (displayed as a percentage)
   });
 
+  it("loads unique drop sources (itemDB.monsterItemDrops, experimental uniques, caches)", () => {
+    const db = get().db;
+    const u = (id: number) => db.prepare("SELECT can_drop_randomly, drop_source, drop_source_count FROM uniques WHERE unique_id = ?").get(id) as Record<string, unknown>;
+    // the judge's non-random uniques: Frostbite Shackles, Anchor of Oblivion, World Splitter, The Inevitable, Shattered Chains
+    expect(u(213)).toMatchObject({ can_drop_randomly: 0, drop_source: "Formosus the Undying (timeline boss, Blood, Frost, and Death)", drop_source_count: 1 });
+    expect(u(152).drop_source).toBe("Harton's Husk (timeline boss, Fall of the Empire, empowered)");
+    expect(u(365).drop_source).toMatch(/^Harbinger of Hatred \(harbinger, The Black Sun, empowered\); Aberroth/);
+    expect(u(347).drop_source).toMatch(/Harbinger of Fear \(harbinger, The Last Ruin, empowered\)/);
+    expect(u(180).drop_source).toMatch(/^Shade of Orobyss \(Shade of Orobyss, corruption 120\+\); Confluence of Oblivion \(woven echo, corruption 120\+\)$/);
+    // primordial (Mask of Indifference) and cocooned uniques have no drop table: a note instead
+    expect(u(434).drop_source).toMatch(/^primordial item: no drop source in the data/);
+    expect(u(379).drop_source).toBe("cocooned item: no drop source in the data");
+    const rows = db.prepare("SELECT source_kind, timeline_id, empowered_only, chance, max_chance FROM unique_drop_sources WHERE unique_id = 152").all();
+    expect(rows).toEqual([{ source_kind: "timeline_boss", timeline_id: 6, empowered_only: 1, chance: 0, max_chance: 0.45 }]);
+    // only 4 non-random uniques are left without any source or note (Fractured Crown, Gambler's Fallacy, Avarice, Evolution's End)
+    expect(db.prepare("SELECT count(*) AS n FROM uniques WHERE can_drop_randomly = 0 AND unique_id > 0 AND drop_source IS NULL").get()).toEqual({ n: 4 });
+    expect(db.prepare("SELECT count(*) AS n FROM uniques u WHERE drop_source_count <> (SELECT count(*) FROM unique_drop_sources d WHERE d.unique_id = u.unique_id)").get()).toEqual({ n: 0 });
+  });
+
   it("decodes relation compact ids", () => {
     const db = get().db;
     const r = db

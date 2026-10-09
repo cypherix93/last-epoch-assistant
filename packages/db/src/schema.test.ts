@@ -23,7 +23,7 @@ const EXPECTED_TABLES = [
   "monolith_reward_groups", "monolith_rewards", "monster_mods", "node_tooltip_properties", "player_properties", "prophecy_unlocks",
   "raw_globals", "relations", "scenes", "search", "set_tooltips", "sets", "stat_properties",
   "stat_property_alt_texts", "tag_bits", "timeline_blessings", "timeline_difficulties", "timelines",
-  "tree_node_requirements", "tree_nodes", "trees", "ui_buffs", "unique_subtypes", "unique_tooltip_entries",
+  "tree_node_requirements", "tree_nodes", "trees", "ui_buffs", "unique_drop_sources", "unique_subtypes", "unique_tooltip_entries",
   "unique_tooltips", "uniques", "woven_echoes",
 ];
 const EXPECTED_VIEWS = [
