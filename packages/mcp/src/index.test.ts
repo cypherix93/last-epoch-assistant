@@ -48,6 +48,19 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((search(ctx, "name:fireball", ["ability"]) as R).results[0].name).toBe("Fireball");
   });
 
+  it("search raw=true passes FTS5 operators through; default stays safe-quoted", () => {
+    const plain = search(ctx, "fireball OR frostbolt", undefined, 50) as R;
+    const raw = search(ctx, "fireball OR frostbolt", ["ability"], 50, true) as R;
+    expect(raw.query).toBe("fireball OR frostbolt");
+    const names = new Set(raw.results.map((x: R) => x.name));
+    expect(names.has("Fireball") && names.has("Frostbolt")).toBe(true);
+    expect(plain.query).toContain('"OR"');
+    expect((search(ctx, "name:fireb*", ["ability"], 5, true) as R).results[0].name).toMatch(/^Fireb/);
+    expect((search(ctx, "NEAR(void penetration, 3)", undefined, 5, true) as R).count).toBeGreaterThan(0);
+    expect(() => search(ctx, 'fire" AND (', undefined, 5, true)).toThrow(/FTS5 error/);
+    expect(() => search(ctx, "   ", undefined, 5, true)).toThrow(/Empty/);
+  });
+
   it("get", () => {
     const u = getTool(ctx, "unique", 0) as R;
     expect(u.unique.name).toBe("Calamity");

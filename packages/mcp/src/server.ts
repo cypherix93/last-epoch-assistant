@@ -33,13 +33,14 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "search",
     description:
-      'Full-text search (FTS5) over names, descriptions, tooltips and mod labels. Returns kind, id, name, snippet (<b> markers), rank. Supports "phrases", prefix*, and name:term to restrict to the name column.',
+      'Full-text search (FTS5) over names, descriptions, tooltips and mod labels. Returns kind, id, name, snippet (<b> markers), rank. Default input is safe-quoted: "phrases", prefix*, and name:term (name column) work, but the words OR, AND, NOT and NEAR are ordinary terms. Pass raw=true to send the MATCH expression to FTS5 unchanged (e.g. fire OR cold, NEAR(void penetration, 5), name:ward*); a syntax error is returned as a tool error. Columns: name, text.',
     shape: {
       query: z.string(),
       kinds: z.array(z.string()).optional().describe("filter, e.g. [unique, ability]"),
       limit: z.number().int().min(1).max(200).default(20),
+      raw: z.boolean().default(false).describe("pass query to FTS5 MATCH unchanged (OR, NEAR, parentheses); default false = safe-quoted"),
     },
-    run: (ctx, a) => t.search(ctx, a.query, a.kinds, a.limit ?? 20),
+    run: (ctx, a) => t.search(ctx, a.query, a.kinds, a.limit ?? 20, a.raw ?? false),
   },
   {
     name: "get",

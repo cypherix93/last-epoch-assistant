@@ -125,8 +125,12 @@ export function ftsQuery(input: string): string {
   return parts.join(" ");
 }
 
-export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): Row {
-  const q = ftsQuery(query);
+/**
+ * FTS5 search. Default: the text is safe-quoted (ftsQuery). raw=true passes the MATCH expression through unchanged
+ * (OR, AND, NOT, NEAR(...), prefix*, column: filters, parentheses); an FTS5 syntax error comes back as a tool error.
+ */
+export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20, raw = false): Row {
+  const q = raw ? query.trim() : ftsQuery(query);
   if (!q) throw new ToolError("Empty search query");
   const params: unknown[] = [q];
   let kindSql = "";
@@ -136,12 +140,17 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): R
   }
   const lim = Math.max(1, Math.min(limit, 200));
   params.push(lim * 6);
-  const cand = all(
-    ctx,
-    `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
+  let cand: Row[];
+  try {
+    cand = all(
+      ctx,
+      `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
        FROM search WHERE search MATCH ?${kindSql} ORDER BY rank LIMIT ?`,
-    ...params,
-  );
+      ...params,
+    );
+  } catch (e) {
+    throw new ToolError(`FTS5 error for MATCH ${JSON.stringify(q)}: ${(e as Error).message}`);
+  }
   // bm25 is nearly flat for short names; boost exact / prefix name matches and player abilities (lower rank = better).
   const plain = query.trim().toLowerCase();
   const player = new Set(
