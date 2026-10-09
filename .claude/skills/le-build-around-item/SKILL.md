@@ -41,7 +41,7 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
 - `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
-- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops x/y and the UI fields but keeps descriptions truncated at 400 chars (`keep_descriptions:false` drops them); every node stat line carries `stat_kind` / `modifier_type`, `modifier_source` (`structured` = decompiled node code, `inferred` = label), `code_ref`, `property_hint` (the tooltip category of a 5000+ id, named in the global `node_tooltip_properties` list) and a `warning` when `label_mismatch` is 1 (not a plain stat: read the label); `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
 - `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
 - Community builds (Maxroll guides, 1.5.2, label **X**; shapes and caveats in **le-data-query**, "Community builds"): `builds({class?, mastery?, ability?, any_skill?, item?, affix?, tier?, tier_list?, playstyle?, season?, limit?})`, `build({id? | slug?, tab?, sections?})`, `item_usage({name? | unique_id? | affix?, slot?, tab?, class?, mastery?})`, `slot_meta({slot, class?, mastery?, ability?, tab?, kind?})`. Used in Phase C2. If the tools are missing on your checkout, use `sql` on the views (Q18-Q19 below, and **le-bis-selection** example 3).
 
@@ -64,7 +64,7 @@ Knowledge pages (read the Summary section of each before you rely on it):
 - `knowledge/mechanics/stat-model.md`: how every source reduces to `Stat` records.
 - `knowledge/mechanics/` pages: damage, defenses, ailments, ward/sustain, speed/mana, minions, enemies.
 - `knowledge/reference/` pages: classes and masteries, items, uniques/sets/legendary, idols and blessings, skills and trees, endgame systems.
-- `docs/schema.md`: tables, views and example queries. `docs/data-sources/enums.md`: tag bits, SP ids, 5000+ node properties.
+- `docs/schema.md`: tables, views and example queries. `docs/data-sources/enums.md`: tag bits, SP ids; the 5000+ node tooltip categories are named in the `node_tooltip_properties` table (global list, also returned as `property_hint`).
 
 ## Procedure
 
@@ -178,7 +178,7 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
     - for rare or exalted slots, the required affixes by name and id with a tier target (T5 craftable, T6-T7 drop, T8 primordial);
     - the LP or legendary plan for the item (Q10);
     - which slot carries which resistance.
-20. **Idols:** shapes and affixes by name and id (Q11), class restrictions, and the one-of-each rule for unique idols. **Read idol sizes and values from the data, never from a community build:** the Minor Idol is 1x1, and every idol affix range must be scaled by `(1 + idol AEM) / (1 + affix standard AEM)` (community views print unscaled values; the judge found both challenge proposals wrong on idol values). Use the two idol queries in **le-build-audit** Step 1, check 1, and count the grid cells.
+20. **Idols:** shapes and affixes by name and id (Q11), class restrictions, and the one-of-each rule for unique idols. **Read idol sizes and values from the data, never from a community build:** the Minor Idol is 1x1, and every idol affix range is scaled by `(1 + idol AEM) / (1 + affix standard AEM)`: read it from `v_idol_affix_values` (idol size WxH, `scale_factor`, `stored_min/max` and scaled `value_min/max`; `v_build_items_named.affixes_text` already prints the scaled value with an `x<factor>` marker, but a hand-copied guide number is unscaled; the judge found both challenge proposals wrong on idol values). Use the idol queries in **le-build-audit** Step 1, check 1, and count the grid cells. The scaled values follow the decompiled formula and are unverified in game (label **D?**).
 20b. **Acquisition.** For every unique in the plan read `uniques.can_drop_randomly`. Each unique with 0 needs a source from [endgame-systems.md#uniques-that-do-not-drop-randomly] or an explicit "farm unknown (U)" flag in the gear table and on the Build card; a proposal never lists such an item as obtainable without one (Q3 returns the flag).
 21. **Blessings:** one per timeline (Q12), normal vs Grand, chosen to close the defense or mana gaps.
 22. **Damage path.** Apply **le-damage-reasoning**: the main skill's tags, added (x ADE) / increased / more per bucket, the crit or ailment path, penetration, and "vs dummy" vs "vs level-100 boss". Name every more-multiplier and its source id.
@@ -202,7 +202,7 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
 
 27. **Label every number** D / A / G / X / U, from the source it came from (`knowledge/README.md`, "Confidence legend"). Values you computed yourself inherit the weakest input label. Illustrative inputs are **U**.
 28. **Flag the uncertainty.**
-    - Every skill-tree node whose stat property is 5000+ or display-only (`modifier_type` NULL) makes the damage uncertain, because its type comes from code, not the tooltip. List these nodes.
+    - Every skill-tree node line that is `modifier_source = 'inferred'` (kind guessed from the label, **U**), has `stat_kind = 'unknown'` / `modifier_type` NULL, is a `skill_parameter`, or has `label_mismatch = 1` makes the damage uncertain: a 5000+ id has a named category (`property_hint`, from `node_tooltip_properties`) but the effect comes from `code_ref` and the label, not the category. List these nodes with their `stat_kind` and `modifier_source`.
     - Every D? effect.
     - Every "directly" clause on a triggered path.
 29. **Anti-synergy sweep.** Read every catalogue entry tagged `anti-synergy` whose other tags overlap the plan. Run Q14 over the planned uniques for "cannot", "no ward", "do not" and "less" clauses. Check:
@@ -481,7 +481,7 @@ ORDER BY (mastery_name = ?) DESC, slug;
 
 - Every number carries a label: D, A, G, X or U. A computed number takes the weakest label among its inputs. No unlabelled numbers in the proposal. Ids and indices (uid 33, PP 664, `lb23il:28`, affix 330) are identifiers, not quantities, and need no label.
 - Write "vs dummy" or "vs level-N monster" next to any damage figure. Level damage reduction alone is x0.13 at level 100 (`knowledge/mechanics/damage-pipeline.md`).
-- Skill-tree mutators (stat ids 5000 and up, display-only node stats) are coded per skill. Name each one you rely on and mark its contribution "type unknown (A magnitude)".
+- Skill-tree mutators (stat ids 5000 and up, `skill_parameter` lines, `label_mismatch` lines) are coded per skill. Name each one you rely on with its category (`property_hint`) and `code_ref`; a `structured` kind is **D**, an `inferred` or `unknown` kind is "type unknown (A magnitude)" or **U**.
 - Never write "meta", "best", "proven", "top-tier" or "S-tier". Write "plausible", "to test", "should".
 - Compare the plan against every overlapping catalogue entry, anti-synergies first. List the entries checked by heading.
 - List assumptions and failure modes explicitly, even when they feel obvious.

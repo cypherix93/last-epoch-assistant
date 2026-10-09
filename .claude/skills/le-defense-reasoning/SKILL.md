@@ -117,7 +117,7 @@ GROUP BY a.affix_id, bt.base_type_id, m.property
 ORDER BY m.property, bt.base_type_id, best DESC;
 ```
 
-Passive-tree and skill-tree defensive nodes are display-only text; read `stats_text`:
+Passive-tree and skill-tree defensive node lines carry a kind (`stat_kind` / `modifier_type`, `modifier_source` `structured` = **D** or `inferred` = **U**) but their values are display text; read `stats_text` (`[more]` / `[increased]` / `[added]` mark the kind, `?` an inferred one) and for any `label_mismatch = 1` line the `label` and `code_ref`, not the property name:
 
 ```sql
 SELECT mastery, name, max_points, stats_text

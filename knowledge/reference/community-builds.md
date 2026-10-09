@@ -20,13 +20,13 @@ Source: the Maxroll build-guide index and one planner profile per guide (`data/r
 | Builds (guide x planner profile) | 74 | community_builds |
 | of which primary profile of their guide | 73 | community_builds.is_primary |
 | Planner tabs (Starter / Endgame / Aspirational) | 241 | community_build_profiles |
-| Items and idols | 4241 | community_build_items |
-| Item affix lines | 12197 | community_build_item_affixes |
-| Distinct uniques used | 203 | community_build_items.unique_id |
+| Items and idols | 4453 | community_build_items |
+| Item affix lines | 12757 | community_build_item_affixes |
+| Distinct uniques used | 204 | community_build_items.unique_id |
 | Blessing picks | 1020 | community_build_blessings |
 | Passive node allocations | 5358 | community_build_passives |
 | Skill rows | 1741 | community_build_skills |
-| Skill-tree node allocations | 15503 | community_build_skill_nodes |
+| Skill-tree node allocations | 15500 | community_build_skill_nodes |
 | Classes covered | 5 | community_builds.class_id |
 | Seasons in the data | Season 4; Season 5 Rage Of The Frostborn | community_builds.season |
 

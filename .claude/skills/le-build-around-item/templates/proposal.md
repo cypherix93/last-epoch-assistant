@@ -91,7 +91,7 @@ Gate result: <dropped candidates and why>. Novelty pairing: <#>. Chosen: <#, #>.
 | 4 | | | | |
 | 5 | | | | |
 
-Nodes whose stats are skill-local (5000+) or display-only: <list>. Their modifier type is not known from data.
+Nodes whose stat kind is `inferred` (**U**), `unknown`, a `skill_parameter` or a `label_mismatch` line (5000+ ids are named by `property_hint`, from `node_tooltip_properties`; the effect itself is in `code_ref` and the label): <list>. Quote the kind and `modifier_source` for each.
 
 ### 5.3 Passives (priority order)
 

@@ -98,7 +98,7 @@ GROUP BY a.affix_id ORDER BY a.name;
 
 **Ledger checks from the judge review (run all five for every build; they caught real errors).**
 
-1. **Idol sizes and idol values come from the data, never from a community build or memory.** The idol recipe above does not give a grid size. Read the size and the idol's affix effect modifier (AEM) from the base type, then scale every idol affix range: `value factor = (1 + idol AEM) / (1 + affix standard AEM)`, stored tier ranges are authored for the affix's own standard AEM ([item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula], [idols-and-blessings.md]). The Minor Idol is **1x1** (not 2x1), and `v_build_items_named.affixes_text` prints **unscaled** values, so copying a community idol line overstates or understates it (judge findings: a Grand Idol line authored at 0 standard AEM is x0.67, a line authored at -0.33 on a Grand Idol is x1.00 and on an Ornate Idol x1.49).
+1. **Idol sizes and idol values come from the data, never from a community build or memory.** Every idol line in the ledger prints the idol's grid size (WxH) and the applied scale factor: read both from `v_idol_affix_values` (`idol`, `idol_size`, `std_aem`, `item_aem`, `scale_factor`, `stored_min/max` = the data, `value_min/max` = the in-game range on that idol). The factor is `(1 + idol AEM) / (1 + affix standard AEM)`, applied to the stored tier range and rounded to the affix's grid ([item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula], [idols-and-blessings.md#idol-affix-value-scaling-d-formula-values-unverified-in-game-u]). The Minor Idol is **1x1** (not 2x1). `v_build_items_named.affixes_text` prints the scaled value with an `x<factor>` marker, but a number copied from a guide's text or from the tier table is unscaled, so copying it overstates or understates the idol (judge findings: a Grand Idol line authored at 0 standard AEM is x0.67, a line authored at -0.33 on a Grand Idol is x1.00 and on an Ornate Idol x1.49). The scaled ranges follow the decompiled formula and are unverified in game: label them **D?**, not **D**.
 
 ```sql
 SELECT bt.base_type_id, bt.name, bt.size_x || 'x' || bt.size_y AS grid, bt.affix_effect_modifier AS idol_aem
@@ -108,25 +108,27 @@ ORDER BY bt.base_type_id;
 ```
 
 ```sql
-SELECT a.affix_id, a.name, a.standard_affix_effect_modifier AS std, bt.name AS idol,
-       bt.affix_effect_modifier AS idol_aem,
-       round((1 + bt.affix_effect_modifier) / (1 + a.standard_affix_effect_modifier), 3) AS value_factor
-FROM affixes a
-JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
-JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.base_type_id BETWEEN 25 AND 33
-WHERE a.affix_id IN (119, 912, 897, 1054)
-ORDER BY a.affix_id, bt.base_type_id;
+SELECT v.affix_id, v.affix_name, v.idol, v.idol_size AS grid_wxh, v.tier, v.std_aem, v.item_aem, v.scale_factor,
+       v.stored_min || '-' || v.stored_max AS stored, v.value_min || '-' || v.value_max AS in_game
+FROM v_idol_affix_values v
+WHERE v.affix_id IN (119, 912, 897, 1054) AND v.ord = 0
+  AND v.tier = (SELECT max(x.tier) FROM v_idol_affix_values x WHERE x.affix_id = v.affix_id AND x.base_type_id = v.base_type_id)
+ORDER BY v.affix_id, v.base_type_id;
 ```
 
-(Replace the affix list with the build's idol affixes. Count the grid cells the idols need against the layout; a 1x1 idol in a "2x1" slot leaves cells empty.)
+(Replace the affix list with the build's idol affixes and use the build's tier instead of the top tier. Count the grid cells the idols need against the layout; a 1x1 idol in a "2x1" slot leaves cells empty. An affix that does not roll on that idol size has no row: that is the "does not roll" ledger problem.)
 
-2. **Acquisition: every unique with `can_drop_randomly` = 0 needs a source or a "farm unknown" flag.** Such uniques are outside the random drop pool and the data records no source for them. Look each one up in [endgame-systems.md#uniques-that-do-not-drop-randomly] (boss, dungeon, arena, Shade tables are named there); if the table says "not in data", write "farm unknown (U)" in the ledger and in the build's gear plan. Do not list it as obtainable.
+2. **Acquisition: every unique with `can_drop_randomly` = 0 needs a source or a "farm unknown" flag.** Such uniques are outside the random drop pool. Read the source from `uniques.drop_source` (a summary of `unique_drop_sources`; `drop_source_count` counts the rows), or `get({"kind":"unique","id":365})` whose `obtain` line says it in one sentence and `drop_sources` has the chance, empowered-only flag and minimum corruption. A primordial or cocooned unique has a `drop_source` that is only a note (no drop table in the data): say so. Where `drop_source` is NULL and `can_drop_randomly` = 0 the source is not in data (4 uniques, e.g. Avarice 131): write "not in data: farm unknown (U)" in the ledger and in the build's gear plan, and do not list it as obtainable. [endgame-systems.md#uniques-that-do-not-drop-randomly] has the same table next to the knowledge-page sources.
 
 ```sql
-SELECT unique_id, name, can_drop_randomly FROM uniques WHERE unique_id IN (213, 434, 152, 180) ORDER BY unique_id;
+SELECT unique_id, name, can_drop_randomly, drop_source, drop_source_count,
+       CASE WHEN can_drop_randomly = 0 AND drop_source IS NULL THEN 'not in data: farm unknown (U)'
+            WHEN can_drop_randomly = 0 THEN 'sourced (read drop_source)'
+            ELSE 'random drop' END AS acquisition
+FROM uniques WHERE unique_id IN (213, 434, 152, 180, 131) ORDER BY unique_id;
 ```
 
-(Replace the id list with the build's uniques; rows with `can_drop_randomly` 0 are the ones that need a source. 156 of the 486 uniques in the database have the flag.)
+(Replace the id list with the build's uniques; rows with `can_drop_randomly` 0 are the ones that need a source. 156 of the 486 uniques in the database have the flag: 104 have a source row, 48 are primordial / cocooned notes, 4 have none.)
 
 3. **Nearest-build check covers every guide, not only `is_specialized`.** `builds` with `any_skill` and the `is_specialized` flag miss leveling guides and profiles whose skill carries tree points but is not flagged. Query the skill rows and the allocated nodes directly and list every guide that has the skill with tree points, with its profile (the example finds a Spellblade leveling guide whose "Final Setup" profile has 14 Volcanic Orb tree points while `is_specialized` is 0):
 
@@ -141,7 +143,7 @@ WHERE s.ability_id = 'vo54'
 ORDER BY tree_points DESC, b.slug;
 ```
 
-State the nearest build (any mastery, leveling guides included) and how the proposal differs. "No node allocated" must be checked here, not inferred from `is_specialized`. A guide's `mastery_name` can differ from the mastery the guide is filed under (for example a Mage-level leveling guide), so also search by skill.
+State the nearest build (any mastery, leveling guides included) and how the proposal differs. "No node allocated" must be checked here, not inferred from `is_specialized`: `community_build_skills.has_tree_points` (points > 0) and `node_count` carry the same fact without the subquery, and a row with `is_specialized = 0` and `has_tree_points = 1` is a planner leftover with no effect in game (the `builds` tool marks it `leftover_tree` in `ability_tabs`). A guide's `mastery_name` can differ from the mastery the guide is filed under (for example a Mage-level leveling guide), so also search by skill.
 
 4. **"Riskiest assumption" is the link with the weakest label**, not the most interesting or the best-supported one. Rank the chain links by label (U first, then D?, then A/D/G) and name the lowest. Per-point tree values read from `skill_tree` (labelled A, linear per point, [damage-pipeline.md#5-increased-more-and-skill-trees]) are never the riskiest link; an engine-scope question (does a mastery bonus copy the weapon implicit; does a node doubling apply to ailment chance; does the trigger fire after a tag swap) is. Give the in-game test for that link first.
 
@@ -266,7 +268,7 @@ Each suggestion lists: change, where (slot/node/idol), data id, estimated effect
 ```
 # Build audit: <class>/<mastery>, level <L>, game <version>
 Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | idols ... | blessings ...
-## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size, idol size or value read from a guide instead of the data, uniques with `can_drop_randomly` 0 and their source or "farm unknown")
+## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size, idol size or value read from a guide instead of the data, uniques with `can_drop_randomly` 0 and their `drop_source` or "not in data: farm unknown"; idol lines without WxH and scale factor)
 ## Verdict (3 lines): strongest point / weakest point / first fix  (or "partial audit: <sections skipped>")
 ## Offense   skill, DPS vs dummy, DPS vs L100 monster, bucket table, scaling gaps, dead stats    [labels]
 ## Defense   resistances (shown/uncapped), armour/dodge/block %, endurance, pool, hits to die, freeze / stun answer (or "none")    [labels]
