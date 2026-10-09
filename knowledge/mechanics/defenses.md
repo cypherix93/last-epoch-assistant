@@ -255,6 +255,48 @@ maxRawHit = pool_post / (resMult × DT × (1 − armourDR) × Π other mults)   
 avgEHP    = maxRawHit / ((1 − dodge)(1 − parry)(1 − 0.35·glance)(1 − block·blockDR)(1 + cc(cm−1)))   # D
 ```
 
+## 13. Freeze, stun, slow and chill answers
+
+What the data offers a player against crowd control. Queried on 2026-10-09 from `v_mods_named`, `v_unique_summary`, `v_affix_summary` and `v_skill_node_summary` (game 1.5.2 database); the stat names are the ones the tooltips use. Values are per-roll ranges; the unique id is `uid`. "Corrupted" = `special_affix_type` 6 (an affix that only rolls through corruption). **A** unless a row says otherwise. Whether a monster can freeze a player at all, and how often, is not in the data; the freeze and stun formulas ([ailments.md](ailments.md#6-freeze)) are written for any target. **U**
+
+**Freeze: the data has no freeze immunity and no freeze avoidance stat.** The only freeze-specific answers are the two potion cleanses and the generic cleanses below. A build that has none of them must say "no freeze answer". **A**
+
+| Threat | Answer | Source (uid / affix / node) | Slot | Value | Notes |
+|---|---|---|---|---|---|
+| Freeze and stun | Cleanse on potion use | Shattered Chains (uid 180) | Belt, level 70, not a random drop | "Using a Potion Cleanses Stun and Freeze" (flag, hidden mod) | also "Stun Immunity for 4 seconds when you use a Potion" |
+| Freeze and stun | Cleanse on potion use | Heirloom of the Last Nomad (uid 84) | Ring, level 63 | same flag | its "Duration of Stuns Received" line is +0.80 to +0.90 (opposite sign to the other three sources, tooltip silent): possible downside, sign **U** |
+| Ailments in general | Cleanse on potion use (chance) | Belt prefix 75 "Ward and Ailment Cleansing on Potion Use"; Immolator's Oblation (uid 258, belt, not a random drop) | Belt | chance line value 1 at every tier, plus 20-500 ward on potion use (affix 75) | "all ailments": whether freeze and stun are included is **U** |
+| Ailments in general | Cleanse on Evade (chance) | Corrupted boots prefix 991 | Boots | value 1; also up to 3% increased ailment damage taken | **U** for freeze and stun |
+| Ailments in general | Cleanse on skill use or movement | Battle Bloom `fl13:27` (landing), Cleansed by the Elements `sb44eQ:25`, Cleansing Light `pa67ju:7`, Cleansing Steam `smbmb:21`, Molting `shiif:6`, Panacea `sm87r4:12` (chance 6%/pt), Purification `ah443:16`, Purifying Gate `fr4wl:6`, Purging Shout `wc57:15`, Eterra's Renewal `wb8fo:10`, Unholy Renewal `pr5fm:32`, Sanctuary Threshold `gy2dm:20` | skill trees | node text: "cleanse (negative) ailments" | freeze and stun coverage **U**; each only works while the skill is in use |
+| Freeze and stun | Bigger denominator | Max health plus current ward divide both chances | any | see [catalogue.md](../interactions/catalogue.md#ward-makes-you-harder-to-stun-and-freeze) | formula **A/G**; the boss "effective health" factor 1.5 is for bosses as targets |
+| Stun | Immunity, permanent | Mask of Indifference (uid 434, not a random drop); corrupted body-armour prefix 1012 "Cannot be Stunned" (+5-19% Evade cooldown duration) | Helmet; Body Armor | flag | Mask also gives Blind, Bleed, Slow, Chill and Shock immunity |
+| Stun | Immunity, conditional | Shattered Chains (4 s after a potion); Rock Phase `te44:24` (4 s after Teleport); Huge Idol prefix 237 Phasing (2-3 s after Teleport); The Inevitable (uid 347, boots, not a random drop: while using Erasing Strike); Unbroken Charge (uid 450, shield) and corrupted shield prefix 1080 (not by Blocked hits; 1080 costs 10-100 block effectiveness); Thick Padding `ma6hdr:18` (Manifested Armor) | various | flag | |
+| Stun | Immunity, minions or totems only | Cruelty (uid 341), The Fang (uid 60), Usurper's Mandate (uid 230), Howl of the West Wind (uid 302, wolves), Unflinching `kn-1:32`, Natural Affinity `eb5656:5`, Relentless `wo42:25`, Ironbark `pr-1:107`, Endless Rampage `be36ar:9` | | flag | does not protect the player |
+| Stun | Avoidance (stat 12) | Jormun's Thirst (uid 464, belt) 600-900; Isadora's Revenge (uid 5, helmet) 180-300; Architects of Astral Blood (uid 448, body, not a random drop) 72-168; Reliquary Nest (uid 433, relic, not a random drop) 60-100; Strong Mind (uid 54, amulet): 200% of max mana as stun avoidance (**D**) | | see value | base is 250 + 5 per character level (**A/G**) |
+| Stun | Avoidance, crafted | Ring suffix 51 (T7 701-900, T8 1440-1800); Belt or Amulet suffix 29 with health (T7 551-750, T8 1200-1500); Helmet 799 Isadora's Revenge Reforged 50-600 | | | tier ranges from `mods` |
+| Stun | Avoidance, implicits | Apocalypse Plate 113-253, Burial Plate 57-139, Meruna Carapace 72-372 (body armour); Umbral Hood 54-81 (helmet); Captain's Ring 40-95 (ring) | | | |
+| Stun | Avoidance, idols | Minor or Huge Idol 136 (200-450 before idol scaling); Large or Grand Idol 1054 (25-40); weaver idols 830 Small (78-100) and 844 Minor (78-100 plus 5-10% increased stun immunity duration) | idol | | idol values must be rescaled by the idol's effect modifier ([idols-and-blessings.md](../reference/idols-and-blessings.md)) |
+| Stun | Avoidance, passives and skills | Relentless `kn-1:4` (+50/pt, also +100% stun immunity duration), Honor `kn-1:72` (+50/pt), Unflinching `kn-1:32` (+100/pt), Earthen Supremacy `pr-1:62` (+5 per Attunement), Desperate Shroud `ds34l:8` (+2 per 10 missing health), Resonant Plasma `te44:15` (+50 after Teleport), Faithguard `st31io:5` (allies only) | | | |
+| Stun | Reduced duration | Chains of Uleros (uid 18, belt) -24%; Raindance (uid 147, boots) -25% to -50%; Unflinching `kn-1:32` -3%/pt; Shield Wall `kn-1:89` "5% less stun duration on you"/pt (sign **U**); the Void Essence buff (ailment 26) -15% | | | |
+| Stun | Longer immunity after a stun | Orian's Eye (uid 61, amulet) 75-150%; Relentless `kn-1:4`; weaver idol 844 | | | the immunity window only starts after you were stunned |
+| Slow | Immunity | Fingers of the Phantom Mire (uid 359, gloves); Shattered Worlds (uid 413, relic, not a random drop); Unbroken Charge (uid 450); Mask of Indifference (uid 434); The Inevitable (uid 347); corrupted prefix 1001 (Belt, Boots; reduces Haste effect on you by 3-25%); corrupted Adorned Idol 1043 | | flag | |
+| Chill | Immunity | Snowblind (uid 2, helmet, level 10); Vestige of Imprisonment (uid 487, body armour, level 80, not a random drop); Mask of Indifference (uid 434); The Inevitable (uid 347); corrupted prefix 1006 (Gloves, Boots; up to -7% fire resistance); corrupted Adorned Idol 1031 | | flag | |
+| Chill and slow | Reduced effect | Dread Form `kn-1:26`: -50% Chill Effect and -50% Slow Effect on you (no per-point scaling) | Knight passive | -50% | players already take Chill and Slow at 50% effect ([ailments.md](ailments.md#7-ailments-on-the-player), **G/A**); stacking with Dread Form **U** |
+| Shock (raises stun chance) | Immunity | Lightning in a Bottle (uid 422, belt); Mask of Indifference (uid 434) | | flag | each Shock stack adds +8% chance to be stunned against players, so a shock immunity also removes that |
+
+Counts behind the statements: freeze-specific cleanse = 2 uniques (180 and 84), 0 affixes, 0 passive or skill nodes; permanent stun immunity = 1 unique (Mask of Indifference, not a random drop) plus 1 corrupted affix; no property or text in the data reads "cannot be frozen". **A**
+
+```sql
+SELECT DISTINCT source_kind, source_id, source_name, property, property_name, value_min, value_max
+FROM v_mods_named
+WHERE source_kind IN ('unique_mod', 'affix_tier')
+  AND (property IN (12, 55, 56, 71)
+       OR (property = 98 AND (property_name LIKE '%Cleanse%' OR property_name LIKE '%Immunity%' OR property_name LIKE '%Stunned%')))
+ORDER BY property, property_name, source_name;
+```
+
+Red flag for build reviews: a build with a freeze or stun threat and none of the rows above must report "no freeze answer" (and "no stun answer") rather than silence. How often content freezes or stuns players is not in the data. **U**
+
 ## Worked example
 
 Level-100 character in an empowered monolith (area level 100, corruption 300) hit by a rare melee monster.

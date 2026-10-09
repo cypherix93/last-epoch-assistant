@@ -96,6 +96,57 @@ GROUP BY a.affix_id ORDER BY a.name;
 
 **Partial audits.** Minimum inputs per section: Offense needs the main skill and its gear/tree damage lines; Defense needs health, resistances and the main layer (armour, dodge, block or ward); Sustain needs the recovery sources; Bottlenecks (Step 7) need a bucket table with rolls, so skip it without rolls. If fewer than the class, the five skills and the gear names are known, return the ledger plus an input request instead of a full audit. Missing tree allocations: list the tree's downside nodes (Step 9 query) and the few nodes whose tags match the build, and say the allocation was not audited. Every section that cannot be filled gets a "Needed to continue" list naming the exact missing inputs.
 
+**Ledger checks from the judge review (run all five for every build; they caught real errors).**
+
+1. **Idol sizes and idol values come from the data, never from a community build or memory.** The idol recipe above does not give a grid size. Read the size and the idol's affix effect modifier (AEM) from the base type, then scale every idol affix range: `value factor = (1 + idol AEM) / (1 + affix standard AEM)`, stored tier ranges are authored for the affix's own standard AEM ([item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula], [idols-and-blessings.md]). The Minor Idol is **1x1** (not 2x1), and `v_build_items_named.affixes_text` prints **unscaled** values, so copying a community idol line overstates or understates it (judge findings: a Grand Idol line authored at 0 standard AEM is x0.67, a line authored at -0.33 on a Grand Idol is x1.00 and on an Ornate Idol x1.49).
+
+```sql
+SELECT bt.base_type_id, bt.name, bt.size_x || 'x' || bt.size_y AS grid, bt.affix_effect_modifier AS idol_aem
+FROM item_base_types bt
+WHERE bt.base_type_id BETWEEN 25 AND 33
+ORDER BY bt.base_type_id;
+```
+
+```sql
+SELECT a.affix_id, a.name, a.standard_affix_effect_modifier AS std, bt.name AS idol,
+       bt.affix_effect_modifier AS idol_aem,
+       round((1 + bt.affix_effect_modifier) / (1 + a.standard_affix_effect_modifier), 3) AS value_factor
+FROM affixes a
+JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+JOIN item_base_types bt ON bt.base_type_id = r.base_type_id AND bt.base_type_id BETWEEN 25 AND 33
+WHERE a.affix_id IN (119, 912, 897, 1054)
+ORDER BY a.affix_id, bt.base_type_id;
+```
+
+(Replace the affix list with the build's idol affixes. Count the grid cells the idols need against the layout; a 1x1 idol in a "2x1" slot leaves cells empty.)
+
+2. **Acquisition: every unique with `can_drop_randomly` = 0 needs a source or a "farm unknown" flag.** Such uniques are outside the random drop pool and the data records no source for them. Look each one up in [endgame-systems.md#uniques-that-do-not-drop-randomly] (boss, dungeon, arena, Shade tables are named there); if the table says "not in data", write "farm unknown (U)" in the ledger and in the build's gear plan. Do not list it as obtainable.
+
+```sql
+SELECT unique_id, name, can_drop_randomly FROM uniques WHERE unique_id IN (213, 434, 152, 180) ORDER BY unique_id;
+```
+
+(Replace the id list with the build's uniques; rows with `can_drop_randomly` 0 are the ones that need a source. 156 of the 486 uniques in the database have the flag.)
+
+3. **Nearest-build check covers every guide, not only `is_specialized`.** `builds` with `any_skill` and the `is_specialized` flag miss leveling guides and profiles whose skill carries tree points but is not flagged. Query the skill rows and the allocated nodes directly and list every guide that has the skill with tree points, with its profile (the example finds a Spellblade leveling guide whose "Final Setup" profile has 14 Volcanic Orb tree points while `is_specialized` is 0):
+
+```sql
+SELECT b.slug, b.mastery_name, p.name AS profile, s.is_specialized, s.on_bar,
+       (SELECT sum(n.points) FROM community_build_skill_nodes n
+         WHERE n.build_profile_id = s.build_profile_id AND n.ability_id = s.ability_id) AS tree_points
+FROM community_build_skills s
+JOIN community_build_profiles p ON p.build_profile_id = s.build_profile_id
+JOIN (SELECT DISTINCT build_id, slug, mastery_name FROM community_builds) b ON b.build_id = p.build_id
+WHERE s.ability_id = 'vo54'
+ORDER BY tree_points DESC, b.slug;
+```
+
+State the nearest build (any mastery, leveling guides included) and how the proposal differs. "No node allocated" must be checked here, not inferred from `is_specialized`. A guide's `mastery_name` can differ from the mastery the guide is filed under (for example a Mage-level leveling guide), so also search by skill.
+
+4. **"Riskiest assumption" is the link with the weakest label**, not the most interesting or the best-supported one. Rank the chain links by label (U first, then D?, then A/D/G) and name the lowest. Per-point tree values read from `skill_tree` (labelled A, linear per point, [damage-pipeline.md#5-increased-more-and-skill-trees]) are never the riskiest link; an engine-scope question (does a mastery bonus copy the weapon implicit; does a node doubling apply to ailment chance; does the trigger fire after a tag swap) is. Give the in-game test for that link first.
+
+5. **Scratch-work isolation.** When several agents or runs share a scratch folder, each writes only under its own subfolder (`<scratch>/<agent-or-run-name>/`, including its own call log and SQL files) and never edits another's files or the shared root; a cited query must be re-runnable from the author's own subfolder.
+
 ### Step 2: offense summary
 
 For the main skill (and one secondary): run `le-damage-reasoning` Steps 0-11 (Step 12 as well for a minion skill). Report:
@@ -215,10 +266,10 @@ Each suggestion lists: change, where (slot/node/idol), data id, estimated effect
 ```
 # Build audit: <class>/<mastery>, level <L>, game <version>
 Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | idols ... | blessings ...
-## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size)
+## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size, idol size or value read from a guide instead of the data, uniques with `can_drop_randomly` 0 and their source or "farm unknown")
 ## Verdict (3 lines): strongest point / weakest point / first fix  (or "partial audit: <sections skipped>")
 ## Offense   skill, DPS vs dummy, DPS vs L100 monster, bucket table, scaling gaps, dead stats    [labels]
-## Defense   resistances (shown/uncapped), armour/dodge/block %, endurance, pool, hits to die    [labels]
+## Defense   resistances (shown/uncapped), armour/dodge/block %, endurance, pool, hits to die, freeze / stun answer (or "none")    [labels]
 ## Sustain   regen, leech, ward/s vs steady state, potions, time to refill
 ## Mana      cost/s per skill vs regen, max mana
 ## Mobility  speed, traversal, cooldowns
@@ -227,6 +278,7 @@ Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | ido
 ## Anti-synergies and traps (catalogue entries by name, with confidence)
 ## Ranked suggestions (rank, change, gain estimate + label, cost/trade-off, ids)
 ## Not determined from data (special effects, 5000+ node properties, inputs assumed U)
+## Riskiest assumption (the link with the weakest label, with its in-game test; never a per-point tree value) and nearest community build (any guide with the skill's tree points, leveling guides included)
 ## Needed to continue (exact missing inputs per skipped section)
 ## Sources (table+id, page#section)
 ```

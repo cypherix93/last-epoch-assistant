@@ -112,6 +112,13 @@
   "rows": 6
  },
  {
+  "page": "endgame-systems",
+  "table": "misc.nodrop_uniques",
+  "script": "gen_misc.cjs",
+  "source": "uniques.json (canDropRandomly = false; baseTypeName, levelRequirement, subTypes) and the prose of endgame-systems.md.tpl / uniques-sets-legendary.md.tpl for sources",
+  "rows": 159
+ },
+ {
   "page": "glossary",
   "table": "glossary.glossary",
   "script": "gen_glossary.cjs",

@@ -237,18 +237,27 @@ fraction of gained ward lost per effective second = 0.04 + 0.005·t′ + 3e−5�
 - Guide: boss ward decays faster the longer it has existed (unlike player ward, which decays faster the more you have). When a notch is consumed the boss gains ward based on max health and is stunned briefly. Not all bosses have boss ward. **G**
 - 1.1 notes: bosses no longer have variable damage reduction based on damage-taken rate; most bosses have two breakpoints, chapter/timeline/dungeon bosses more. **G**
 
+## Boss health is not in the data
+
+There is no boss health table in the database or the vendored research: the formulas above give the health of **ordinary** monsters (normal, magic, rare) by level, rarity and corruption, and bosses only appear as multipliers (`bossHealthModifier` 0.155, `Mb` 1.155 or x2.1 without boss ward, +5% level DR, the 1.5x effective health for stun and freeze, boss ward breakpoints). The per-boss base health, the number of health bars and the ward pools of individual bosses (Aberroth, Uber Aberroth, Morditas, Timeline bosses) are not recorded. **Kill times against bosses cannot be computed from this toolkit; give relative DPS only** (same boss, same footing: [damage-pipeline.md#15-calibration-convention-ailment-ramp-and-caps]) and say so. A rare at the same corruption is the only health yardstick the data supports, and it is a yardstick, not a boss. **A/D**
+
 ## Worked example
 
 DPS needed to kill a level-100 rare monster in an empowered monolith at corruption 300 in 2 seconds (no resistances, no modifiers; `healthMod` 0). **D** (inputs from tables; `healthMod` assumption **U**)
 
+One unit system is used throughout: **dummy-equivalent** health, the damage a training-dummy figure has to reach, which is the formula's `health` with the level-DR factor left out (the "dummy-equivalent health" column of the table above). The `health` column of that table already contains the factor `(1 - DR)`; it is the same health expressed in post-reduction units (after the monster's level DR has been applied to your damage). Use either unit, never both in one calculation.
+
 ```
-health(100)      = (1 + 1.4667) × 5560 × (1 − 0.87) = 1783                                         # D?
-rare Health MORE = 1.6 + 100 × 0.02 / (1 + 0.5 × 2.5) = 2.489 → × 3.489                            # D
-corruption 300   = × (1 + 0.01 × 280.46) = × 3.805                                                 # D
-actual health    = 1783 × 3.489 × 3.805 = 23,670                                                    # D
-damage needed    = 23,670 / (1 − 0.87) = 182,080 dummy-equivalent damage                            # D
-in 2 s           = 91,040 dummy DPS, or 11,835 DPS as shown after level DR                          # D
-the same rare's melee hit ≈ 776 physical before player defenses (see defenses.md)                    # D?
+dummy-equivalent health(100) = (1 + 1.4667) x 5560 = 13,715                                          # D?
+rare Health MORE             = 1.6 + 100 x 0.02 / (1 + 0.5 x 2.5) = 2.489 -> x3.489                 # D
+corruption 300               = x (1 + 0.01 x 280.46) = x3.805                                       # D
+rare at corruption 300       = 13,715 x 3.489 x 3.805 = 182,050 dummy-equivalent health              # D
+in 2 s                       = 91,020 dummy DPS                                                       # D
+the same fight in post-reduction units: health 182,050 x (1 - 0.87) = 23,670 against a DPS of
+  91,020 x 0.13 = 11,833 as damage actually dealt (the same kill time)                              # D
+the same rare's melee hit ~ 776 physical before player defenses (see defenses.md)                    # D?
+corruption 1000 (x11.80 instead of x3.805): 13,715 x 3.489 x 11.80 = 564,600 dummy-equivalent,
+  73,400 in post-reduction units                                                                      # D
 ```
 
 ## Common misconceptions / pitfalls

@@ -251,6 +251,32 @@ SP131 / SP132 / SP133 = conditional penetration / crit chance / crit multiplier,
 
 DoT components (`isHit 0`) use the same pipeline with `src` carrying DoT instead of Hit: no crit, no armour (unless the target has SP118), no block or dodge, no variance. Ailments have fixed base damage, ADE 0 for Ignite/Bleed/Poison, and scale from generic, type, DoT and skill-tree modifiers of the applying skill. Full rules: [ailments.md](ailments.md).
 
+## 15. Calibration convention, ailment ramp and caps
+
+**Calibration convention (project rule, U).** Two builds are only comparable when their boss DPS is computed the same way. Report boss DPS as two numbers:
+
+| Number | What it includes | Use |
+|---|---|---|
+| (a) own-debuff-free | the build's gear, tree and attribute multipliers, penetration (a stat on the player), the rate capped by its resource budget (mana per second, cooldown, charges, channel limits); **no** resistance shred, **no** negative armour, **no** damage-taken debuffs the build must apply, and no multiplier that only exists "against shocked / ailed / debuffed enemies" unless the ailment is guaranteed by something that stays in (a) | compare builds, check a calibration build |
+| (b) with own debuffs | (a) plus those debuffs at a stated uptime and stack count (shred: -5% resistance per stack, -2% against bosses, 10 stacks, [section 8](#8-resistance-penetration-shred-damage-taken-outgoing)), negative armour ([defenses.md](defenses.md#armour)), conditional multipliers (SP117) | what the build really does on a boss |
+
+Always compare builds on (a). State which number a figure is. The two challenge calibrations (Erasing Strike Void Knight 983k, Runemaster Lightning Blast 407k) differed 2.41x; the whole difference came from convention: one included its own void shred and armour shred (resistance multiplier 1.46, negative armour 1.36, together x1.99) and was mana-limited, the other excluded shred but kept shock-conditional multipliers and never checked mana. On the same footing (debuffs stripped) the ratio was 1.22x. **U** (our convention; arithmetic from the judge recompute, shreds from section 8 **D/G**)
+
+**Ailment ramp (D, derived from [ailments.md](ailments.md#3-stacking-steady-state-refresh)).** Let `lambda` = stacks applied per second, `D` = total damage one stack deals over its full duration `T` (spread evenly, so `D/T` per second per stack), no stack cap reached and no stack lost early. Stacks present at time t < T = `lambda * t`, so:
+
+```
+DPS(t)               = lambda * D * t / T                      for t < T    (linear ramp, 50% of steady state at T/2)
+damage dealt by t    = lambda * D * t^2 / (2T)                 for t < T
+damage dealt by t    = lambda * D * (t - T/2)                  for t >= T   (steady-state DPS is lambda * D)
+average DPS over the first t seconds = lambda * D * t / (2T)   for t < T
+```
+
+Stacks take one full duration `T` to build (T = 3 s base, longer with duration bonuses, for example 3 x 1.33 = 4 s), so a fight shorter than `T` gets less than half of the steady-state damage, and a fight of length `t >= T` loses `lambda * D * T/2` against the steady-state figure. If the ailment has a stack cap `N`, the ramp ends at `t_c = N / lambda` when that is below `T`, and DPS stays at `N * D / T` afterwards. Example (inputs U): `lambda` 10/s, `D` 100, `T` 4 s: steady state 1,000 DPS; 500 damage by 2 s, 2,000 by 4 s, 8,000 by 10 s (800 average). A kill-time or "burst vs dummy" figure for an ailment build must use this ramp, not the steady-state DPS. Boss health pools are not in the data ([enemies-and-corruption.md](enemies-and-corruption.md#boss-health-is-not-in-the-data)), so only relative figures can be given.
+
+**Is penetration capped?** No cap found in data or decompile (U). The enemy resistance multiplier is `(res > 0.75 ? 0.25 : 1 - res) + pen` with "no floor" (planner spec `ENGINE.md` section 8, **D**) and the in-game guide says penetration "can reduce resistances to negative values" (**G**); the only penetration ceiling in the sources is the enemy area-level penetration against players (75% at area >= 75, **G/D**). A sum such as +182% penetration (Snowdrift at 18.2 Freeze Rate Multiplier) therefore adds 1.82 to the resistance multiplier in the formula; whether the live client clamps it is not stated anywhere (**U**).
+
+**Does the base 100% freeze rate multiplier count toward Snowdrift-style conversions?** Unknown (U). The freeze chance formula uses a multiplier with base 1 ([ailments.md](ailments.md#6-freeze)), but Snowdrift's stat (PP182, "Cold Penetration with Frostbite per 10% Freeze Rate Multiplier", 0.01 per 10%) carries the in-game note "Does not include Freeze Rate Multiplier granted by individual skills' trees or Freeze Rate Multiplier for specific ability types" (**A**, `player_properties` idx 182). Whether the implicit 1.0 (worth 10 x 0.01 = +10% penetration) is in the input is not stated; model it both ways (item and affix sources only, and plus 1.0) and say so. Same treatment for any other "per X% of a stat" conversion.
+
 ## Worked example
 
 Fireball (base Fire 25, ADE 1.25, crit 5% / ×2.0, `useDuration 0.75`, `speedScaler` CastSpeed, `speedMultiplier 1.0`) **A**, character with 40 Intelligence, target a level-100 normal monster with 0 fire resistance and 3 Fire Resistance Shred stacks. Gear numbers are illustrative inputs. **U**
@@ -290,6 +316,7 @@ The same build's ignite is computed in [ailments.md](ailments.md#worked-example)
 - Counting "increased melee damage" for Ignite from a melee skill. **G**
 
 ## Open questions
+- Whether penetration is capped or clamped by the live client (no cap in data, guide or decompile), and whether the base 1.0 freeze rate multiplier counts toward Snowdrift-style "per 10% Freeze Rate Multiplier" conversions ([section 15](#15-calibration-convention-ailment-ramp-and-caps)). **U**
 - Damage variance distribution (uniform ±20% or other) and whether it applies before crit. **U**
 - Whether intermediate damage values are rounded in the client (only roll quantization and final health/mana rounding are confirmed). **U**
 - Whether enemy CritAvoidance (reduced by Critical Vulnerability) exists on any monster and how it orders against ChanceToBeCrit. **U**

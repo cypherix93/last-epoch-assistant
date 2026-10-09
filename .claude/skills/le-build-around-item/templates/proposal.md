@@ -19,7 +19,8 @@
 | Community baseline | <item used in N of 74 guides; closest guide <slug> or none; differs by ...> (X) |
 | Rate check | <enabler throughput> vs <plain benchmark> (<label>) |
 | Scores (Dmg/Def/Sus/Gear/Nov) | <a/b/c/d/e = total> |
-| Riskiest assumption | <one line> -> test #1 |
+| Riskiest assumption | <the weakest-labelled link of the chain, with its label> -> test #1 |
+| Acquisition | <each unique with can_drop_randomly 0: source, or "farm unknown (U)"> |
 
 ## 1. The item
 

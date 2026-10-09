@@ -240,7 +240,20 @@ Sources: [defenses.md#worked-example], proxy arithmetic from [enemies-and-corrup
 
 ### Step 7: threats the pool does not cover
 
-Stun (`stun avoidance 250 + 5 x level` on players; stuns also come from Shock stacks: +8% chance per stack vs players), freeze, ailments on you (Chill/Slow 50% effect, Shock/shred/Poison 60% less), crit multiplier x2 for monster hits, damage over time under 10 seconds of ward decay, delayed damage. [ailments.md#7-ailments-on-the-player], [defenses.md#6-glancing-blow-parry-crit-avoidance]. Monolith monster mods that add resistances, crit, glancing, endurance and damage taken (the database has no monster mod with Penetration, SP 59; the query keeps 59 in the list to show that):
+Stun (`stun avoidance 250 + 5 x level` on players; stuns also come from Shock stacks: +8% chance per stack vs players), freeze, ailments on you (Chill/Slow 50% effect, Shock/shred/Poison 60% less), crit multiplier x2 for monster hits, damage over time under 10 seconds of ward decay, delayed damage. [ailments.md#7-ailments-on-the-player], [defenses.md#6-glancing-blow-parry-crit-avoidance].
+
+**Freeze, stun, slow and chill answers (mandatory when the build faces them).** The full table of every source in the data (immunity, cleanse on potion, avoidance, reduced duration or effect) is [defenses.md#13-freeze-stun-slow-and-chill-answers]. Facts to carry into a report: the data has **no freeze immunity and no freeze avoidance stat**; the only freeze-specific answers are the potion cleanses on Shattered Chains (uid 180, belt, not a random drop) and Heirloom of the Last Nomad (uid 84, ring), both "Using a Potion Cleanses Stun and Freeze" (**A**); generic "cleanse all ailments" sources (belt prefix 75, Immolator's Oblation uid 258, corrupted boots prefix 991, about a dozen skill-tree nodes) may or may not cover freeze and stun (**U**); max health plus ward is the denominator of both chances. List every such source in the data with this query, then match the build's own items and nodes by `source_id`:
+
+```sql
+SELECT DISTINCT source_kind, source_id, source_name, property, property_name, value_min, value_max
+FROM v_mods_named
+WHERE source_kind IN ('unique_mod', 'affix_tier')
+  AND (property IN (12, 55, 56, 71)
+       OR (property = 98 AND (property_name LIKE '%Cleanse%' OR property_name LIKE '%Immunity%' OR property_name LIKE '%Stunned%')))
+ORDER BY property, property_name, source_name;
+```
+
+Monolith monster mods that add resistances, crit, glancing, endurance and damage taken (the database has no monster mod with Penetration, SP 59; the query keeps 59 in the list to show that):
 
 ```sql
 SELECT source_id, source_name, property_name, tag_names, modifier_name, value_min, value_max
@@ -259,6 +272,7 @@ ORDER BY property, source_id LIMIT 60;
 - Single layer dependency: all mitigation from one stat (armour only or dodge only) with `pool_post / post < 5` hits.
 - No crit avoidance or crit-damage reduction (SP 89, SP 114) while the content has monsters with the Crit Chance monolith mod; no `DamageTaken` reduction anywhere.
 - Mana-before-health without mana regen/efficiency (inactive at <= 0 mana) or with ward expected to be protected (it is not).
+- **No freeze answer.** The build has no potion cleanse of Stun and Freeze (Shattered Chains uid 180, Heirloom of the Last Nomad uid 84) and no other cleanse source: say "no freeze answer" in the report, give the fallback (health plus ward in the freeze denominator, kill speed) and flag **U** for how often the content freezes players. Same for stun: no permanent stun immunity (Mask of Indifference uid 434, corrupted body-armour prefix 1012), no conditional immunity and low stun avoidance means "no stun answer". Never write "no freeze cleanse exists": two exist. [defenses.md#13-freeze-stun-slow-and-chill-answers]
 - Over-cap resistance believed to reduce enemy penetration (it does not).
 - Using character level instead of area level in armour/dodge/block tables.
 
@@ -273,6 +287,7 @@ Mitigation: armour <x> -> <DR>%, dodge <x> -> <p>%, block ..., glance ..., endur
 Pool: health ..., ward steady-state ..., mana-before-health ... ; pool_post ...
 Reference hits: <hit> raw -> post ; hits to die ; EHP (avg) ; labels
 Sustain: regen, leech, ward/s, potions
+Crowd control: freeze answer | stun answer | slow/chill answer (source + id, or "none")
 Red flags: ranked
 Fixes:       rank | change | where (slot / blessing / idol / node) | data id | effect (label) | trade-off
 Not determinable: <special effects, boss ability numbers>

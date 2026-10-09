@@ -161,6 +161,11 @@ Sources: G (`RageOfMorditas_*`), X (`maxroll_rage-of-morditas.md` 2026-10-01, pa
 - **Woven Echoes and The Woven**: join via Masque in the Haven of Silk after a Cemetery of the Erased; ranks give Weaver points and Woven Echoes for Memory Amber; Tombs and Cemeteries of the Erased (procedural side zones) drop Memory Amber, Weaver idols, woven echoes; Silken Cocoons release a Soul of the Erased or an Incubated Silk; the Altar to the Weaver places Woven Echoes (G, X). Details in `skills-and-trees.md`.
 - **Nexus / Traveler's Rest** (S5): Nexus UI shows timelines, Corruption, blessings, factions, Morditas activity; Echo of the World renamed Traveler's Rest with a waypoint (X).
 
+## Uniques that do not drop randomly
+`canDropRandomly = false` (A, `uniques.json`) removes a unique from the random unique drop pool: it comes from a specific encounter, a dungeon or arena reward, a vendor or crafting route, or is not obtainable at all. The data records **no** acquisition source for any of them. The table lists every such unique with its slot and level requirement (the unique's own value, else its sub type's). The "Source" column is filled **only** when a knowledge page already names where the unique comes from (the Timeline boss table, the Aberroth, Morditas and dungeon lists, the Weaver's Will note); otherwise it says "not in data", which means the toolkit cannot tell you where to farm it (flag "farm unknown", **U**). 159 records in `uniques.json` have the flag; the database holds 156 of them (ids 46, 69 and 248 are not loaded). A build that uses one of these must state its source or "farm unknown" ([le-build-audit](../../.claude/skills/le-build-audit/SKILL.md)).
+
+{{gen:misc.nodrop_uniques}}
+
 ## Pitfalls
 - Arena of Champions wave count: 40 (G) vs 50 (X). First-timeline level: 62 (A) vs 58 (X). Shade unique thresholds differ between X pages. Prefer A/G for planning.
 - Empowered level 100 is fixed; Corruption beyond 100 scales via f(c) (A) - Corruption does not raise level in Empowered.
