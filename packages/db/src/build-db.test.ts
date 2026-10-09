@@ -102,7 +102,7 @@ describe.skipIf(!hasRawData())("buildDatabase (real raw data)", () => {
 
   it("evaluates function-valued expected counts after the step and reports the community result", () => {
     const fake = { present: true, guides: 1, builds: 1, profiles_loaded: 1, profiles_missing: 0, tabs: 1, items: 0, affixes: 0,
-      resolution: "ok", unresolved_total: 0, unresolved: {}, unnamed_properties: [] };
+      resolution: "ok", unresolved_total: 0, unresolved: {}, inline_items: 0, warnings_total: 0, warnings: {}, unnamed_properties: [] };
     const community = {
       run: (ctx: { db: Database.Database }) => {
         insertRow(ctx.db, "community_builds", { build_id: 1, source: "maxroll", slug: "x", is_primary: 1, profile_status: "none", raw_json: "{}" });

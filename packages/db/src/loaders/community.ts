@@ -20,7 +20,9 @@
  *   - PD = JSON.parse(profile.data); PD.profiles[] are the tabs (Starter / Endgame / Aspirational),
  *     PD.activeProfile is the index of the tab the planner opens on (is_default).
  *   - TAB.items maps slot -> key into PD.items; TAB.idols[25] are keys too, index = y * 5 + x of
- *     the idol's top-left cell in the 5x5 altar grid.
+ *     the idol's top-left cell in the 5x5 altar grid. A slot / idol entry can also be the item OBJECT
+ *     itself (inline item, same shape as PD.items[k]; 212 entries in 12 of the 74 1.5.2 profiles):
+ *     it is decoded the same way and stored with item_key 'inline'.
  *   - item: itemType = base_type_id, subType = sub_type_id, uniqueID = unique_id, uniqueRolls[rollID],
  *     implicits[] (0..1 rolls), affixes[] / sealedAffix / corruptedAffixes[] = {id: affix_id,
  *     tier: 1-based, roll: 0..1 with 1 = max of the tier range}, corrupted.
@@ -32,6 +34,18 @@
  *   - TAB.skillTrees = { <tree id>: {history, position} }; the tree id is the LE Tools ability id
  *     (Maxroll abilities[*].playerAbilityID). TAB.activeSkills / specializedSkills hold Maxroll
  *     ability KEYS ('ErasingStrike'), mapped through raw.maxroll.abilities[key].playerAbilityID.
+ *   - profile .mainset is normally the Maxroll ability key of the main skill; a numeric mainset is a
+ *     unique_id (the build's centrepiece item, e.g. 430 Chorus of the Anurok): it is stored as
+ *     main_unique_id (warning 'mainset_unique') and the main skill falls back to the title / points rules.
+ *
+ * Class rule: the build row takes class / mastery from the profile's default tab. The guide card's
+ * mastery is kept as guide_mastery_index; when the class agrees but the mastery differs (leveling
+ * guides open on a base-class 'Starting Setup' tab) that is a warning ('guide_mastery'), not an
+ * unresolved id. A card CLASS that disagrees with the profile is still unresolved 'guide_class'.
+ *
+ * Removed nodes: a history entry for a node id that is a hole in the tree's numbering (below its
+ * highest node id) and that neither LE Tools nor Maxroll data.json has in that tree (e.g. vr53sl:3,
+ * also absent from the 1.5.0 lastepochbuilder trees) is a leftover of a node removed in an older patch. It is a warning ('removed_node'), is not stored and does not count as a point.
  *
  * Determinism: guides in index.json order, profile ids in (planner_id, ...profile_ids) order,
  * tabs in array order, gear slots in SLOT_ORDER then other keys in code-point order, idols by
@@ -70,6 +84,20 @@ export const UNRESOLVED_KINDS = [
 ] as const;
 export type UnresolvedKind = (typeof UNRESOLVED_KINDS)[number];
 
+/** Known, explained data quirks: counted in the report under `community.warnings`, not as unresolved. */
+export const WARNING_KINDS = ["guide_mastery", "mainset_unique", "removed_node"] as const;
+export type WarningKind = (typeof WARNING_KINDS)[number];
+
+/** What each warning kind means (log lines and docs/community-builds.md). */
+export const WARNING_TEXT: Record<WarningKind, string> = {
+  guide_mastery: "guide card mastery differs from the profile's default tab; the profile's class/mastery is used and the card's kept as guide_mastery_index",
+  mainset_unique: "profile mainset is a unique_id, not a skill; stored as main_unique_id, main skill taken from the title / points rules",
+  removed_node: "tree history names a node id that is a hole in the tree numbering in both LE Tools and Maxroll (removed in an older patch); not stored, not counted",
+};
+
+/** Item key stored for an inline item object (a TAB.items / TAB.idols entry that is the item itself). */
+export const INLINE_ITEM_KEY = "inline";
+
 export interface UnresolvedEntry {
   /** Occurrences (one per row that carries the id). */
   count: number;
@@ -93,6 +121,11 @@ export interface CommunityReport {
   resolution: "ok" | "skipped" | "none";
   unresolved_total: number;
   unresolved: Partial<Record<UnresolvedKind, UnresolvedEntry>>;
+  /** Items given inline in TAB.items / TAB.idols instead of as a PD.items key. */
+  inline_items: number;
+  warnings_total: number;
+  /** Explained quirks (WARNING_KINDS), same shape as `unresolved`. */
+  warnings: Partial<Record<WarningKind, UnresolvedEntry>>;
   /** Stat properties used by the referenced affix tiers / unique mods / implicits that have no display name (known data gaps). */
   unnamed_properties: { property: number; enum_name: string | null; lines: number }[];
 }
@@ -152,8 +185,8 @@ interface ProfileTab extends JsonObject {
   mastery?: number;
   level?: number;
   season?: number;
-  items?: Record<string, number | string | null>;
-  idols?: (number | string | null)[];
+  items?: Record<string, number | string | ProfileItem | null>;
+  idols?: (number | string | ProfileItem | null)[];
   blessings?: ({ itemType: number; subType: number; implicits?: number[] } | null)[];
   passives?: History;
   weaver?: History;
@@ -251,6 +284,7 @@ interface Lookups {
   abilityByInternal: Map<string, string>;
   trees: Map<string, string | null>; // tree_id -> ability_id
   nodes: Set<string>; // 'tree:node'
+  maxNode: Map<string, number>; // tree_id -> highest node_id
   uniques: Map<number, { set_id: number | null; is_set_item: number; name: string | null }>;
   subtypes: Set<string>;
   baseTypes: Map<number, { size_x: number | null; size_y: number | null; is_idol: number }>;
@@ -260,6 +294,9 @@ interface Lookups {
   timelines: Set<number>;
   /** Maxroll ability key -> LE ability id (raw.maxroll.abilities[key].playerAbilityID). */
   maxrollKeys: Map<string, string>;
+  /** Maxroll data.json skillTrees[tree].nodes keys as 'tree:node' (to tell removed nodes from data gaps). */
+  maxrollNodes: Set<string>;
+  maxrollTrees: Set<string>;
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -277,6 +314,7 @@ function loadLookups(ctx: LoaderContext): Lookups {
     abilityByInternal: new Map(),
     trees: new Map(),
     nodes: new Set(),
+    maxNode: new Map(),
     uniques: new Map(),
     subtypes: new Set(),
     baseTypes: new Map(),
@@ -285,6 +323,8 @@ function loadLookups(ctx: LoaderContext): Lookups {
     blessings: new Map(),
     timelines: new Set(),
     maxrollKeys: new Map(),
+    maxrollNodes: new Set(),
+    maxrollTrees: new Set(),
   };
   for (const r of all<{ class_id: number; name: string; tree_id: string }>(`SELECT class_id, name, tree_id FROM classes ORDER BY class_id`)) {
     L.classes.set(r.class_id, r);
@@ -299,7 +339,10 @@ function loadLookups(ctx: LoaderContext): Lookups {
     if (r.internal_name && !L.abilityByInternal.has(norm(r.internal_name))) L.abilityByInternal.set(norm(r.internal_name), r.ability_id);
   }
   for (const r of all<{ tree_id: string; ability_id: string | null }>(`SELECT tree_id, ability_id FROM trees ORDER BY tree_id`)) L.trees.set(r.tree_id, r.ability_id);
-  for (const r of all<{ k: string }>(`SELECT tree_id || ':' || node_id AS k FROM tree_nodes`)) L.nodes.add(r.k);
+  for (const r of all<{ k: string; tree_id: string; node_id: number }>(`SELECT tree_id || ':' || node_id AS k, tree_id, node_id FROM tree_nodes`)) {
+    L.nodes.add(r.k);
+    if (r.node_id > (L.maxNode.get(r.tree_id) ?? -1)) L.maxNode.set(r.tree_id, r.node_id);
+  }
   for (const r of all<{ unique_id: number; set_id: number | null; is_set_item: number; name: string | null }>(`SELECT unique_id, set_id, is_set_item, name FROM uniques`)) {
     L.uniques.set(r.unique_id, r);
   }
@@ -320,15 +363,26 @@ function loadLookups(ctx: LoaderContext): Lookups {
       if (id) L.maxrollKeys.set(k, id);
     }
   }
+  const mrTrees = (mr as { skillTrees?: Record<string, { nodes?: Record<string, unknown> } | null> } | null | undefined)?.skillTrees;
+  if (mrTrees && typeof mrTrees === "object") {
+    for (const t of sortedKeys(mrTrees)) {
+      L.maxrollTrees.add(t);
+      for (const n of Object.keys(mrTrees[t]?.nodes ?? {})) L.maxrollNodes.add(`${t}:${n}`);
+    }
+  }
   L.available = L.classes.size > 0 && L.affixes.size > 0 && L.trees.size > 0;
   return L;
 }
 
-class Unresolved {
-  private seen = new Map<UnresolvedKind, Map<string, string>>();
-  private counts = new Map<UnresolvedKind, number>();
-  constructor(private readonly enabled: boolean) {}
-  add(kind: UnresolvedKind, id: string, where: string): void {
+/** Occurrence / distinct-id counter per kind (unresolved ids and warnings). */
+class Tally<K extends string> {
+  private seen = new Map<K, Map<string, string>>();
+  private counts = new Map<K, number>();
+  constructor(
+    private readonly enabled: boolean,
+    private readonly kinds: readonly K[],
+  ) {}
+  add(kind: K, id: string, where: string): void {
     if (!this.enabled) return;
     this.counts.set(kind, (this.counts.get(kind) ?? 0) + 1);
     let m = this.seen.get(kind);
@@ -340,9 +394,9 @@ class Unresolved {
     for (const v of this.counts.values()) n += v;
     return n;
   }
-  toReport(): Partial<Record<UnresolvedKind, UnresolvedEntry>> {
-    const out: Partial<Record<UnresolvedKind, UnresolvedEntry>> = {};
-    for (const kind of UNRESOLVED_KINDS) {
+  toReport(): Partial<Record<K, UnresolvedEntry>> {
+    const out: Partial<Record<K, UnresolvedEntry>> = {};
+    for (const kind of this.kinds) {
       const m = this.seen.get(kind);
       if (!m) continue;
       const ids = [...m.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
@@ -397,13 +451,13 @@ function notesJson(notes: Record<string, unknown> | undefined): string | null {
 }
 
 /** node id -> {points, first_ord} for history[0:position], in first-allocation order. */
-function countHistory(h: History | undefined): { node: number; points: number; first: number }[] {
+function countHistory(h: History | undefined, skip?: (node: number) => boolean): { node: number; points: number; first: number }[] {
   const hist = Array.isArray(h?.history) ? h!.history! : [];
   const pos = typeof h?.position === "number" ? Math.min(Math.max(0, h.position), hist.length) : hist.length;
   const m = new Map<number, { node: number; points: number; first: number }>();
   for (let i = 0; i < pos; i++) {
     const node = int(hist[i]);
-    if (node === null) continue;
+    if (node === null || skip?.(node)) continue;
     const e = m.get(node);
     if (e) e.points++;
     else m.set(node, { node, points: 1, first: i });
@@ -442,6 +496,9 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
     resolution: "none",
     unresolved_total: 0,
     unresolved: {},
+    inline_items: 0,
+    warnings_total: 0,
+    warnings: {},
     unnamed_properties: [],
   };
   const index = readIndex(dir);
@@ -455,7 +512,21 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
   const L = loadLookups(ctx);
   report.resolution = L.available ? "ok" : "skipped";
   if (!L.available) ctx.log.warn("community: game tables are empty (build with world,items,skills); ids not resolved");
-  const U = new Unresolved(L.available);
+  const U = new Tally<UnresolvedKind>(L.available, UNRESOLVED_KINDS);
+  const W = new Tally<WarningKind>(L.available, WARNING_KINDS);
+  /**
+   * A removed node: a hole in a known tree's node numbering (below its highest node id) that neither the LE Tools
+   * tree nor the Maxroll tree has. Ids above the highest node, or present in only one source, stay unresolved.
+   */
+  const isRemovedNode = (treeId: string, node: number): boolean =>
+    L.available &&
+    L.trees.has(treeId) &&
+    node >= 0 &&
+    node < (L.maxNode.get(treeId) ?? -1) &&
+    !L.nodes.has(`${treeId}:${node}`) &&
+    L.maxrollTrees.has(treeId) &&
+    !L.maxrollNodes.has(`${treeId}:${node}`);
+  const removedSkip = (treeId: string | null) => (treeId ? (node: number) => isRemovedNode(treeId, node) : undefined);
   const usedAffixTiers = new Set<string>();
   const usedUniques = new Set<number>();
   const usedSubtypes = new Set<string>();
@@ -513,27 +584,39 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
       }
       if (classId !== null && !L.classes.has(classId)) U.add("class", String(classId), where);
       if (classId !== null && masteryIndex !== null && !L.masteries.has(`${classId}:${masteryIndex}`)) U.add("mastery", `${classId}:${masteryIndex}`, where);
+      // the card's mastery resolved to a mastery_index of the card's class (0 when the card names the base class)
+      let guideMasteryIndex: number | null = null;
+      if (guideMastery) guideMasteryIndex = guideMastery[1];
+      else if (guideClass !== undefined && str(g.mastery) && norm(g.mastery!) === norm(L.classes.get(guideClass)?.name ?? "")) guideMasteryIndex = 0;
       if (defTab && classId !== null && L.available) {
-        // the published class / mastery names must agree with the profile
+        // the published class / mastery must agree with the profile: a class mismatch is unresolved,
+        // a mastery mismatch within the same class is a warning (the profile's own mastery is used)
         const mName = L.masteries.get(`${classId}:${masteryIndex}`);
         const cName = L.classes.get(classId)?.name;
-        const mismatch =
-          (str(g.mastery) && mName && norm(g.mastery!) !== norm(mName) && !(masteryIndex === 0 && cName && norm(g.mastery!) === norm(cName))) ||
-          (str(g.class) && cName && norm(g.class!) !== norm(cName));
-        if (mismatch) U.add("guide_class", `${g.class ?? ""}/${g.mastery ?? ""} vs ${cName}/${mName}`, where);
+        const cardClass = guideMastery?.[0] ?? guideClass;
+        const classMismatch = (str(g.class) && cName && norm(g.class!) !== norm(cName)) || (cardClass !== undefined && cardClass !== classId);
+        const masteryMismatch =
+          str(g.mastery) && mName && norm(g.mastery!) !== norm(mName) && !(masteryIndex === 0 && cName && norm(g.mastery!) === norm(cName));
+        if (classMismatch) U.add("guide_class", `${g.class ?? ""}/${g.mastery ?? ""} vs ${cName}/${mName}`, where);
+        else if (masteryMismatch) W.add("guide_mastery", `${g.class ?? ""}/${g.mastery ?? ""} vs ${cName}/${mName}`, where);
       }
 
       // skills per tab (needed for main_ability)
-      const tabSkills = tabs.map((tab) => collectSkills(tab, resolveAbility, L));
+      const tabSkills = tabs.map((tab) => collectSkills(tab, resolveAbility, L, removedSkip));
 
       // main ability: profile .mainset, else a specialized skill named in the title, else the most points
       let mainAbility: string | null = null;
       let mainSource: string | null = null;
+      let mainUnique: number | null = null;
       const mainset = str(envelope?.mainset);
       if (mainset) {
         mainAbility = resolveAbility(mainset);
         if (mainAbility) mainSource = "mainset";
-        else U.add("ability", mainset, `${where} mainset`);
+        else if (/^\d+$/.test(mainset) && L.uniques.has(Number(mainset))) {
+          // a numeric mainset is a unique_id (the build's centrepiece item), not a skill
+          mainUnique = Number(mainset);
+          W.add("mainset_unique", `${mainset} = ${L.uniques.get(mainUnique)!.name ?? "?"}`, `${where} mainset`);
+        } else U.add("ability", mainset, `${where} mainset`);
       }
       const defSkills = defaultOrd !== null ? tabSkills[defaultOrd]! : [];
       if (!mainAbility && defSkills.length) {
@@ -568,8 +651,10 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
         mastery_index: masteryIndex,
         class_name: str(g.class),
         mastery_name: str(g.mastery),
+        guide_mastery_index: guideMasteryIndex,
         main_ability_id: mainAbility,
         main_ability_source: mainSource,
+        main_unique_id: mainUnique,
         tier_corruption: str(tiers.corruption),
         tier_speed: str(tiers.speed),
         tier_bossing: str(tiers.bossing),
@@ -594,8 +679,11 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
         const tClass = int(tab.class);
         const tree = tClass !== null ? L.classes.get(tClass)?.tree_id ?? (ctx.raw.maxroll?.classes?.find((c) => c.classID === tClass)?.treeID as string | undefined) ?? null : null;
         if (tClass !== null && !L.classes.has(tClass)) U.add("class", String(tClass), tw);
-        const passives = countHistory(tab.passives);
-        const weaver = countHistory(tab.weaver);
+        const passives = countHistory(tab.passives, removedSkip(tree));
+        const weaver = countHistory(tab.weaver, removedSkip("weaver"));
+        for (const [treeId, h] of [[tree, tab.passives], ["weaver", tab.weaver]] as const) {
+          if (treeId) for (const r of countHistory(h)) if (isRemovedNode(treeId, r.node)) W.add("removed_node", `${treeId}:${r.node}`, tw);
+        }
         const skills = tabSkills[ord]!;
         insertRow(ctx.db, "community_build_profiles", {
           build_profile_id: profileRow,
@@ -622,16 +710,17 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
           if (ib >= 0) return 1;
           return a < b ? -1 : a > b ? 1 : 0;
         });
-        const entries: { slot: string; key: string; grid: number | null }[] = [];
-        for (const slot of slotKeys) {
-          const k = tab.items![slot];
-          if (k !== null && k !== undefined && k !== "") entries.push({ slot, key: String(k), grid: null });
-        }
-        (tab.idols ?? []).forEach((k, i) => {
-          if (k !== null && k !== undefined && k !== "") entries.push({ slot: "idol", key: String(k), grid: i });
-        });
+        const entries: { slot: string; key: string; grid: number | null; inline?: ProfileItem }[] = [];
+        const entry = (slot: string, k: unknown, grid: number | null) => {
+          if (k === null || k === undefined || k === "") return;
+          // normally a PD.items key; some profiles put the item object itself in the slot (inline item)
+          if (typeof k === "object") entries.push({ slot, key: INLINE_ITEM_KEY, grid, inline: k as ProfileItem });
+          else entries.push({ slot, key: String(k), grid });
+        };
+        for (const slot of slotKeys) entry(slot, tab.items![slot], null);
+        (tab.idols ?? []).forEach((k, i) => entry("idol", k, i));
         for (const e of entries) {
-          const it = data!.items?.[e.key];
+          const it = e.inline ?? data!.items?.[e.key];
           const iw = `${tw}/${e.slot}${e.grid !== null ? `#${e.grid}` : ""}`;
           if (!it || typeof it !== "object") {
             U.add("item_key", e.key, iw);
@@ -639,6 +728,7 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
           }
           itemRow++;
           report.items++;
+          if (e.inline) report.inline_items++;
           insertItem(ctx, L, U, itemRow, profileRow, e, it, iw, report, usedAffixTiers, usedUniques, usedSubtypes);
         }
 
@@ -700,6 +790,10 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
           const known = L.trees.has(treeId);
           if (!known) U.add("skill_tree", treeId, tw);
           for (const r of countHistory(tab.skillTrees![treeId])) {
+            if (isRemovedNode(treeId, r.node)) {
+              W.add("removed_node", `${treeId}:${r.node}`, tw);
+              continue;
+            }
             if (known && !L.nodes.has(`${treeId}:${r.node}`)) U.add("skill_node", `${treeId}:${r.node}`, tw);
             insertRow(ctx.db, "community_build_skill_nodes", {
               build_profile_id: profileRow,
@@ -717,9 +811,14 @@ export function loadCommunityFrom(ctx: LoaderContext, dir: string): CommunityRep
 
   report.unresolved = U.toReport();
   report.unresolved_total = U.total;
+  report.warnings = W.toReport();
+  report.warnings_total = W.total;
   if (L.available) report.unnamed_properties = unnamedProperties(ctx, usedAffixTiers, usedUniques, usedSubtypes);
   for (const [kind, e] of Object.entries(report.unresolved)) {
     ctx.log.warn(`community: ${e!.count} unresolved ${kind} id(s) (${e!.distinct} distinct), e.g. ${e!.examples.slice(0, 3).join(", ")}`);
+  }
+  for (const [kind, e] of Object.entries(report.warnings)) {
+    ctx.log.warn(`community: ${e!.count} ${kind} (${WARNING_TEXT[kind as WarningKind]}; ${e!.distinct} distinct), e.g. ${e!.examples.slice(0, 3).join(", ")}`);
   }
   ctx.log.info(
     `community: ${report.guides} guides, ${report.builds} builds, ${report.profiles_loaded} profiles, ${report.tabs} tabs, ${report.items} items, unresolved ${report.unresolved_total}`,
@@ -741,11 +840,17 @@ interface SkillRow {
 }
 
 /** Skills of a tab: specializedSkills, then the rest of activeSkills, then other skillTrees keys. */
-function collectSkills(tab: ProfileTab, resolveAbility: (key: string) => string | null, L: Lookups): SkillRow[] {
+function collectSkills(
+  tab: ProfileTab,
+  resolveAbility: (key: string) => string | null,
+  L: Lookups,
+  removedSkip: (treeId: string | null) => ((node: number) => boolean) | undefined,
+): SkillRow[] {
   const rows: SkillRow[] = [];
   const byKey = new Map<string, SkillRow>();
   const treeKeys = sortedKeys(tab.skillTrees ?? {});
-  const treePoints = (treeId: string | null) => (treeId ? countHistory(tab.skillTrees?.[treeId]).reduce((n, r) => n + r.points, 0) : 0);
+  const treePoints = (treeId: string | null) =>
+    treeId ? countHistory(tab.skillTrees?.[treeId], removedSkip(treeId)).reduce((n, r) => n + r.points, 0) : 0;
   const treeFor = (abilityId: string | null): string | null => {
     if (!abilityId) return null;
     if (treeKeys.includes(abilityId)) return abilityId;
@@ -809,7 +914,7 @@ function collectSkills(tab: ProfileTab, resolveAbility: (key: string) => string 
 function insertItem(
   ctx: LoaderContext,
   L: Lookups,
-  U: Unresolved,
+  U: Tally<UnresolvedKind>,
   itemRow: number,
   profileRow: number,
   e: { slot: string; key: string; grid: number | null },
