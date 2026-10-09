@@ -4,7 +4,7 @@ A personal Last Epoch (ARPG, game 1.5.x) theorycrafting toolkit: it downloads co
 
 ## For agents: where to look first
 
-Answering a game question: load the matching skill (`.claude/skills/README.md` lists them and the order), call `version` to pin the data, resolve names with `lookup` (always with `kinds`), read records with `get` / `find_mods` / `sql`, and take every formula from `knowledge/` (index: `knowledge/README.md`) with its confidence label. Never answer from memory. Changing code: read `docs/schema.md` (tables, views), `docs/loader-contract.md` (how loaders are written), `docs/data-sources/` (raw record shapes, enums, ids) and the tests next to the code (`packages/*/src/**/*.test.ts`). Regression checks: `yarn test` and `yarn probes:verify`.
+Answering a game question: load the matching skill (`.claude/skills/README.md` lists them and the order), call `version` to pin the data, resolve names with `lookup` (always with `kinds`), read records with `get` / `find_mods` / `sql`, and take every formula from `knowledge/` (index: `knowledge/README.md`) with its confidence label. Never answer from memory. Changing code: read `docs/schema.md` (tables, views), `docs/loader-contract.md` (how loaders are written), `docs/data-sources/` (raw record shapes, enums, ids) and the tests next to the code (`packages/*/src/**/*.test.ts`). Regression checks: `yarn test`, `yarn probes:verify` and `yarn skills:check`.
 
 ## Layout
 
@@ -38,6 +38,7 @@ docs/                 data-source study, schema.md, loader-contract.md
 - `yarn mcp:list` - list the server's tools (one line each)
 - `yarn mcp:call <tool> [args] [--pretty]` - call one tool from the shell (see below)
 - `yarn probes:verify` - re-run the probe suite's ground truth (`node tests/probes/make-questions.js --verify`); prints `ALL 30 VERIFIED`
+- `yarn skills:check` - run every tool-call and SQL example in `.claude/skills/**/*.md` against `data/le.sqlite` (`tests/skill-examples/runner.mts`); must report `BAD/ZERO 0`
 
 ## MCP server
 

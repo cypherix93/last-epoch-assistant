@@ -16,7 +16,8 @@
     "mcp": "yarn workspace @le/mcp run start",
     "mcp:call": "yarn workspace @le/mcp run call",
     "mcp:list": "yarn workspace @le/mcp run list",
-    "probes:verify": "node tests/probes/make-questions.js --verify"
+    "probes:verify": "node tests/probes/make-questions.js --verify",
+    "skills:check": "tsx tests/skill-examples/runner.mts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
