@@ -28,7 +28,7 @@ import { build as buildDoc } from "./builds.js";
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
 
 export const MOD_COLS =
-  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling";
+  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling, property_kind, stat_kind, modifier_source, label_mismatch, code_ref";
 
 export type Id = string | number | { [k: string]: string | number };
 
@@ -100,6 +100,55 @@ export function applyNodeScaling(m: Row, node: { no_scaling_type?: unknown; no_s
     return { ...rest, scales_with_points: false, scaling: "at_threshold", threshold: node.no_scaling_point_threshold };
   }
   return { ...rest, scales_with_points: false, scaling: "fixed" };
+}
+
+const tooltipCategoryCache = new WeakMap<Ctx, Map<number, string>>();
+function tooltipCategory(ctx: Ctx, property: number): string | undefined {
+  let m = tooltipCategoryCache.get(ctx);
+  if (!m) {
+    let rows: Row[] = [];
+    try {
+      rows = all(ctx, "SELECT property, name FROM node_tooltip_properties");
+    } catch {
+      rows = []; // older database without the table
+    }
+    m = new Map(rows.map((r) => [r.property as number, r.name as string]));
+    tooltipCategoryCache.set(ctx, m);
+  }
+  return m.get(property);
+}
+
+const MODIFIER_NAME = ["added", "increased", "more"];
+
+/**
+ * Tree node stat lines (skill / passive / weaver): explain what `property` is and how sure the kind is.
+ *   property_kind 'stat'             property is an SP id, but only the tooltip icon hint of the line
+ *   property_kind 'tooltip_category' property 5000-9999: a global tooltip category; `property_hint` names it
+ *   property_kind 'ailment'          property >= 10000: an ailment icon; `property_hint` names the ailment
+ *   property_kind 'display_only'     property 54 (None): text only; property_name is dropped
+ * `modifier` (added / increased / more) comes from the decompiled node code when modifier_source is 'structured',
+ * from the label text when 'inferred'. label_mismatch: the line is NOT a plain stat of property_name (conditional,
+ * scoped to part of the skill, or a different stat): a `warning` says so; read `label` and `code_ref`.
+ */
+export function decorateNodeMod(ctx: Ctx, m: Row): Row {
+  if (m.property_kind === undefined) return m;
+  const out: Row = { ...m };
+  const p = m.property as number | undefined;
+  if (m.property_kind === "display_only") delete out.property_name;
+  if (m.property_kind === "tooltip_category" && typeof p === "number") {
+    const c = tooltipCategory(ctx, p);
+    if (c) out.property_hint = c;
+  }
+  if (m.property_kind === "ailment" && typeof p === "number" && p >= 10000 && p < 15000) {
+    const n = ailmentName(ctx, p - 10000);
+    if (n) out.property_hint = n;
+  }
+  if (typeof m.modifier_type === "number") out.modifier = MODIFIER_NAME[m.modifier_type];
+  if (m.label_mismatch === 1) {
+    out.label_mismatch = true;
+    out.warning = `property ${p} (${m.property_name ?? "?"}) is only the tooltip icon hint: this line is '${m.label ?? "?"}', not a plain ${m.property_name ?? "stat"} line. Read label${m.code_ref ? " and code_ref" : ""}.`;
+  } else delete out.label_mismatch;
+  return out;
 }
 
 export function modsFor(ctx: Ctx, sourceKind: string, sourceId: string | number): Row[] {
@@ -245,7 +294,7 @@ function nodeGetter(treeKind: string): Getter {
     return {
       node: clean(n, raw),
       tree: t,
-      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => applyNodeScaling(m, n)),
+      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => decorateNodeMod(ctx, applyNodeScaling(m, n))),
       requirements: all(
         ctx,
         "SELECT r.required_node_id, r.required_points, n.name AS required_name FROM tree_node_requirements r LEFT JOIN tree_nodes n ON n.tree_id = r.tree_id AND n.node_id = r.required_node_id WHERE r.tree_id = ? AND r.node_id = ? ORDER BY r.ord",

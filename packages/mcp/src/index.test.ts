@@ -31,7 +31,7 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
 
   it("schema", () => {
     const s = schema(ctx) as R;
-    expect(s.table_count).toBe(70);
+    expect(s.table_count).toBe(71);
     expect(s.tables.find((t: R) => t.name === "mods").rows).toBeGreaterThan(20000);
     expect(s.docs).toBe("docs/schema.md");
     const m = schema(ctx, "uniques") as R;
@@ -189,6 +189,25 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
     expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("tree node stat lines say what the property is, the modifier kind and label mismatches", () => {
+    const [dmg, ail] = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver" }) as R).nodes[0].mods;
+    expect(dmg).toMatchObject({ property: 0, property_kind: "stat", stat_kind: "skill_parameter", modifier_source: "structured", label_mismatch: true });
+    expect(dmg.warning).toMatch(/only the tooltip icon hint/);
+    expect(dmg.code_ref).toContain("twoHandedWeaponStatModifier");
+    expect(ail).toMatchObject({ property: 10001, property_kind: "ailment", property_hint: "Ignite" });
+    expect(ail).not.toHaveProperty("label_mismatch");
+    const q = (getTool(ctx, "passive_node", "mg-1:54") as R).mods;
+    expect(q[0]).toMatchObject({ property_kind: "tooltip_category", property_hint: "Global Spell Damage", modifier: "increased" });
+    expect(q[1]).toMatchObject({ property: 41, modifier: "more", label_mismatch: true });
+    const duel = (passiveTree(ctx, "mg-1", { filter: "Essence Duel" }) as R).nodes[0].mods[0];
+    expect(duel).toMatchObject({ property: 54, property_kind: "display_only", modifier: "increased" });
+    expect(duel).not.toHaveProperty("property_name");
+    const wf = (skillTree(ctx, "fi9", { filter: "Winged Fire" }) as R).nodes[0].mods[1];
+    expect(wf).toMatchObject({ label: "Damage", modifier: "more", modifier_source: "structured" });
+    const fm = findMods(ctx, { source_id: "sndr1:24" }) as R;
+    expect(fm.rows[0]).toMatchObject({ label_mismatch: true, stat_kind: "skill_parameter" });
   });
 
   it("tree node stats say whether they scale with points", () => {

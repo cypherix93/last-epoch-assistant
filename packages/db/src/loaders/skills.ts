@@ -51,10 +51,12 @@
  *                           required_points = .requirement.
  * 12. mods (node stats)     .stats[] -> insertMod per line: sourceKind 'skill_node' (6528) | 'passive_node'
  *                           (1440) | 'weaver_node' (70), sourceId '<treeID>:<nodeId>', sourceOrd = index,
- *                           property = .property, tags = .tags, modifierType null (display-only),
- *                           display = .value, value = parseDisplayValue(.value), label = t(statNameKey),
- *                           labelKey = statNameKey, isDownside = .downside, raw = the stat.
- *                           property_name stays the default (null for 5000+ skill-local ids; label carries the text).
+ *                           property = .property, tags = .tags, display = .value, value = parseDisplayValue(.value),
+ *                           label = t(statNameKey), labelKey = statNameKey, isDownside = .downside, raw = the stat;
+ *                           property_kind / stat_kind / modifier_type / modifier_source / label_mismatch / code_ref
+ *                           from skills-node-kinds.ts (decompiled node effects, vendored 1.5.0, else text inference).
+ *                           property_name stays the default (null for 5000+ tooltip category ids; label carries the text).
+ * 14. node_tooltip_properties the 5000+ tooltip category names (vendored tree_node_stats.json, 131).
  * 13. relations             node .relatedAbilities[] ('mod_ability', target ability), .relatedAilments[]
  *                           ('mod_ailment'), .triggeredAbilities{id: v} ('triggered_ability', value v),
  *                           .triggeredAilments{id: stacks} ('triggered_ailment', value stacks);
@@ -65,6 +67,7 @@
  * ability_attribute_scaling, ability_level_scaling (+ optional ability_component).
  */
 import { classifyAbilities } from "../lib/ability-kind.js";
+import { labelMismatch, NodeEffectIndex, propertyKind } from "./skills-node-kinds.js";
 import { count, modsCount, type ExpectedCount } from "../lib/expected.js";
 import type { LoaderContext } from "../lib/context.js";
 import { insertRow } from "../lib/sqlite.js";
@@ -82,6 +85,7 @@ export const tables = [
   "trees",
   "tree_nodes",
   "tree_node_requirements",
+  "node_tooltip_properties",
 ] as const;
 
 /** Shared tables this loader writes rows into (rows identified by source_kind). */
@@ -117,6 +121,7 @@ export const expected: ExpectedCount[] = [
   count("tree_nodes", 80, "tree_kind = 'weaver'"),
   count("tree_nodes", 4577, "ui_x IS NOT NULL", "tree_nodes[with UI position]"),
   count("tree_node_requirements", 4928, undefined, undefined, "4577 + 196 + 155"),
+  count("node_tooltip_properties", 131, undefined, undefined, "NodeTooltipPropertyList ids seen in the vendored 1.5.0 tree_node_stats.json"),
   modsCount("skill_node", 6528),
   modsCount("passive_node", 1440),
   modsCount("weaver_node", 70),
@@ -306,6 +311,17 @@ export function loadSkills(ctx: LoaderContext): void {
   const abilityName = new Map<string, string | null>();
   for (const [key, a] of abilityEntries) abilityName.set(String(a.id ?? key), t(a.nameKey) ?? str(a.name));
 
+  // Node stat kinds: decompiled node effects (vendored, game 1.5.0) + text inference, see skills-node-kinds.ts.
+  const effects = NodeEffectIndex.fromVendor();
+  if (!effects.loaded) ctx.log.warn("vendored node effects not found: every tree node stat kind is inferred from its text");
+  const spEnumName = (p: number): string | null => mods.namer.enumName(p);
+  const addedPct = new Set<number>();
+  for (const p of (ctx.raw.letools.coreDB as JsonObject).propertyList as JsonObject[]) if (p.displayAddedAsPercentage) addedPct.add(Number(p.property));
+  const addedAsPercent = (p: number): boolean => addedPct.has(p);
+  for (const [property, name] of [...effects.tooltipCategories].sort((a, b) => a[0] - b[0])) {
+    insertRow(db, "node_tooltip_properties", { property, name, source: "vendor:lastepochbuilder 1.5.0 tree_node_stats.json" });
+  }
+
   const skillUi = ctx.raw.letools.LESkillTreesUI as Record<string, JsonObject>;
   const charUi = ctx.raw.letools.LECharTreesUI as Record<string, JsonObject>;
   const weaverUi = ctx.raw.letools.LEWeaverTreeUI as JsonObject;
@@ -369,23 +385,41 @@ export function loadSkills(ctx: LoaderContext): void {
           required_points: int(r.requirement),
         }),
       );
-      ((n.stats as JsonObject[] | undefined) ?? []).forEach((s, i) =>
+      const stats = (n.stats as JsonObject[] | undefined) ?? [];
+      const kinds = effects.classify(
+        treeId,
+        nodeId,
+        t(n.nodeNameKey),
+        stats.map((s) => ({ property: int(s.property), label: t(s.statNameKey), display: str(s.value), noScaling: !!bool(s.noScaling) })),
+        spEnumName,
+        addedAsPercent,
+      );
+      stats.forEach((s, i) => {
+        const property = int(s.property);
+        const pk = propertyKind(property);
+        const k = kinds[i]!;
+        const label = t(s.statNameKey);
         mods.insert({
           sourceKind,
           sourceId,
           sourceOrd: i,
-          property: int(s.property),
+          property,
           tags: int(s.tags) ?? 0,
-          modifierType: null,
+          modifierType: k.modifierType,
           display: str(s.value),
           value: parseDisplayValue(s.value),
-          label: t(s.statNameKey),
+          label,
           labelKey: str(s.statNameKey),
           isDownside: bool(s.downside),
           noScaling: bool(s.noScaling),
+          propertyKind: pk,
+          statKind: k.statKind,
+          modifierSource: k.source,
+          labelMismatch: labelMismatch(pk, label, pk === "stat" ? mods.propertyName(property) : null, pk === "stat" ? spEnumName(property!) : null, k),
+          codeRef: k.codeRef,
           raw: s,
-        }),
-      );
+        });
+      });
       const rel = (relation: string, targetKind: "ability" | "ailment", target: unknown, value: number | null): void => {
         insertRow(db, "relations", {
           source_kind: sourceKind,

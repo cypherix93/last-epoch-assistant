@@ -593,6 +593,16 @@ CREATE TABLE ui_buffs (
   raw_json      TEXT NOT NULL          -- UIBuffs.<k>
 );
 
+-- Tooltip categories of tree node stats with property 5000-9999 (NodeTooltipPropertyList.properties[p - 5000]).
+-- A GLOBAL list (the same id means the same category in every tree); the category is only the line's icon /
+-- grouping, the line label says what the stat is. Not in the LE Tools / Maxroll data: names from the vendored
+-- 1.5.0 asset extract vendor/lastepochbuilder/research/data/game/tree_node_stats.json (tooltipStats[].propertyName).
+CREATE TABLE node_tooltip_properties (
+  property      INTEGER PRIMARY KEY,   -- node stat property id (5000..9999)
+  name          TEXT NOT NULL,         -- category name, e.g. 5110 'Melee Damage', 5048 'Global Spell Damage'
+  source        TEXT NOT NULL          -- 'vendor:lastepochbuilder 1.5.0 tree_node_stats.json'
+);
+
 CREATE TABLE entities (
   entity_id     INTEGER PRIMARY KEY,   -- LEAbilities.entityList.<k>.id (100000+)
   gen_id        TEXT,                  -- .actor.data.genId (e.g. 'primal_wolf')
@@ -936,7 +946,7 @@ CREATE TABLE mods (
   tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/104/105/130)
   tag_names     TEXT,                  -- describeTags(tags), comma list; NULL for indirect properties or tags = 0
   extra_tag     INTEGER NOT NULL DEFAULT 0, -- .extraTag (ability index for ability-bound lines)
-  modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; NULL for display-only lines (tree nodes)
+  modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; tree node stats: from the decompiled code or inferred (see modifier_source), NULL when unknown
   value_min     REAL,                  -- minimum roll (affix rolls[].min, unique mods[].value, implicitValue, set mods[].value, addedValue...)
   value_max     REAL,                  -- maximum roll (rolls[].max, mods[].maxValue, implicitMaxValue); = value_min for fixed values
   display       TEXT,                  -- display string when the source only has text (tree node stats[].value, e.g. '+25%')
@@ -947,6 +957,11 @@ CREATE TABLE mods (
   hidden        INTEGER NOT NULL DEFAULT 0, -- .hideInTooltip
   is_downside   INTEGER NOT NULL DEFAULT 0, -- tree node stats[].downside
   no_scaling    INTEGER,               -- tree node stats[].noScaling (0 = value is PER POINT allocated; 1 = does not scale per point: fixed, or a lump at the threshold, see tree_nodes.no_scaling_type); NULL for every other source
+  property_kind TEXT,                  -- tree node stats only: what `property` is: 'stat' (SP id < 5000, only the tooltip icon hint) | 'tooltip_category' (5000-9999, node_tooltip_properties) | 'ailment' (>= 10000 ailment icon) | 'display_only' (54 None); NULL for every other source
+  stat_kind     TEXT,                  -- tree node stats only: added | increased | more | skill_parameter (a skill mutator field, not a stat) | conversion | unknown
+  modifier_source TEXT,                -- tree node stats only: 'structured' (modifier_type / stat_kind from the decompiled node effect, vendor 1.5.0, matched by node name and magnitude) | 'inferred' (from the label / value text)
+  label_mismatch INTEGER,              -- tree node stats only: 1 = `property` is an SP id but the line is NOT a plain stat of it (read label / code_ref, not property_name), e.g. Foe Cleaver 'Effect of Damage Stats on a 2h Weapon' on SP 0
+  code_ref      TEXT,                  -- tree node stats with modifier_source 'structured': the matched code effect ('add_stat Damage more [Spell] -> ...', 'field RiveMutator.twoHandedWeaponStatModifier')
   raw_json      TEXT NOT NULL          -- the source stat line object
 );
 CREATE INDEX mods_property ON mods (property, modifier_type);
@@ -1015,7 +1030,12 @@ SELECT
   m.set_requirement,
   m.hidden,
   m.is_downside,
-  m.no_scaling
+  m.no_scaling,
+  m.property_kind,
+  m.stat_kind,
+  m.modifier_source,
+  m.label_mismatch,
+  m.code_ref
 FROM mods m
 LEFT JOIN stat_properties sp ON sp.property = m.property;
 
@@ -1093,8 +1113,13 @@ SELECT
   n.mastery,
   n.mastery_requirement,
   n.description,
+  -- each line: 'label: display', then [added|increased|more|skill parameter] (+ '?' when inferred from the text),
+  -- '(no scaling)' for non-per-point lines and '(not a plain <property>)' for label_mismatch lines
   (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), '') ||
-                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END,
+                       CASE WHEN m.stat_kind IN ('added', 'increased', 'more') THEN ' [' || m.stat_kind || CASE WHEN m.modifier_source = 'inferred' THEN '?' ELSE '' END || ']'
+                            WHEN m.stat_kind = 'skill_parameter' THEN ' [skill parameter]' ELSE '' END ||
+                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END ||
+                       CASE WHEN m.label_mismatch = 1 THEN ' (not a plain ' || coalesce(m.property_name, '?') || ')' ELSE '' END,
                        '; ' ORDER BY m.source_ord, m.sub_ord)
      FROM mods m
     WHERE m.source_kind IN ('skill_node', 'passive_node', 'weaver_node')

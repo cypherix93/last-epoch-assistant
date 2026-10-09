@@ -20,7 +20,7 @@ const EXPECTED_TABLES = [
   "conditional_properties", "dungeon_tiers", "dungeons", "endgame_mod_refs", "entities", "enums",
   "faction_ranks", "factions", "i18n", "idol_altar_properties", "idol_altars", "item_base_types",
   "item_subtypes", "masteries", "maxroll_crosscheck", "maxroll_quests", "meta", "mods",
-  "monolith_reward_groups", "monolith_rewards", "monster_mods", "player_properties", "prophecy_unlocks",
+  "monolith_reward_groups", "monolith_rewards", "monster_mods", "node_tooltip_properties", "player_properties", "prophecy_unlocks",
   "raw_globals", "relations", "scenes", "search", "set_tooltips", "sets", "stat_properties",
   "stat_property_alt_texts", "tag_bits", "timeline_blessings", "timeline_difficulties", "timelines",
   "tree_node_requirements", "tree_nodes", "trees", "ui_buffs", "unique_subtypes", "unique_tooltip_entries",
@@ -71,7 +71,7 @@ describe("schema.sql", () => {
       "unique_tooltips", "unique_tooltip_entries", "stat_property_alt_texts", "class_abilities", "ability_links",
       "tree_node_requirements", "timeline_blessings", "endgame_mod_refs", "prophecy_unlocks", "relations", "search",
       "maxroll_crosscheck", "community_build_item_affixes", "community_build_blessings", "community_build_passives",
-      "community_build_skills", "community_build_skill_nodes"]);
+      "community_build_skills", "community_build_skill_nodes", "node_tooltip_properties"]);
     for (const t of EXPECTED_TABLES.filter((x) => !noRaw.has(x))) {
       const cols = (db.prepare(`SELECT name FROM pragma_table_info(?)`).all(t) as { name: string }[]).map((c) => c.name);
       expect(cols, t).toContain("raw_json");

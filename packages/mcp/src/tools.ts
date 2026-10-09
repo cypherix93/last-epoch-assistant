@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { applyNodeScaling, classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { applyNodeScaling, classIdOf, decorateMod, decorateNodeMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -352,7 +352,8 @@ export const MODS_SELECT_SQL = `
          COALESCE(mm.title, v.source_name) AS source_name,
          tr.name AS source_context,
          m.tier, m.property, m.property_name, m.special_tag, m.tags, m.tag_names,
-         m.modifier_type, m.value_min, m.value_max, m.display, m.label`;
+         m.modifier_type, m.value_min, m.value_max, m.display, m.label,
+         m.property_kind, m.stat_kind, m.modifier_source, m.label_mismatch, m.code_ref`;
 
 export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const where: string[] = [];
@@ -406,7 +407,7 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const total = (one(ctx, `SELECT count(*) n ${MODS_JOIN_SQL}${w}`, ...params) as Row).n as number;
   const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim)
     .map(dropNulls)
-    .map((m) => decorateMod(ctx, m));
+    .map((m) => decorateNodeMod(ctx, decorateMod(ctx, m)));
   return { total_matching: total, count: rows.length, truncated: total > rows.length, rows };
 }
 
@@ -437,7 +438,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
     const node = nodes.find((x) => x.id === nid) ?? {};
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node));
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateNodeMod(ctx, applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node)));
   }
   const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();

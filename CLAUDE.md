@@ -11,7 +11,7 @@ Answering a game question: load the matching skill (`.claude/skills/README.md` l
 ```
 packages/
   fetch/   @le/fetch  download LE Tools + Maxroll data to data/raw/<version>/
-  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 70 tables incl. 8 community-build tables, unified `mods`)
+  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 71 tables incl. 8 community-build tables, unified `mods`)
   mcp/     @le/mcp    MCP server "le-data" over the db (@modelcontextprotocol/sdk, stdio) + CLI
 data/
   raw/<ver>/          raw downloads per game version (committed); raw/CURRENT = latest version string

@@ -84,10 +84,11 @@ ctx.mods.insert({
 // an affix roll (tier is 1-based)
 ctx.mods.insert({ sourceKind: "affix_tier", sourceId: a.affixId, sourceOrd: i, tier: t + 1, ..., valueMin: roll.min, valueMax: roll.max,
                   label: ctx.t(p.modDisplayNameKey), labelKey: p.modDisplayNameKey, raw: { ...p, ...roll } });
-// a display-only tree node stat
+// a tree node stat (display text; kind from the decompiled node code or the label, see loaders/skills-node-kinds.ts)
 ctx.mods.insert({ sourceKind: "skill_node", sourceId: `${treeId}:${node.id}`, sourceOrd: i, property: s.property, tags: s.tags,
-                  modifierType: null, display: s.value, value: parseDisplayValue(s.value),
-                  label: ctx.t(s.statNameKey), labelKey: s.statNameKey, isDownside: s.downside, raw: s });
+                  modifierType: k.modifierType, display: s.value, value: parseDisplayValue(s.value),
+                  label: ctx.t(s.statNameKey), labelKey: s.statNameKey, isDownside: s.downside,
+                  propertyKind, statKind: k.statKind, modifierSource: k.source, labelMismatch, codeRef: k.codeRef, raw: s });
 // a stat block {property, specialTag, tags, addedValue, increasedValue, moreValues[]} -> 1 row per non-zero component
 ctx.mods.insertStatBlock({ sourceKind: "ailment_buff", sourceId: ail.id, sourceOrd: i }, buff);
 ```
@@ -136,6 +137,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | skills | trees (skill / class / weaver) | 136 / 5 / 1 |
 | skills | tree_nodes (skill / class / weaver; all with UI position) | 3,956 / 541 / 80 |
 | skills | tree_node_requirements | 4,928 |
+| skills | node_tooltip_properties | 131 (vendored tree_node_stats.json; names of the 5000-9999 node stat tooltip categories) |
 | skills | mods `skill_node` / `passive_node` / `weaver_node` | 6,528 / 1,440 / 70 |
 | skills | relations (tree nodes) | 3,236 |
 

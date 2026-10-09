@@ -83,6 +83,7 @@
     "monolith_reward_groups": 25,
     "monolith_rewards": 57,
     "monster_mods": 287,
+    "node_tooltip_properties": 131,
     "player_properties": 713,
     "prophecy_unlocks": 28,
     "raw_globals": 34,
@@ -159,7 +160,7 @@
   },
   "foreign_key_violations": {},
   "expected": {
-    "ok": 95,
+    "ok": 96,
     "failed": 0,
     "results": [
       {
@@ -734,6 +735,13 @@
         "expected": 4928,
         "op": "=",
         "actual": 4928,
+        "ok": true
+      },
+      {
+        "name": "skills: node_tooltip_properties",
+        "expected": 131,
+        "op": "=",
+        "actual": 131,
         "ok": true
       },
       {
