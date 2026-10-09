@@ -30,7 +30,7 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
 
   it("schema", () => {
     const s = schema(ctx) as R;
-    expect(s.table_count).toBe(62);
+    expect(s.table_count).toBe(70);
     expect(s.tables.find((t: R) => t.name === "mods").rows).toBeGreaterThan(20000);
     expect(s.docs).toBe("docs/schema.md");
     const m = schema(ctx, "uniques") as R;

@@ -1,7 +1,7 @@
 /**
  * Build data/le.sqlite from data/raw/<version>/.
  *
- *   yarn db:build                          # full build (world -> items -> skills -> search -> crosscheck)
+ *   yarn db:build                          # full build (world -> items -> skills -> community -> search -> crosscheck)
  *   yarn db:build --only world,items       # partial build (other steps skipped; search always rebuilt if listed)
  *   yarn db:build --only none              # schema + meta only
  *   LE_DB_ALLOW_STUBS=1 yarn db:build      # loaders that still throw 'not implemented: x' are skipped (status 'stub')
@@ -23,24 +23,27 @@ import { loadRaw, type RawData } from "./lib/raw.js";
 import { buildReport, formatReport, type BuildReport, type LoaderStatus } from "./lib/report.js";
 import { applySchema, openBuildDb, type DB } from "./lib/sqlite.js";
 import { BUILD_TOOL_VERSION, SCHEMA_VERSION } from "./lib/version.js";
+import * as community from "./loaders/community.js";
 import * as items from "./loaders/items.js";
 import * as skills from "./loaders/skills.js";
 import * as world from "./loaders/world.js";
 import { buildSearch } from "./search.js";
 
 /** Build steps in execution order. */
-export const STEPS = ["world", "items", "skills", "search", "crosscheck"] as const;
+export const STEPS = ["world", "items", "skills", "community", "search", "crosscheck"] as const;
 export type Step = (typeof STEPS)[number];
 
 export interface StepRunner {
   run(ctx: LoaderContext): unknown;
-  expected: readonly ExpectedCount[];
+  /** Acceptance counts, or a function of the build context evaluated after the step ran. */
+  expected: readonly ExpectedCount[] | ((ctx: LoaderContext) => readonly ExpectedCount[]);
 }
 
 export const DEFAULT_RUNNERS: Record<Step, StepRunner> = {
   world: { run: world.loadWorld, expected: world.expected },
   items: { run: items.loadItems, expected: items.expected },
   skills: { run: skills.loadSkills, expected: skills.expected },
+  community: { run: community.loadCommunity, expected: (ctx) => community.expectedFor(community.guidesDir(ctx)) },
   search: { run: (ctx) => buildSearch(ctx.db, ctx.log), expected: [] },
   crosscheck: { run: runCrosscheck, expected: [] },
 };
@@ -141,6 +144,7 @@ export function buildDatabase(opts: BuildOptions = {}): BuildResult {
 
     const loaders: Record<string, LoaderStatus> = {};
     let crosscheck: CrosscheckResult | null = null;
+    let communityReport: community.CommunityReport | null = null;
     for (const step of STEPS) {
       if (!only.has(step)) {
         loaders[step] = "skipped";
@@ -150,6 +154,7 @@ export function buildDatabase(opts: BuildOptions = {}): BuildResult {
       try {
         const r = db.transaction(() => runners[step].run(ctx))();
         if (step === "crosscheck") crosscheck = (r as CrosscheckResult) ?? null;
+        if (step === "community") communityReport = (r as community.CommunityReport) ?? null;
         loaders[step] = "ok";
       } catch (e) {
         if (isStubError(e) && allowStubs) {
@@ -171,9 +176,10 @@ export function buildDatabase(opts: BuildOptions = {}): BuildResult {
       for (const [k, v] of Object.entries(meta).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) insertMeta.run(k, v);
     })();
 
-    const expected: ExpectedResult[] = STEPS.filter((s) => loaders[s] === "ok").flatMap((s) =>
-      checkExpected(db, runners[s].expected).map((r) => ({ ...r, name: `${s}: ${r.name}` })),
-    );
+    const expected: ExpectedResult[] = STEPS.filter((s) => loaders[s] === "ok").flatMap((s) => {
+      const e = runners[s].expected;
+      return checkExpected(db, typeof e === "function" ? e(ctx) : e).map((r) => ({ ...r, name: `${s}: ${r.name}` }));
+    });
 
     const report = buildReport(db, {
       meta: Object.fromEntries(Object.entries(meta).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
@@ -181,6 +187,7 @@ export function buildDatabase(opts: BuildOptions = {}): BuildResult {
       expected,
       warnings: sink.warnings,
       crosscheckMismatches: crosscheck ? crosscheck.mismatches : null,
+      community: communityReport,
     });
 
     const reportPath = opts.reportPath === undefined ? DEFAULT_REPORT_PATH : opts.reportPath;
@@ -248,7 +255,7 @@ export function parseArgs(argv: readonly string[]): BuildOptions {
         break;
       case "--help":
       case "-h":
-        throw new Error("usage: build-db [--only world,items,skills,search,crosscheck|none] [--version 1.5.2] [--out path] [--report path|--no-report] [--allow-stubs] [--quiet]");
+        throw new Error("usage: build-db [--only world,items,skills,community,search,crosscheck|none] [--version 1.5.2] [--out path] [--report path|--no-report] [--allow-stubs] [--quiet]");
       default:
         throw new Error(`unknown argument '${a}'`);
     }

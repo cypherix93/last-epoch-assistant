@@ -18,7 +18,7 @@
     "letools_sha256:i18n/en.json": "38555002a9774ba173fbea033bc6b4cef46b60509e7b45283dc20edb0d854f8a",
     "letools_sha256:loot-filters/5a3e67d79ddb7bd88126a54ab6f4c6c3.js": "a782182f6ced790897543756392060edb54303a9a79ae3801cd9491057b995bf",
     "letools_sha256:planner/f7a1497b3bf199db6f5b2499da7747a2.js": "b56cc30e252857a497d8901c9d837e561fa8555d70e5c39ed8e3df9422d37959",
-    "loaded_steps": "world,items,skills,search,crosscheck",
+    "loaded_steps": "world,items,skills,community,search,crosscheck",
     "maxroll_data_hash": "1b325e38",
     "maxroll_data_url": "https://assets-ng.maxroll.gg/leplanner/game/data.json?1b325e38",
     "maxroll_etag": "W/\"1b325e3819f59f0f0c2b1b240cda92ec\"",
@@ -31,6 +31,7 @@
     "world": "ok",
     "items": "ok",
     "skills": "ok",
+    "community": "ok",
     "search": "ok",
     "crosscheck": "ok"
   },
@@ -52,6 +53,14 @@
     "blessings": 224,
     "class_abilities": 156,
     "classes": 5,
+    "community_build_blessings": 0,
+    "community_build_item_affixes": 0,
+    "community_build_items": 0,
+    "community_build_passives": 0,
+    "community_build_profiles": 0,
+    "community_build_skill_nodes": 0,
+    "community_build_skills": 0,
+    "community_builds": 0,
     "compact_ids": 1306,
     "conditional_properties": 48,
     "dungeon_tiers": 12,
@@ -98,15 +107,29 @@
     "uniques": 486,
     "woven_echoes": 47
   },
-  "empty_tables": [],
+  "empty_tables": [
+    "community_build_blessings",
+    "community_build_item_affixes",
+    "community_build_items",
+    "community_build_passives",
+    "community_build_profiles",
+    "community_build_skill_nodes",
+    "community_build_skills",
+    "community_builds"
+  ],
   "views": [
     "v_affix_summary",
+    "v_affix_usage",
     "v_blessings",
+    "v_build_items_named",
+    "v_build_nodes_named",
+    "v_build_summary",
+    "v_item_usage",
     "v_mods_named",
     "v_skill_node_summary",
     "v_unique_summary"
   ],
-  "index_count": 22,
+  "index_count": 32,
   "mods_by_source_kind": {
     "ability_attribute_scaling": 885,
     "ability_level_scaling": 179,
@@ -144,7 +167,7 @@
   },
   "foreign_key_violations": {},
   "expected": {
-    "ok": 89,
+    "ok": 93,
     "failed": 0,
     "results": [
       {
@@ -769,9 +792,51 @@
         "op": "=",
         "actual": 3236,
         "ok": true
+      },
+      {
+        "name": "community: community_builds",
+        "expected": 0,
+        "op": "=",
+        "actual": 0,
+        "ok": true
+      },
+      {
+        "name": "community: community_builds[ok without class]",
+        "expected": 0,
+        "op": "=",
+        "actual": 0,
+        "ok": true
+      },
+      {
+        "name": "community: community_builds[ok without exactly one default tab]",
+        "expected": 0,
+        "op": "=",
+        "actual": 0,
+        "ok": true
+      },
+      {
+        "name": "community: community_build_item_affixes[tier < 1]",
+        "expected": 0,
+        "op": "=",
+        "actual": 0,
+        "ok": true
       }
     ]
   },
   "warnings": [],
-  "crosscheck_mismatches": 1
+  "crosscheck_mismatches": 1,
+  "community": {
+    "present": false,
+    "guides": 0,
+    "builds": 0,
+    "profiles_loaded": 0,
+    "profiles_missing": 0,
+    "tabs": 0,
+    "items": 0,
+    "affixes": 0,
+    "resolution": "none",
+    "unresolved_total": 0,
+    "unresolved": {},
+    "unnamed_properties": []
+  }
 }
