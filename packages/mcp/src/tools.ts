@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { applyNodeScaling, classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -125,8 +125,12 @@ export function ftsQuery(input: string): string {
   return parts.join(" ");
 }
 
-export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): Row {
-  const q = ftsQuery(query);
+/**
+ * FTS5 search. Default: the text is safe-quoted (ftsQuery). raw=true passes the MATCH expression through unchanged
+ * (OR, AND, NOT, NEAR(...), prefix*, column: filters, parentheses); an FTS5 syntax error comes back as a tool error.
+ */
+export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20, raw = false): Row {
+  const q = raw ? query.trim() : ftsQuery(query);
   if (!q) throw new ToolError("Empty search query");
   const params: unknown[] = [q];
   let kindSql = "";
@@ -136,12 +140,17 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): R
   }
   const lim = Math.max(1, Math.min(limit, 200));
   params.push(lim * 6);
-  const cand = all(
-    ctx,
-    `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
+  let cand: Row[];
+  try {
+    cand = all(
+      ctx,
+      `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
        FROM search WHERE search MATCH ?${kindSql} ORDER BY rank LIMIT ?`,
-    ...params,
-  );
+      ...params,
+    );
+  } catch (e) {
+    throw new ToolError(`FTS5 error for MATCH ${JSON.stringify(q)}: ${(e as Error).message}`);
+  }
   // bm25 is nearly flat for short names; boost exact / prefix name matches and player abilities (lower rank = better).
   const plain = query.trim().toLowerCase();
   const player = new Set(
@@ -187,7 +196,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
   {
     kind: "ability",
     boost: 3,
-    sql: `SELECT ability_id AS id, name, (CASE WHEN is_player_ability = 1 THEN 'player' ELSE 'minion/monster' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri FROM abilities`,
+    sql: `SELECT ability_id AS id, name, (CASE kind WHEN 'player' THEN 'player' WHEN 'player_sub' THEN 'player sub-ability of ' || coalesce(parent_ability_id, '?') WHEN 'minion' THEN 'minion' ELSE 'other (ailment/item/node/proc or monster)' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri, kind AS ability_kind FROM abilities`,
   },
   {
     kind: "unique",
@@ -255,22 +264,22 @@ export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Ro
   }
   const sources = LOOKUP_SOURCES.filter((s) => !kinds?.length || kinds.includes(s.kind));
   const hits = new Map<string, Row>();
-  const add = (kind: string, id: string, nm: string, hint: string | null, score: number) => {
+  const add = (kind: string, id: string, nm: string, hint: string | null, score: number, abilityKind?: string) => {
     const key = `${kind}\u0000${id}`;
     const prev = hits.get(key);
-    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined });
+    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined, ...(abilityKind ? { ability_kind: abilityKind } : {}) });
   };
   for (const s of sources) {
     const base = s.boost ?? 0;
-    for (const r of all(ctx, `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0));
+    for (const r of all(ctx, `SELECT * FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
+      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0), r.ability_kind as string | undefined);
     }
     for (const r of all(
       ctx,
-      `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
+      `SELECT * FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
       likeEscape(q) + "%",
     )) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2));
+      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2), r.ability_kind as string | undefined);
     }
   }
   // FTS fallback only when the name-based passes did not fill the limit.
@@ -304,11 +313,11 @@ export interface ModFilters {
   min_value?: number;
   special_tag?: number;
   include_untagged?: boolean;
-  /** Rows of indirect properties (58, 98, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
+  /** Rows of indirect properties (58, 98, 104, 105, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
   include_indirect?: boolean;
 }
 
-const INDIRECT_PROPS = "(58, 98, 130)";
+const INDIRECT_PROPS = "(58, 98, 104, 105, 130)";
 
 /**
  * The join logic of find_mods: every `mods` row plus a human source name.
@@ -400,7 +409,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   const nodeKind = tree.tree_kind === "skill" ? "skill_node" : tree.tree_kind === "class" ? "passive_node" : "weaver_node";
   const nodes = all(
     ctx,
-    `SELECT node_id AS id, name, description, alt_text, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
+    `SELECT node_id AS id, name, description, alt_text, point_bonus_description, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
     treeId,
   );
   const mods = all(
@@ -413,7 +422,8 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   for (const m of mods) {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateMod(ctx, dropNulls(rest)));
+    const node = nodes.find((x) => x.id === nid) ?? {};
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node));
   }
   const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();
@@ -450,6 +460,10 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       return dropNulls({
         ...n,
         mods: modsByNode.get(id) ?? [],
+        // Semantics (docs/schema.md, tree_node_requirements): the node can be taken when ANY ONE listed node has the given points.
+        unlocked_by: req,
+        unlocked_by_text: req?.map((r) => `${r.node_id}>=${r.points}`).join("|"),
+        // DEPRECATED aliases of unlocked_by / unlocked_by_text (kept for one release; the comma form suggested AND, which is wrong).
         requires: req,
         requires_text: req?.map((r) => `${r.node_id}>=${r.points}`).join(","),
       });
@@ -485,8 +499,50 @@ export function passiveTree(ctx: Ctx, classId: string | number, opts: TreeOpts =
 }
 
 // ---------------------------------------------------------------- sql
-function stripSqlComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+/**
+ * Tokenize SQL just enough to find statement separators: string literals ('..' with '' escapes), quoted
+ * identifiers (".." , `..`, [..]) and comments (-- line, block) are skipped. Returns the text with comments
+ * replaced by a space (literals and identifiers kept verbatim) and the offset of the first `;` outside all of those (-1: none).
+ */
+export function scanSql(sql: string): { text: string; semicolonAt: number } {
+  let out = "";
+  let semicolonAt = -1;
+  let i = 0;
+  const n = sql.length;
+  const quoted = (close: string) => {
+    const start = i;
+    i++;
+    while (i < n) {
+      if (sql[i] === close) {
+        if (sql[i + 1] === close && close !== "]") i += 2; // doubled quote = escaped quote
+        else {
+          i++;
+          break;
+        }
+      } else i++;
+    }
+    out += sql.slice(start, i);
+  };
+  while (i < n) {
+    const c = sql[i];
+    if (c === "'") quoted("'");
+    else if (c === '"') quoted('"');
+    else if (c === "`") quoted("`");
+    else if (c === "[") quoted("]");
+    else if (c === "-" && sql[i + 1] === "-") {
+      while (i < n && sql[i] !== "\n") i++;
+      out += " ";
+    } else if (c === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      i = end < 0 ? n : end + 2;
+      out += " ";
+    } else {
+      if (c === ";" && semicolonAt < 0) semicolonAt = out.length;
+      out += c;
+      i++;
+    }
+  }
+  return { text: out, semicolonAt };
 }
 
 const PRAGMA_ARG = /^pragma\s+(table_info|index_list)\s*\(\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'|"([A-Za-z_][A-Za-z0-9_]*)"|([A-Za-z_][A-Za-z0-9_]*))\s*\)$/i;
@@ -513,9 +569,11 @@ function rewritePragma(text: string): { text: string; params: unknown[] } | unde
  * no time limit: keep queries selective (the row cap bounds output only).
  */
 export function sql(ctx: Ctx, query: string, params: unknown[] = [], limit = 500): Row {
-  let text = stripSqlComments(query).trim().replace(/;\s*$/, "").trim();
+  let text = scanSql(query).text.trim();
+  // A trailing ';' (plus whitespace/comments after it) is tolerated; any other ';' outside literals/comments is not.
+  text = text.replace(/(?:\s*;)+\s*$/, "").trim();
   if (!text) throw new ToolError("Empty query");
-  if (text.includes(";")) throw new ToolError("Only a single statement is allowed (found ';')");
+  if (scanSql(text).semicolonAt >= 0) throw new ToolError("Only a single statement is allowed (found ';')");
   const pragma = rewritePragma(text);
   if (pragma) ({ text, params } = pragma);
   if (!/^(select|with)\b/i.test(text)) {

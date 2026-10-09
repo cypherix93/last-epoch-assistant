@@ -89,7 +89,7 @@ CREATE TABLE stat_properties (
   alt_text_key      TEXT,                -- coreDB.propertyList[].altTextKey
   has_display_rule  INTEGER NOT NULL,    -- 1 when coreDB.propertyList has an entry (113 of 134 SP)
   list_index        INTEGER,             -- index in coreDB.propertyList
-  is_indirect       INTEGER NOT NULL DEFAULT 0, -- 1 for 58 AbilityProperty, 98 PlayerProperty, 130 IdolAltarProperty (tags is an index, not an AT mask);
+  is_indirect       INTEGER NOT NULL DEFAULT 0, -- 1 for 58 AbilityProperty, 98 PlayerProperty, 104 IncreasedDropRate, 105 IncreasedExperience, 130 IdolAltarProperty (tags is an index, not an AT mask; for 104/105 with special_tag 0 it is an item base_type_id);
                                          -- 88 LevelOfSkills is indirect only when specialTag = 1 (tags = ability index), see lib/stat-lines.ts isIndirectTags()
   round_added_to_int          INTEGER,   -- coreDB.propertyList[].roundAddedToInt (0 none, 1 int, 2 one decimal, 3 see enums.md 12)
   rounding_for_more           INTEGER,   -- coreDB.propertyList[].roundingForMore
@@ -402,16 +402,18 @@ CREATE TABLE uniques (
   sub_type_id   INTEGER,               -- .subTypeIds[0] (all of them in unique_subtypes)
   is_set_item   INTEGER NOT NULL,      -- .isSetItem
   set_id        INTEGER REFERENCES sets (set_id), -- .setId (NULL when not a set item)
-  is_legendary_capable INTEGER,        -- .legendaryType (1 = legendary-capable base)
+  legendary_type INTEGER,              -- .legendaryType RAW enum: 0 LegendaryPotential, 1 WeaversWill (which affix-upgrade system the item uses; NOT "can roll LP": 1 on exactly 18 Erased/Weaver uniques)
+  lp_eligible   INTEGER,               -- DERIVED (not in the raw data): 1 when the unique can roll Legendary Potential = not a set item and legendary_type = 0
+  weavers_will  INTEGER,               -- DERIVED: 1 when legendary_type = 1 (the item uses Weaver's Will instead of Legendary Potential)
   unified_type  INTEGER,               -- .unifiedType
   level_requirement INTEGER,           -- .levelRequirement
   override_level_requirement INTEGER,  -- .overrideLevelRequirement
   can_drop_randomly INTEGER,           -- .canDropRandomly
-  can_drop_as_legendary INTEGER,       -- .canDropAsLegendary
+  can_drop_as_legendary INTEGER,       -- .canDropAsLegendary (1 on 4 uniques: Exulis, Unsated Rage, Withstand the Elements, Frostborn Solitude; they all drop_specific_legendary_affixes)
   hide_from_players INTEGER,           -- .hideFromPlayers
   unknown_drop  INTEGER,               -- .unknownDrop
   not_timeline_exclusive INTEGER,      -- .notTimelineExclusive
-  effective_level_for_lp INTEGER,      -- .effectiveLevelForLegendaryPotential
+  effective_level_for_lp INTEGER,      -- .effectiveLevelForLegendaryPotential (only used when override_effective_level_for_lp = 1; 0 with override 0 = not set, LP uses the item's own level)
   override_effective_level_for_lp INTEGER, -- .overrideEffectiveLevelForLegendaryPotential
   drops_specific_legendary_affixes INTEGER, -- .dropsSpecificLegendaryAffixes
   droppable_legendary_affix_count INTEGER,  -- .droppableLegendaryAffixCount
@@ -493,6 +495,8 @@ CREATE TABLE abilities (
   internal_name TEXT,                  -- .internalName
   ability_index INTEGER,               -- .index (bridge to Maxroll abilityList and to SP 58 / 88 `tags`)
   is_player_ability INTEGER NOT NULL DEFAULT 0, -- 1 when id in LEAbilities.playerAbilityIdList
+  kind          TEXT NOT NULL DEFAULT 'other', -- DERIVED (lib/ability-kind.ts): player | player_sub (spawned by a player ability, see parent_ability_id) | minion (entity/minion ability) | other (ailment, item, node and proc abilities, monsters); there is no separate monster kind
+  parent_ability_id TEXT,              -- player_sub only: the player ability it descends from
   player_list_ord INTEGER,             -- position in playerAbilityIdList
   has_skill_tree INTEGER NOT NULL DEFAULT 0, -- 1 when LESkillTrees.<id> exists
   tags          INTEGER,               -- .tags (AT mask)
@@ -643,7 +647,7 @@ CREATE INDEX tree_nodes_name ON tree_nodes (name);
 
 CREATE TABLE tree_node_requirements (
   tree_id       TEXT NOT NULL,
-  node_id       INTEGER NOT NULL,      -- the node that has the requirement
+  node_id       INTEGER NOT NULL,      -- the node that has the requirement; it can be taken when ANY ONE row (its ord set) is satisfied: required_node_id holds >= required_points points. NOT all of them (OR/adjacency semantics, see docs/schema.md)
   ord           INTEGER NOT NULL,      -- index in .requirements[]
   required_node_id INTEGER NOT NULL,   -- .requirements[].nodeId
   required_points INTEGER NOT NULL,    -- .requirements[].requirement (points in required node)
@@ -928,7 +932,7 @@ CREATE TABLE mods (
   property_name TEXT,                  -- resolved name: indirect 58/98/130 resolved to the ability/player/altar property name,
                                        -- otherwise stat_properties.name; NULL for skill-local ids (see label)
   special_tag   INTEGER NOT NULL DEFAULT 0, -- .specialTag (AilmentID, trigger event, conditional index, ability property index...)
-  tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/130)
+  tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/104/105/130)
   tag_names     TEXT,                  -- describeTags(tags), comma list; NULL for indirect properties or tags = 0
   extra_tag     INTEGER NOT NULL DEFAULT 0, -- .extraTag (ability index for ability-bound lines)
   modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; NULL for display-only lines (tree nodes)
@@ -941,6 +945,7 @@ CREATE TABLE mods (
   set_requirement INTEGER,             -- set_bonus: setBonusList[].mods[].setRequirement
   hidden        INTEGER NOT NULL DEFAULT 0, -- .hideInTooltip
   is_downside   INTEGER NOT NULL DEFAULT 0, -- tree node stats[].downside
+  no_scaling    INTEGER,               -- tree node stats[].noScaling (0 = value is PER POINT allocated; 1 = does not scale per point: fixed, or a lump at the threshold, see tree_nodes.no_scaling_type); NULL for every other source
   raw_json      TEXT NOT NULL          -- the source stat line object
 );
 CREATE INDEX mods_property ON mods (property, modifier_type);
@@ -1008,7 +1013,8 @@ SELECT
   m.context,
   m.set_requirement,
   m.hidden,
-  m.is_downside
+  m.is_downside,
+  m.no_scaling
 FROM mods m
 LEFT JOIN stat_properties sp ON sp.property = m.property;
 
@@ -1022,7 +1028,8 @@ SELECT
   u.level_requirement,
   u.is_set_item,
   s.name AS set_name,
-  u.is_legendary_capable,
+  u.legendary_type,
+  u.lp_eligible,
   u.mod_count,
   (SELECT group_concat(
             coalesce(m.property_name, m.label, '?') || ' ' ||
@@ -1060,7 +1067,9 @@ SELECT
             coalesce(s.property_name, s.label) || ' ' ||
             CASE s.modifier_type WHEN 0 THEN 'added' WHEN 1 THEN 'increased' WHEN 2 THEN 'more' END ||
             (SELECT printf(' %g..%g', min(m.value_min), max(m.value_max)) FROM mods m
-              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord),
+              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord) ||
+            coalesce((SELECT ' [' || m.tag_names || ']' FROM mods m
+              WHERE m.source_kind = 'affix_tier' AND m.source_id = CAST(a.affix_id AS TEXT) AND m.source_ord = s.ord AND m.tag_names IS NOT NULL LIMIT 1), ''),
             '; ' ORDER BY s.ord)
      FROM affix_stats s WHERE s.affix_id = a.affix_id) AS stats_text,
   (SELECT group_concat(bt.name, ', ' ORDER BY r.ord)
@@ -1083,11 +1092,15 @@ SELECT
   n.mastery,
   n.mastery_requirement,
   n.description,
-  (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), ''),
+  (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), '') ||
+                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END,
                        '; ' ORDER BY m.source_ord, m.sub_ord)
      FROM mods m
     WHERE m.source_kind IN ('skill_node', 'passive_node', 'weaver_node')
       AND m.source_id = n.tree_id || ':' || n.node_id) AS stats_text,
+  (SELECT group_concat(r.required_node_id || '>=' || r.required_points, '|' ORDER BY r.ord)
+     FROM tree_node_requirements r WHERE r.tree_id = n.tree_id AND r.node_id = n.node_id) AS unlocked_by,
+  -- DEPRECATED alias of unlocked_by with ',' separators (read as AND, which is wrong: the node needs ANY ONE of the entries); kept for one release
   (SELECT group_concat(r.required_node_id || '>=' || r.required_points, ',' ORDER BY r.ord)
      FROM tree_node_requirements r WHERE r.tree_id = n.tree_id AND r.node_id = n.node_id) AS requires
 FROM tree_nodes n
@@ -1106,6 +1119,8 @@ SELECT
   m.source_ord,
   m.property,
   coalesce(m.property_name, sp.name) AS property_name,
+  m.special_tag,
+  m.tags,
   m.tag_names,
   m.modifier_type,
   CASE m.modifier_type WHEN 0 THEN 'added' WHEN 1 THEN 'increased' WHEN 2 THEN 'more' END AS modifier_name,

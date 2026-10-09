@@ -35,7 +35,7 @@ docs/                 data-source study, schema.md, loader-contract.md
 - `yarn db:build` - build `data/le.sqlite` from `data/raw/CURRENT`. Flags: `--only <steps|none>` (steps `world,items,skills,search,crosscheck`, comma separated, repeatable; `none` = schema + meta only), `--version <folder>`, `--out <path>` (default `data/le.sqlite`), `--report <path>` / `--no-report` (write neither the build nor the crosscheck report), `--allow-stubs`, `--quiet`. `LE_DB_ALLOW_STUBS=1` (same as `--allow-stubs`) skips loaders that still throw "not implemented" (status `stub`) instead of failing. Exit 1 when a step fails or an expected count does not match.
 - `yarn setup` - `yarn fetch && yarn db:build`
 - `yarn mcp` - start the MCP server on stdio
-- `yarn mcp:list` - list the server's tools (one line each)
+- `yarn mcp:list` - list the server's tools with their input schemas (one line per argument; `--json` for the raw list)
 - `yarn mcp:call <tool> [args] [--pretty]` - call one tool from the shell (see below)
 - `yarn probes:verify` - re-run the probe suite's ground truth (`node tests/probes/make-questions.js --verify`); prints `ALL 30 VERIFIED`
 - `yarn skills:check` - run every tool-call and SQL example in `.claude/skills/**/*.md` against `data/le.sqlite` (`tests/skill-examples/runner.mts`); must report `BAD/ZERO 0`

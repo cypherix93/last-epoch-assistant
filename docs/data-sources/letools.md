@@ -2632,7 +2632,7 @@ Example (record #5, trimmed):
 | `hideFromPlayers` | number | always | values 0,1 | `0` | Hidden from players (internal). |
 | `notTimelineExclusive` | number | always | values 0,1 | `0` | Not timeline-exclusive flag. |
 | `baseTypeId` | number | always | 0..33 (>12 distinct) | `0` | Base item type id (see enums.md "base types"). |
-| `legendaryType` | number | always | values 0,1 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `legendaryType` | number | always | values 0,1 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `subTypeIds` | array | always | len 1..1 | `[1]` | Allowed sub type ids. |
 | `subTypeIds[]` | number | 486 occurrences | 0..72 (>12 distinct) | `1` | Allowed sub type ids. |
 | `oldSubTypeId` | number | always | values 0,1,2,3,4,5,6,7,8 | `1` | Legacy sub type id. |
@@ -2640,14 +2640,14 @@ Example (record #5, trimmed):
 | `mods` | array | always | len 0..11 | `[{"value":1,"maxValue":1.5,"property":1,"specialTag":1,"t...` | Mod list. |
 | `mods[]` | object | 2440 occurrences |  | `{"value":1,"maxValue":1.5,"property":1,"specialTag":1,"ta...` | Mod list. |
 | `mods[].value` | number | 2440 occurrences | -16..600 (>12 distinct) | `1` | Stat value (number) or roll min for unique mods / display string on tree nodes. |
-| `mods[].maxValue` | number | 2440 occurrences | -1000000..2000 (>12 distinct) | `1.5` | Roll max for unique mods. |
+| `mods[].maxValue` | number | 2440 occurrences | -1000000..2000 (>12 distinct) | `1.5` | Roll max for unique mods; only meaningful when `canRoll` is 1 (see the rule below the table). |
 | `mods[].property` | number | 2440 occurrences | 0..130 (>12 distinct) | `1` | Stat property id (SP enum, see enums.md). |
 | `mods[].specialTag` | number | 2440 occurrences | 0..118 (>12 distinct) | `1` | Secondary selector: ailment id / ability-property index / etc. depending on property. |
 | `mods[].tags` | number | 2440 occurrences | 0..33554433 (>12 distinct) | `8` | Tag bit mask (AT enum, see enums.md). |
 | `mods[].extraTag` | number | 2440 occurrences | values 0,71,143,353 | `0` | Tertiary selector (e.g. extra tag); mostly 0. |
 | `mods[].type` | number | 2440 occurrences | values 0,1,2 | `0` | Context-dependent enum (see enums.md): affix type (0 prefix, 1 suffix) / modifierType on mods / base-type id on item types / ability component type string. |
 | `mods[].hideInTooltip` | number | 2440 occurrences | values 0,1 | `1` | 1 if the line is not shown in the tooltip. |
-| `mods[].canRoll` | number | 2440 occurrences | values 0,1 | `1` | 1 if the unique mod value is rollable. |
+| `mods[].canRoll` | number | 2440 occurrences | values 0,1 | `1` | 1 if the unique mod value is rollable; 0 = fixed at `value` and `maxValue` is ignored. |
 | `mods[].rollId` | number | 2440 occurrences | values 0,1,2,3,4,5,6,7 | `0` | Roll slot id. |
 | `tooltipDescriptions` | array | always | len 0..7 | `[{"altText":null,"setMod":0,"setRequirement":0,"descripti...` | Free-text description lines. |
 | `tooltipDescriptions[]` | object | 562 occurrences |  | `{"altText":null,"setMod":0,"setRequirement":0,"descriptio...` | Free-text description lines. |
@@ -2689,6 +2689,8 @@ Example (record #5, trimmed):
 | `primordialFeatherCost` | number | 8/486 (1.6%) | values 15,17,20,25,26,29,30,32 | `32` | Weaver crafting cost. |
 | `droppableLegendaryAffixes[]` | number | 43 occurrences | 1083..1152 (>12 distinct) | `1083` | Affix ids. |
 | `validPreCorrupts[]` | number | 3 occurrences | values 5,9,12 | `9` | List. |
+
+**Unique mod ranges (`mods[].value` / `maxValue` / `canRoll`) - RULE.** `canRoll = 1` (1737 of 2440 mods): the mod rolls between `value` (min) and `maxValue` (max); `value <= maxValue` always holds. `canRoll = 0` (703 mods): the mod is FIXED at `value`; `maxValue` is an unused leftover that is often 0, a smaller number (`40` with `maxValue 25`), or a different scale (`0.75` with `maxValue 90`, `0.4` with `maxValue 125`) - 612 of the 703 fixed mods have `maxValue != value`. Reading `value..maxValue` blindly gives nonsense such as "Void Resistance added 0.75..90" (Trident of the Last Abyss), "Damage 40..25" and "Penetration 0.4..125" (Dreamthorn). The loader stores `value_min = value_max = value` for `canRoll = 0` (the raw line stays in `mods.raw_json`); the raw data is internally consistent once `canRoll` is honoured. The game shows a fixed mod as its single value.
 
 Example (key `2`, record #2, trimmed):
 

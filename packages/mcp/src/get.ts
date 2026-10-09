@@ -26,7 +26,7 @@
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
 
 export const MOD_COLS =
-  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside";
+  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling";
 
 export type Id = string | number | { [k: string]: string | number };
 
@@ -38,7 +38,13 @@ export function dropNulls(r: Row): Row {
 
 /** Stat properties whose `special_tag` is an ailment id (docs/data-sources/enums.md). */
 export const AILMENT_SPECIAL_TAG_PROPS = new Set([1, 42, 43, 100, 115, 120, 128]);
-const INDIRECT_PROP_KIND: Record<number, string> = { 98: "player_property", 58: "ability_property", 130: "idol_altar_property" };
+const INDIRECT_PROP_KIND: Record<number, string> = {
+  98: "player_property",
+  58: "ability_property",
+  130: "idol_altar_property",
+  104: "drop_category",
+  105: "drop_category",
+};
 
 const ailmentNameCache = new WeakMap<Ctx, Map<number, string>>();
 export function ailmentName(ctx: Ctx, id: number): string | undefined {
@@ -46,6 +52,16 @@ export function ailmentName(ctx: Ctx, id: number): string | undefined {
   if (!m) {
     m = new Map(all(ctx, "SELECT ailment_id, name FROM ailments").map((r) => [r.ailment_id as number, r.name as string]));
     ailmentNameCache.set(ctx, m);
+  }
+  return m.get(id);
+}
+
+const baseTypeCache = new WeakMap<Ctx, Map<number, string>>();
+function baseTypeName(ctx: Ctx, id: number): string | undefined {
+  let m = baseTypeCache.get(ctx);
+  if (!m) {
+    m = new Map(all(ctx, "SELECT base_type_id, name FROM item_base_types").map((r) => [r.base_type_id as number, r.name as string]));
+    baseTypeCache.set(ctx, m);
   }
   return m.get(id);
 }
@@ -60,7 +76,28 @@ export function decorateMod<T extends Row>(ctx: Ctx, m: T): T {
     if (n) out.special_tag_name = n;
   }
   if (INDIRECT_PROP_KIND[p]) out.property_kind = INDIRECT_PROP_KIND[p];
+  // 104/105: with special_tag 0, tags is an item base type id (e.g. 1 = Body Armor); other special tags are undecoded categories.
+  if ((p === 104 || p === 105) && !m.special_tag && typeof m.tags === "number") {
+    const bt = baseTypeName(ctx, m.tags);
+    if (bt) out.drop_target = bt;
+  }
   return out as T;
+}
+
+/**
+ * Tree node stat lines: replace the raw no_scaling flag by `scales_with_points` and `scaling`.
+ *   per_point     noScaling 0: the displayed value is PER POINT allocated (total = value x points)
+ *   fixed         noScaling 1 in a SinglePoint node (no_scaling_type 0): given once, from the first point, regardless of points
+ *   at_threshold  noScaling 1 in a PointThreshold node (no_scaling_type 1): a lump granted when `threshold` points are allocated
+ */
+export function applyNodeScaling(m: Row, node: { no_scaling_type?: unknown; no_scaling_point_threshold?: unknown }): Row {
+  const { no_scaling, ...rest } = m;
+  if (no_scaling === undefined || no_scaling === null) return m;
+  if (!no_scaling) return { ...rest, scales_with_points: true, scaling: "per_point" };
+  if (node.no_scaling_type) {
+    return { ...rest, scales_with_points: false, scaling: "at_threshold", threshold: node.no_scaling_point_threshold };
+  }
+  return { ...rest, scales_with_points: false, scaling: "fixed" };
 }
 
 export function modsFor(ctx: Ctx, sourceKind: string, sourceId: string | number): Row[] {
@@ -130,6 +167,25 @@ export function decodeComponent(ctx: Ctx, type: string, raw: Row): Row | undefin
   return undefined;
 }
 
+/** Components of one ability with the decoded damage / ailment payloads (shared by the ability and its sub-abilities). */
+function abilityComponents(ctx: Ctx, abilityId: string): Row[] {
+  return all(
+    ctx,
+    "SELECT ord, component_type, damage_tags, ref_ability_id, raw_json FROM ability_components WHERE ability_id = ? ORDER BY ord",
+    abilityId,
+  ).map((c) => {
+    let rawObj: Row = {};
+    try {
+      rawObj = JSON.parse(c.raw_json as string);
+    } catch {
+      /* keep empty */
+    }
+    const { raw_json: _r, ...head } = c;
+    const decoded = decodeComponent(ctx, c.component_type as string, rawObj);
+    return dropNulls({ ...head, decoded, fields: scalarFields(rawObj) });
+  });
+}
+
 function int(id: Id, what: string): number {
   const n = typeof id === "number" ? id : typeof id === "string" ? Number(id) : NaN;
   if (!Number.isFinite(n)) throw new ToolError(`${what} id must be an integer, got ${JSON.stringify(id)}`);
@@ -187,7 +243,7 @@ function nodeGetter(treeKind: string): Getter {
     return {
       node: clean(n, raw),
       tree: t,
-      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`),
+      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => applyNodeScaling(m, n)),
       requirements: all(
         ctx,
         "SELECT r.required_node_id, r.required_points, n.name AS required_name FROM tree_node_requirements r LEFT JOIN tree_nodes n ON n.tree_id = r.tree_id AND n.node_id = r.required_node_id WHERE r.tree_id = ? AND r.node_id = ? ORDER BY r.ord",
@@ -202,6 +258,10 @@ function treeSummary(ctx: Ctx, row: Row, raw: boolean): Row {
   const n = one(ctx, "SELECT count(*) n FROM tree_nodes WHERE tree_id = ?", row.tree_id)!.n;
   return { tree: clean(row, raw), node_count: n, note: "Full nodes: use the skill_tree / passive_tree tool." };
 }
+
+/** Legendary Potential is not stored per unique in the game data; `lp_eligible` is derived (see docs/schema.md, table uniques). */
+const UNIQUE_LP_NOTE =
+  "lp_eligible is DERIVED, not in the data: the game data has no per-unique 'can roll legendary potential' flag. Non-set uniques with legendary_type 0 can drop with LP; set items cannot; legendary_type 1 (weavers_will) uniques use Weaver's Will instead. legendary_type is the raw .legendaryType enum (0 LegendaryPotential, 1 WeaversWill), can_drop_as_legendary is .canDropAsLegendary (4 uniques with fixed legendary affix pools), effective_level_for_lp counts only when override_effective_level_for_lp = 1 (0 + override 0 = no override, so LP presumably uses the item's own level: unverified).";
 
 export const GETTERS: Record<string, Getter> = {
   unique(ctx, id, raw) {
@@ -224,6 +284,7 @@ export const GETTERS: Record<string, Getter> = {
         u.unique_id,
       ),
       set: u.set_id == null ? null : one(ctx, "SELECT set_id, name, item_count FROM sets WHERE set_id = ?", u.set_id),
+      note: UNIQUE_LP_NOTE,
     };
   },
   affix(ctx, id, raw) {
@@ -306,24 +367,33 @@ export const GETTERS: Record<string, Getter> = {
       extra.notes =
         "cooldown_seconds = 1 / charges_gained_per_second (seconds per charge regenerated). attack_speed (`as`) is the animation speed multiplier, not uses/second.";
     }
-    const components = all(
-      ctx,
-      "SELECT ord, component_type, damage_tags, ref_ability_id, raw_json FROM ability_components WHERE ability_id = ? ORDER BY ord",
-      a.ability_id,
-    ).map((c) => {
-      let rawObj: Row = {};
-      try {
-        rawObj = JSON.parse(c.raw_json as string);
-      } catch {
-        /* keep empty */
-      }
-      const { raw_json: _r, ...head } = c;
-      const decoded = decodeComponent(ctx, c.component_type as string, rawObj);
-      return dropNulls({ ...head, decoded, fields: scalarFields(rawObj) });
-    });
+    const components = abilityComponents(ctx, a.ability_id as string);
+    const kind = a.kind as string;
+    if (kind === "player_sub" && a.parent_ability_id) {
+      const parent = one(ctx, "SELECT ability_id, name FROM abilities WHERE ability_id = ?", a.parent_ability_id);
+      if (parent) extra.parent_ability = parent;
+    }
+    if (kind === "other") {
+      extra.kind_note = "kind 'other' = ailment / item / node / proc abilities and monster abilities (the data has no separate monster kind); it is not necessarily a minion.";
+    }
+    // A player skill's damage usually lives in a sub-ability it spawns (e.g. es6ai -> es6ai_1): list them with their components.
+    const subs =
+      kind === "player"
+        ? all(ctx, "SELECT ability_id, name, tag_names FROM abilities WHERE kind = 'player_sub' AND parent_ability_id = ? ORDER BY ability_id", a.ability_id).map((s) => {
+            const comps = abilityComponents(ctx, s.ability_id as string).filter((c) => c.decoded !== undefined);
+            return dropNulls({
+              id: s.ability_id,
+              name: s.name,
+              tag_names: s.tag_names,
+              damage_total: (comps.map((c) => (c.decoded as Row).damage_total).find((v) => typeof v === "number") as number | undefined) ?? undefined,
+              components: comps.map((c) => ({ ord: c.ord, component_type: c.component_type, decoded: c.decoded })),
+            });
+          })
+        : undefined;
     return {
       ability: { ...clean(a, raw), ...extra },
       components,
+      ...(subs ? { sub_abilities: subs } : {}),
       links: all(ctx, "SELECT link_kind, ord, target_ability_id FROM ability_links WHERE ability_id = ? ORDER BY link_kind, ord", a.ability_id),
       attribute_scaling: modsFor(ctx, "ability_attribute_scaling", a.ability_id as string),
       level_scaling: modsFor(ctx, "ability_level_scaling", a.ability_id as string),

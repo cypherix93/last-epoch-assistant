@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
+import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, scanSql, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
 
 const dbPath = resolveDbPath();
 const have = existsSync(dbPath);
@@ -48,11 +48,44 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((search(ctx, "name:fireball", ["ability"]) as R).results[0].name).toBe("Fireball");
   });
 
+  it("ability kinds: lookup labels sub-abilities, get lists sub_abilities with damage", () => {
+    const l = lookup(ctx, "Erasing Strike", ["ability"]) as R;
+    const byId = Object.fromEntries(l.results.map((r: R) => [r.id, r]));
+    expect(byId.es6ai).toMatchObject({ ability_kind: "player", hint: "player, has tree" });
+    expect(byId.es6ai_1).toMatchObject({ ability_kind: "player_sub", hint: "player sub-ability of es6ai" });
+    expect(JSON.stringify(l)).not.toContain("minion/monster");
+    const a = getTool(ctx, "ability", "es6ai") as R;
+    expect(a.ability.kind).toBe("player");
+    const sub = a.sub_abilities.find((s: R) => s.id === "es6ai_1");
+    expect(sub.damage_total).toBeGreaterThan(0);
+    expect(sub.components[0]).toMatchObject({ component_type: "DamageEnemyOnHit" });
+    const s = getTool(ctx, "ability", "es6ai_1") as R;
+    expect(s.ability).toMatchObject({ kind: "player_sub", parent_ability: { ability_id: "es6ai", name: "Erasing Strike" } });
+    expect(s).not.toHaveProperty("sub_abilities");
+    expect((getTool(ctx, "ability", "ability_gen2") as R).ability.kind_note).toMatch(/monster/);
+  });
+
+  it("search raw=true passes FTS5 operators through; default stays safe-quoted", () => {
+    const plain = search(ctx, "fireball OR frostbolt", undefined, 50) as R;
+    const raw = search(ctx, "fireball OR frostbolt", ["ability"], 50, true) as R;
+    expect(raw.query).toBe("fireball OR frostbolt");
+    const names = new Set(raw.results.map((x: R) => x.name));
+    expect(names.has("Fireball") && names.has("Frostbolt")).toBe(true);
+    expect(plain.query).toContain('"OR"');
+    expect((search(ctx, "name:fireb*", ["ability"], 5, true) as R).results[0].name).toMatch(/^Fireb/);
+    expect((search(ctx, "NEAR(void penetration, 3)", undefined, 5, true) as R).count).toBeGreaterThan(0);
+    expect(() => search(ctx, 'fire" AND (', undefined, 5, true)).toThrow(/FTS5 error/);
+    expect(() => search(ctx, "   ", undefined, 5, true)).toThrow(/Empty/);
+  });
+
   it("get", () => {
     const u = getTool(ctx, "unique", 0) as R;
     expect(u.unique.name).toBe("Calamity");
     expect(u.mods).toHaveLength(3);
     expect(u.unique).not.toHaveProperty("raw_json");
+    expect(u.note).toMatch(/lp_eligible is DERIVED/);
+    expect(u.unique.lp_eligible).toBe(1);
+    expect(u.unique.legendary_type).toBe(0);
     expect((getTool(ctx, "unique", 0, true) as R).unique.raw).toBeTruthy();
     const a = getTool(ctx, "affix", 0) as R;
     expect(a.affix.name).toBe("Void Penetration");
@@ -136,7 +169,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     const n4 = t.nodes.find((n: R) => n.id === 4);
     expect(n4.requires[0]).toEqual({ node_id: 2, node_name: "Piercing Heat", points: 2 });
     expect(n4.requires[1].node_id).toBe(6);
-    expect(n4.requires_text).toBe("2>=2,6>=2");
+    expect(n4.requires_text).toBe("2>=2,6>=2"); // deprecated alias
+    // requirements are ANY-ONE-OF (adjacency): es6ai nodes 8 and 11 list each other, so AND could never be satisfied
+    expect(n4.unlocked_by_text).toBe("2>=2|6>=2");
+    expect(n4.unlocked_by).toEqual(n4.requires);
+    const es = skillTree(ctx, "es6ai") as R;
+    const e8 = es.nodes.find((n: R) => n.id === 8);
+    const e11 = es.nodes.find((n: R) => n.id === 11);
+    expect(e8.unlocked_by_text).toBe("11>=2|12>=1");
+    expect(e11.unlocked_by.map((r: R) => r.node_id)).toContain(8);
+    const sum = sql(ctx, "SELECT unlocked_by, requires FROM v_skill_node_summary WHERE tree_id = 'es6ai' AND node_id = 8") as R;
+    expect(sum.rows[0]).toEqual({ unlocked_by: "11>=2|12>=1", requires: "11>=2,12>=1" });
     const all_ = passiveTree(ctx, 1) as R;
     const f = passiveTree(ctx, 1, { filter: "ward" }) as R;
     expect(f.nodes.length).toBeGreaterThan(0);
@@ -147,10 +190,35 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
   });
 
+  it("tree node stats say whether they scale with points", () => {
+    const av = skillTree(ctx, "av75ch", { filter: "Precision" }) as R;
+    const [perPoint, fixed] = av.nodes[0].mods;
+    expect(perPoint).toMatchObject({ scales_with_points: true, scaling: "per_point" });
+    expect(fixed).toMatchObject({ scales_with_points: false, scaling: "fixed", display: "60%" });
+    expect(fixed).not.toHaveProperty("no_scaling");
+    const chase = (passiveTree(ctx, "pr-1", { filter: "The Chase" }) as R).nodes[0];
+    expect(chase).toMatchObject({ no_scaling_type: 1, no_scaling_point_threshold: 5 });
+    expect(chase.point_bonus_description).toMatch(/cannot be damaged/);
+    expect(chase.mods.at(-1)).toMatchObject({ scales_with_points: false, scaling: "at_threshold", threshold: 5 });
+    const node = getTool(ctx, "skill_node", "av75ch:3") as R;
+    expect(node.mods.map((m: R) => m.scaling)).toEqual(["per_point", "fixed"]);
+    const rows = sql(ctx, "SELECT no_scaling, count(*) AS n FROM mods WHERE source_kind = 'skill_node' GROUP BY 1 ORDER BY 1") as R;
+    expect(rows.rows.map((r: R) => r.no_scaling)).toEqual([0, 1]);
+    expect((sql(ctx, "SELECT count(*) AS n FROM mods WHERE source_kind = 'unique_mod' AND no_scaling IS NOT NULL") as R).rows[0].n).toBe(0);
+  });
+
   it("search node hits carry tree_id and node_id", () => {
     const r = search(ctx, "piercing heat", ["skill_node"]) as R;
     const h = r.results.find((x: R) => x.id === "fi9:2");
     expect(h).toMatchObject({ tree_id: "fi9", node_id: 2 });
+  });
+
+  it("drop-rate blessings: tags are a base type, not damage tags", () => {
+    const r = findMods(ctx, { property: 104, source_kinds: ["blessing"], source_id: "34:63" }) as R;
+    expect(r.rows[0]).toMatchObject({ property_name: "Increased Drop Rate", tags: 1, property_kind: "drop_category", drop_target: "Body Armor" });
+    expect(r.rows[0].tag_names).toBeUndefined();
+    const phys = findMods(ctx, { tags_all: ["Physical"], source_kinds: ["blessing"], include_untagged: false }, 2000) as R;
+    expect(phys.rows.some((x: R) => x.property === 104)).toBe(false);
   });
 
   it("find_mods ignores indirect-property rows in tag filters", () => {
@@ -172,6 +240,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(capped.rows).toHaveLength(5);
     expect(capped.truncated).toBe(true);
     expect((sql(ctx, "select count(*) n from uniques where unique_id = ?;", [0]) as R).rows[0].n).toBe(1);
+  });
+
+  it("sql tolerates ';' inside literals/comments but not between statements", () => {
+    expect((sql(ctx, "SELECT group_concat(name, '; ') AS g FROM classes") as R).rows[0].g).toContain("; ");
+    expect((sql(ctx, "SELECT 'it''s; ok' AS a, \"x;y\" AS b FROM (SELECT 1 AS \"x;y\")") as R).rows[0].a).toBe("it's; ok");
+    expect((sql(ctx, ["SELECT 1 AS a -- trailing; comment", ""].join("\n")) as R).rows[0].a).toBe(1);
+    expect((sql(ctx, "SELECT /* a;b */ 2 AS a;") as R).rows[0].a).toBe(2);
+    expect((sql(ctx, "SELECT 3 AS a; -- done") as R).rows[0].a).toBe(3);
+    expect(() => sql(ctx, "SELECT 'a'; SELECT 'b'")).toThrow(/single/);
+    expect(() => sql(ctx, "SELECT 1 /* ; */ ; DELETE FROM meta")).toThrow(/single/);
+    expect(scanSql("select ';' ; x").semicolonAt).toBeGreaterThan(0);
   });
 
   it("sql allows only the read-only schema pragmas", () => {
@@ -276,5 +355,16 @@ describe.skipIf(!have)("@le/mcp CLI call arg forms", () => {
     const bad = run(["sql", '{"query":']);
     expect(bad.status).toBe(1);
     expect(bad.stderr).toContain("Invalid JSON args");
+  }, 60_000);
+
+  it("list prints argument schemas; list --json is the raw tool list", () => {
+    const sh = (args: string[]) => spawnSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: REPO_ROOT, encoding: "utf8" });
+    const txt = sh(["list"]).stdout;
+    expect(txt).toMatch(/^ {4}query\tstring\trequired/m);
+    expect(txt).toMatch(/^ {4}limit\tinteger \[1\.\.5000]\toptional \(default 500\)/m);
+    expect(txt).toMatch(/^ {4}ability_id\tstring\trequired/m);
+    const raw = JSON.parse(sh(["list", "--json"]).stdout) as { name: string; inputSchema: { properties: object } }[];
+    expect(raw.map((t) => t.name)).toContain("sql");
+    expect(Object.keys(raw.find((t) => t.name === "sql")!.inputSchema.properties)).toEqual(["query", "params", "limit"]);
   }, 60_000);
 });

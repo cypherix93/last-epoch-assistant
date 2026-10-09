@@ -30,6 +30,61 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(orphans.n).toBe(0);
   });
 
+  it("unique mods with canRoll 0 are fixed at value (raw maxValue is a leftover)", () => {
+    const db = get().db;
+    const row = (name: string, prop: number) =>
+      db
+        .prepare(
+          "SELECT m.value_min, m.value_max FROM mods m JOIN uniques u ON CAST(m.source_id AS INTEGER) = u.unique_id WHERE m.source_kind = 'unique_mod' AND u.name = ? AND m.property = ?",
+        )
+        .get(name, prop) as { value_min: number; value_max: number };
+    // raw: Trident of the Last Abyss Void Resistance value 0.75 maxValue 90; Dreamthorn Damage 40/25, Penetration 0.4/125 (all canRoll 0)
+    expect(row("Trident of the Last Abyss", 26)).toEqual({ value_min: 0.75, value_max: 0.75 });
+    expect(row("Dreamthorn", 0)).toEqual({ value_min: 40, value_max: 40 });
+    expect(row("Dreamthorn", 59)).toEqual({ value_min: 0.4, value_max: 0.4 });
+    // rollable mods keep their range
+    expect(row("Trident of the Last Abyss", 51)).toEqual({ value_min: 0.5, value_max: 0.7 });
+    const bad = db
+      .prepare("SELECT count(*) AS n FROM mods WHERE source_kind = 'unique_mod' AND value_min > value_max")
+      .get() as { n: number };
+    expect(bad.n).toBe(0);
+    const text = (db.prepare("SELECT mods_text FROM v_unique_summary WHERE name = 'Dreamthorn'").get() as { mods_text: string }).mods_text;
+    expect(text).toContain("Damage added 40 [");
+    expect(text).not.toContain("40..25");
+  });
+
+  it("legendary fields: legendary_type is the raw enum, lp_eligible/weavers_will are derived", () => {
+    const db = get().db;
+    const cols = (db.prepare("PRAGMA table_info(uniques)").all() as { name: string }[]).map((c) => c.name);
+    expect(cols).toContain("legendary_type");
+    expect(cols).not.toContain("is_legendary_capable");
+    const by = db
+      .prepare("SELECT legendary_type, is_set_item, lp_eligible, weavers_will, count(*) AS n FROM uniques GROUP BY 1, 2, 3, 4 ORDER BY 1, 2")
+      .all();
+    expect(by).toEqual([
+      { legendary_type: 0, is_set_item: 0, lp_eligible: 1, weavers_will: 0, n: 407 },
+      { legendary_type: 0, is_set_item: 1, lp_eligible: 0, weavers_will: 0, n: 61 },
+      { legendary_type: 1, is_set_item: 0, lp_eligible: 0, weavers_will: 1, n: 18 },
+    ]);
+    const cdal = db.prepare("SELECT count(*) AS n FROM uniques WHERE can_drop_as_legendary = 1").get() as { n: number };
+    expect(cdal.n).toBe(4);
+  });
+
+  it("v_affix_summary keeps tag names; v_blessings exposes tags and does not decode drop-rate masks", () => {
+    const db = get().db;
+    const a = db.prepare("SELECT stats_text FROM v_affix_summary WHERE affix_id = 76").get() as { stats_text: string };
+    expect(a.stats_text).toBe("Damage added 3..100 [Void,Melee]"); // Melee Void Damage
+    const cols = (db.prepare("PRAGMA table_info(v_blessings)").all() as { name: string }[]).map((c) => c.name);
+    expect(cols).toEqual(expect.arrayContaining(["tags", "tag_names", "special_tag"]));
+    const dr = db
+      .prepare("SELECT name, tags, tag_names FROM v_blessings WHERE property = 104 AND special_tag = 0 AND tags = 1")
+      .get() as { name: string; tags: number; tag_names: string | null };
+    expect(dr.name).toBe("Embrace of Ice");
+    expect(dr.tag_names).toBeNull();
+    const phys = db.prepare("SELECT count(*) AS n FROM v_blessings WHERE property = 104 AND tag_names IS NOT NULL").get() as { n: number };
+    expect(phys.n).toBe(0);
+  });
+
   it("stores affix tier roll ranges", () => {
     const db = get().db;
     const a = db.prepare("SELECT name, tier_count FROM affixes WHERE affix_id = 0").get() as { name: string; tier_count: number };

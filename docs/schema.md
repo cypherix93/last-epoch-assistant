@@ -41,10 +41,11 @@ modifier = { property  (stat property id, SP 0..133; 5000+ skill-local ids in tr
 | `property_name` | the name of the stat the line grants. **Indirect properties are resolved**: SP 98 `PlayerProperty` -> the player property name (`tags` = index), SP 58 `AbilityProperty` -> the ability property name (`tags` = ability index, `special_tag` = property index), SP 130 `IdolAltarProperty` -> the altar property name, SP 88 `LevelOfSkills` with `special_tag = 1` -> `Level of <ability>`. NULL for skill-local ids (use `label`). |
 | `tag_names` | `tags` decoded with `AT`, comma list (`Physical,Melee`); NULL when `tags = 0` or `tags` is an index (indirect properties). Filter by bit with `tags & 8192 <> 0` (Minion), or by name with `tag_names LIKE '%Minion%'`. |
 | `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative). NULL for display-only lines (tree node stats carry only text). |
-| `value_min`, `value_max` | roll range; equal for fixed values. For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
+| `value_min`, `value_max` | roll range; equal for fixed values (unique mods with raw `canRoll` 0 are loaded as fixed at `value`: the raw `maxValue` of those is a leftover, see docs/data-sources/letools.md). For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
 | `display`, `label` | source text: `display` is the value text of tree node stats (`'+25%'`), `label` the line name (`'Pierce Chance'`, affix line display name). |
 | `context` | qualifier, e.g. `'attribute:2'` (ability scaling per point of Intelligence) or `'per_level'`. |
 | `set_requirement`, `hidden`, `is_downside` | set pieces needed; `hideInTooltip`; tree node stat marked as a downside. |
+| `no_scaling` | tree node stats only (else NULL): raw `noScaling`. 0 = the value is per point allocated; 1 = does not scale per point (fixed, or a lump at the point threshold). See "Tree node semantics". |
 
 `source_kind` values:
 
@@ -139,6 +140,13 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 (`grid_index` ordering is unverified) |
 | `blessings` | blessing sub types with timeline, difficulty (0 normal, 1 empowered = grand) and slot list; the stat is mods `blessing` | sub_type_id | 224 |
 
+**Legendary fields of `uniques` (what the columns mean).**
+
+- `legendary_type` is the raw `.legendaryType` enum: **0 = LegendaryPotential, 1 = WeaversWill**. It says which upgrade system the unique carries (LP or Weaver's Will, sharing the same 5 save bits); it is NOT "can roll LP". 1 on exactly 18 uniques (the Erased and Weaver items). This column used to be called `is_legendary_capable`, which was a misreading.
+- `can_drop_as_legendary` is the raw `.canDropAsLegendary`: 1 on 4 uniques (Exulis, Unsated Rage, Withstand the Elements, Frostborn Solitude), all with `drops_specific_legendary_affixes = 1` (a fixed pool of legendary affixes).
+- `effective_level_for_lp` / `override_effective_level_for_lp`: the level used for legendary potential, only when the override flag is 1 (0 with override 1 occurs on 3 uniques; 0 with override 0, 271 uniques, means "not set": LP then presumably uses the item's own level, unverified).
+- **LP eligibility is not in the data.** No raw field says whether a unique can roll legendary potential. `lp_eligible` is DERIVED by the loader: 1 when the unique is not a set item and `legendary_type = 0` (all non-set, non-Weaver-Will uniques can drop with LP in the game; set items cannot). `weavers_will` is derived: 1 when `legendary_type = 1`. Treat both as game knowledge, not data (label U/G). `get` on a unique repeats this in its `note`.
+
 Example rows:
 
 | table | example |
@@ -160,10 +168,18 @@ Example rows:
 | `entities` | minion / summoned actors | entity_id | 96 |
 | `trees` | 136 skill trees, 5 class passive trees, the Weaver tree | tree_id | 142 |
 | `tree_nodes` | all nodes with names, descriptions, max points, mastery, UI position; stats are mods `skill_node` / `passive_node` / `weaver_node` | (tree_id, node_id) | 3,956 + 541 + 80 |
-| `tree_node_requirements` | prerequisite node and points | (tree_id, node_id, ord) | 4,928 |
+| `tree_node_requirements` | adjacency: the node can be taken when ANY ONE listed node holds the given points (not all; see "Tree node semantics") | (tree_id, node_id, ord) | 4,928 |
 | `relations` | abilities / ailments referred to, triggered or levelled by affix / unique / set / implicit lines and by tree nodes | id | 2,207 + 3,236 |
 
 Example rows: `abilities ('fi9', name 'Fireball', ability_index 1, is_player_ability 1, has_skill_tree 1, tags 264 'Fire,Spell', mana_cost 3)`; `tree_nodes ('fi9', 2, 'skill', name 'Piercing Heat', max_points 4, description 'Fireball now pierces enemies (continue through targets it hits), but costs more mana.')`; `tree_node_requirements ('fi9', 2, 0, required_node_id 0, required_points 0)`; `ailments (7, 'Poison', duration 3, dmg_poison 28, damage_types 'Poison', tags 4096 'DoT')`.
+
+**`abilities.kind` (derived).** The raw ability list has no field separating player skills from what they spawn, so the loader (`packages/db/src/lib/ability-kind.ts`) derives `kind`: `player` (in `playerAbilityIdList`, 182); `player_sub` (209: reachable from a player ability by an id reference in its prefab, or an id that starts with `<player id>_` or contains a player id as an underscore segment; `parent_ability_id` names the player ability; e.g. `es6ai_1` is Erasing Strike's damage sub-ability and `es6ai_1` -> `ability_gen55_1` Void Rift is reached through it); `minion` (160: listed in an `entityList` actor's `abilityList`, an `entity_` id, or only reachable from those); `other` (677: ailment / item / node / proc abilities such as `ability_gen<n>` and `ailment_<n>`, plus monster abilities). There is NO separate monster kind: the data has no monster actor list, so monsters cannot be told apart from `other`. A player skill's hit damage often lives in a `player_sub` row (`es6ai` itself has no damage component); `get` on a player ability lists its `sub_abilities` with their decoded components, and `lookup` rows for abilities carry `ability_kind`. Skill-tree mutator copies (`mm_<player id>_<n>...`, `ability_gen<n>_<player id>_<n>`) are node variants of the skill and also appear as `player_sub`.
+
+**Tree node semantics (verified against the raw LE Tools trees).**
+
+- `tree_node_requirements` is an ADJACENCY list read as ANY ONE: node `N` can be taken as soon as at least ONE listed `required_node_id` holds `required_points` points (`required_points` 0 = plain link, the neighbour only has to be allocated, e.g. the root). It is NOT "needs all of them". Evidence: in `es6ai` node 8 lists 11 and 12 while node 11 lists 9, 10 and 8, so the AND reading can never be satisfied; of the 136 active skill trees only 25 could be fully allocated under AND, all 136 under ANY (a simulation over the raw data). The 5 class passive trees are fully reachable under both readings, so ANY is the rule inferred from the shared format (U for passives). Many edges are mutual (A lists B and B lists A): the list is connectivity, not a prerequisite chain.
+- The tree tools therefore return `unlocked_by` (`[{node_id, node_name, points}]`) and `unlocked_by_text` (`'11>=2|12>=1'`, `|` = OR), and `v_skill_node_summary.unlocked_by` uses the same `|` text. `requires` / `requires_text` / `v_skill_node_summary.requires` are DEPRECATED aliases (comma separated, which reads as AND; kept for one release, remove after).
+- Node stat values (`mods` rows of `skill_node`, `passive_node`, `weaver_node`) are display text parsed to numbers (`display`, `value_min`) and are PER POINT allocated unless `mods.no_scaling = 1` (raw `stats[].noScaling`): total = value x points. A `no_scaling = 1` line does not scale: in a node with `tree_nodes.no_scaling_type = 0` (SinglePoint) it is given once from the first point (fixed), in a node with `no_scaling_type = 1` (PointThreshold) it is a lump granted when `no_scaling_point_threshold` points are allocated, together with `point_bonus_description`. The tree tools replace the raw flag by `scales_with_points` (boolean) and `scaling` (`per_point` | `fixed` | `at_threshold`, plus `threshold`) on every node stat line; `mods.no_scaling` is NULL for every other source. Source: raw `stats[].noScaling`, `noScalingType`, `noScalingPointThreshold`; the per_point/fixed/threshold reading follows vendor/lastepochbuilder/client/docs/UI.md and knowledge/reference/skills-and-trees.md (A); the exact in-game timing of threshold lumps is unverified (U).
 
 ### 3.6 Endgame and world
 
@@ -196,9 +212,9 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 |---|---|---|
 | `v_mods_named` | mods row | mods columns + `source_name`, `property_enum`, `modifier_name` |
 | `v_unique_summary` | unique | name, base_type, sub_type, set_name, `mods_text` (all mods flattened), `tooltip_text`, lore |
-| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers), `rolls_on_text` |
-| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list), `requires` |
-| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, modifier_name, value_min, value_max |
+| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers and its tag names in brackets, e.g. `Damage added 3..100 [Void,Melee]`), `rolls_on_text` |
+| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list, `(no scaling)` marks non-per-point lines), `unlocked_by` (`node>=points` entries joined by a vertical bar = any one of; `requires` is the deprecated comma-separated alias) |
+| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, special_tag, tags, tag_names, modifier_name, value_min, value_max |
 
 ## 4. Example queries
 

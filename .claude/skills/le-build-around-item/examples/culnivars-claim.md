@@ -36,7 +36,7 @@ The catalogue search for "Culnivar" finds the entry "Mana-to-ward converters": "
 - Base type 8 is Sceptre. Sub type 5 is "Auric Sceptre", with implicits +38 melee damage and +38-48 spell damage (added) and attack rate 0.98.
 - The unique's `level_requirement` is 50; the Auric Sceptre base has `level_requirement` 52. Quote both, and confirm in game.
 - No class requirement (`class_requirement_names` NULL).
-- The vendored JSON said `legendaryType "LegendaryPotential"`, but the db row has `is_legendary_capable = 0` and `can_drop_as_legendary = 0` (`droppable_legendary_affix_count` 1). Treat LP on this item as **U** and confirm in game before planning a legendary craft. Not primordial, not a set item, `can_drop_randomly = 1`.
+- The vendored JSON said `legendaryType "LegendaryPotential"`; the db row agrees: `legendary_type = 0` (LegendaryPotential), `lp_eligible = 1` and `can_drop_as_legendary = 0` (`droppable_legendary_affix_count` 1). LP eligibility is derived (not stored per unique in the data): confirm in game before planning a legendary craft (U). Not primordial, not a set item, `can_drop_randomly = 1`.
 - Slot consequence: the off-hand is free, so a shield or catalyst fits. That matters for Paladin block and Mage catalysts.
 - Q10 (params `[8]`; `affix_can_roll_on` for base 8) shows legendary-plan candidates on sceptres:
   - 759 "Mana and Mana Spent Gained as Ward": T8 (the highest tier) Mana 192-240, ManaSpentGainedAsWard 1.6-2 (A; the scale of SP 99 is D? in `ward-health-sustain.md`);

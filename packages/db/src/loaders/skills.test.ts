@@ -56,6 +56,24 @@ describe.skipIf(!hasRawData())("skills loader spot checks", () => {
     expect(stats[1]).toMatchObject({ property: 66, value_min: 0.33, is_downside: 1, modifier_type: null });
   });
 
+  it("node stats carry noScaling (per point unless 1) and requirements are an any-one-of adjacency", () => {
+    const rows = all<{ no_scaling: number }>("SELECT no_scaling FROM mods WHERE source_kind = 'skill_node' AND source_id = 'av75ch:3' ORDER BY source_ord");
+    expect(rows.map((r) => r.no_scaling)).toEqual([0, 1]);
+    expect(one<{ n: number }>("SELECT count(*) n FROM mods WHERE source_kind NOT IN ('skill_node','passive_node','weaver_node') AND no_scaling IS NOT NULL").n).toBe(0);
+    // es6ai nodes 8 and 11 list each other, so the requirements cannot be an AND
+    const a = one<{ n: number }>("SELECT count(*) n FROM tree_node_requirements WHERE tree_id = 'es6ai' AND node_id = 8 AND required_node_id = 11").n;
+    const b = one<{ n: number }>("SELECT count(*) n FROM tree_node_requirements WHERE tree_id = 'es6ai' AND node_id = 11 AND required_node_id = 8").n;
+    expect([a, b]).toEqual([1, 1]);
+  });
+
+  it("abilities.kind separates player skills from their sub-abilities", () => {
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai'")).toEqual({ kind: "player", parent_ability_id: null });
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai_1'")).toEqual({ kind: "player_sub", parent_ability_id: "es6ai" });
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind = 'player'").n).toBe(182);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind <> 'player' AND is_player_ability = 1").n).toBe(0);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE (kind = 'player_sub') <> (parent_ability_id IS NOT NULL)").n).toBe(0);
+  });
+
   it("Ignite ailment", () => {
     const a = one<{ name: string; duration: number; dmg_fire: number; damage_types: string }>(
       "SELECT name, duration, dmg_fire, damage_types FROM ailments WHERE ailment_id = 1",

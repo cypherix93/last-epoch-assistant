@@ -55,7 +55,7 @@
  * 15. unique_subtypes       .subTypeIds[] (486)
  * 16. mods (unique mods)    .mods[] (2440): sourceKind 'unique_mod', sourceId unique_id, sourceOrd =
  *                           index (tooltipEntries modDisplay < 128 refers to it), modifierType = .type,
- *                           valueMin = .value, valueMax = .maxValue, hidden = .hideInTooltip
+ *                           valueMin = .value, valueMax = .maxValue (= .value when canRoll is 0), hidden = .hideInTooltip
  * 17. unique_tooltips       .tooltipDescriptions[] (562)
  * 18. unique_tooltip_entries .tooltipEntries[] (2459); ref_kind 'mod' when modDisplay < 128 else
  *                           'description' with ref_index = modDisplay - 128
@@ -439,7 +439,9 @@ export function loadItems(ctx: LoaderContext): void {
       sub_type_id: subIds.length ? subIds[0] : null,
       is_set_item: isSet ? 1 : 0,
       set_id: isSet ? int(u.setId) : null,
-      is_legendary_capable: bool(u.legendaryType),
+      legendary_type: int(u.legendaryType),
+      lp_eligible: !isSet && int(u.legendaryType) === 0 ? 1 : 0,
+      weavers_will: int(u.legendaryType) === 1 ? 1 : 0,
       unified_type: int(u.unifiedType),
       level_requirement: int(u.levelRequirement),
       override_level_requirement: bool(u.overrideLevelRequirement),
@@ -477,7 +479,8 @@ export function loadItems(ctx: LoaderContext): void {
         extraTag: m.extraTag,
         modifierType: m.type,
         valueMin: m.value,
-        valueMax: m.maxValue,
+        // canRoll 0 = fixed mod: the game shows `value` only; maxValue is a leftover (often 0 or an unrelated number).
+        valueMax: m.canRoll === 0 ? m.value : m.maxValue,
         hidden: m.hideInTooltip,
         raw: m,
       });

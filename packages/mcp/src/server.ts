@@ -33,31 +33,32 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "search",
     description:
-      'Full-text search (FTS5) over names, descriptions, tooltips and mod labels. Returns kind, id, name, snippet (<b> markers), rank. Supports "phrases", prefix*, and name:term to restrict to the name column.',
+      'Full-text search (FTS5) over names, descriptions, tooltips and mod labels. Returns kind, id, name, snippet (<b> markers), rank. Default input is safe-quoted: "phrases", prefix*, and name:term (name column) work, but the words OR, AND, NOT and NEAR are ordinary terms. Pass raw=true to send the MATCH expression to FTS5 unchanged (e.g. fire OR cold, NEAR(void penetration, 5), name:ward*); a syntax error is returned as a tool error. Columns: name, text.',
     shape: {
       query: z.string(),
       kinds: z.array(z.string()).optional().describe("filter, e.g. [unique, ability]"),
       limit: z.number().int().min(1).max(200).default(20),
+      raw: z.boolean().default(false).describe("pass query to FTS5 MATCH unchanged (OR, NEAR, parentheses); default false = safe-quoted"),
     },
-    run: (ctx, a) => t.search(ctx, a.query, a.kinds, a.limit ?? 20),
+    run: (ctx, a) => t.search(ctx, a.query, a.kinds, a.limit ?? 20, a.raw ?? false),
   },
   {
     name: "get",
-    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name).`,
+    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name). An ability reply has kind (player | player_sub | minion | other) and, for a player skill, sub_abilities (the abilities it spawns, with their decoded damage components; the skill's own hit damage is often there).`,
     shape: { kind: z.string(), id: idSchema, include_raw: z.boolean().default(false) },
     run: (ctx, a) => t.getTool(ctx, a.kind, a.id, a.include_raw ?? false),
   },
   {
     name: "lookup",
     description:
-      "Resolve a name to ids: exact (case-insensitive) matches first, then prefix, then FTS. Returns [{kind, id, name, score, hint}]. Player abilities rank above minion abilities.",
+      "Resolve a name to ids: exact (case-insensitive) matches first, then prefix, then FTS. Returns [{kind, id, name, score, hint}]. Player abilities rank above same-named sub-abilities, minion and other abilities; ability rows carry ability_kind (player | player_sub | minion | other).",
     shape: { name: z.string(), kinds: z.array(z.string()).optional(), limit: z.number().int().min(1).max(100).default(10) },
     run: (ctx, a) => t.lookup(ctx, a.name, a.kinds, a.limit ?? 10),
   },
   {
     name: "find_mods",
     description:
-      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), include_indirect (default false: rows of properties 58/98/130 store an index, not a tag mask, and are excluded from tag filters), modifier_type (0 added, 1 increased, 2 more, null display-only), source_kinds, source_id, min_value (value_max >=), special_tag.",
+      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), include_indirect (default false: rows of properties 58/98/104/105/130 store an index, not a tag mask, and are excluded from tag filters), modifier_type (0 added, 1 increased, 2 more, null display-only), source_kinds, source_id, min_value (value_max >=), special_tag.",
     shape: {
       filters: z
         .object({
@@ -81,14 +82,14 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "skill_tree",
     description:
-      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires). requires is an array of {node_id, node_name, points}: the node needs that many points allocated in each listed node (requires_text is the compact form, e.g. '2>=2,6>=2' = node 2 needs 2 points AND node 6 needs 2 points). Accepts an ability id (fi9) or a tree id. Optional filter (case-insensitive text matched against node name, description, mod label/property_name; keeps only matching nodes) and compact (drop description and x/y).",
+      "A skill tree: tree row + every node (name, description, max_points, mastery fields, x/y, mods, requires). unlocked_by is an array of {node_id, node_name, points}: the node can be taken when ANY ONE listed node holds that many points (adjacency, not a list of prerequisites; unlocked_by_text is the compact form, e.g. '2>=2|6>=2' = node 2 with 2 points OR node 6 with 2 points; requires/requires_text are deprecated aliases). Each node stat line carries scales_with_points and scaling (per_point: the value is per point allocated, total = value x points; fixed: no scaling, given once; at_threshold: a lump granted at `threshold` points). Accepts an ability id (fi9) or a tree id. Optional filter (case-insensitive text matched against node name, description, mod label/property_name; keeps only matching nodes) and compact (drop description and x/y).",
     shape: { ability_id: z.string(), filter: z.string().optional(), compact: z.boolean().optional() },
     run: (ctx, a) => t.skillTree(ctx, a.ability_id, { filter: a.filter, compact: a.compact }),
   },
   {
     name: "passive_tree",
     description:
-      "A class passive tree with all nodes, mods, requires ({node_id,node_name,points}[] plus requires_text '2>=2,6>=2') and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver). Optional filter (keeps only nodes whose name/description/mod text contains it) and compact (drop description and x/y).",
+      "A class passive tree with all nodes, mods (with scales_with_points / scaling per stat line), unlocked_by ({node_id,node_name,points}[], ANY ONE of; unlocked_by_text '2>=2|6>=2'; requires/requires_text are deprecated aliases) and mastery grouping fields. class_id: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name, or a tree id (mg-1, weaver). Optional filter (keeps only nodes whose name/description/mod text contains it) and compact (drop description and x/y).",
     shape: { class_id: z.union([z.number(), z.string()]), filter: z.string().optional(), compact: z.boolean().optional() },
     run: (ctx, a) => t.passiveTree(ctx, a.class_id, { filter: a.filter, compact: a.compact }),
   },

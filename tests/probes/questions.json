@@ -923,7 +923,7 @@
         "name": "Mad Alchemist's Ladle",
         "property_name": "Global Conditional Damage",
         "value_min": 0.06,
-        "value_max": 0
+        "value_max": 0.06
       },
       {
         "unique_id": 70,
@@ -1153,12 +1153,13 @@
         "Thicket of Blinding Light",
         "Titan Heart",
         "Unstable Core",
+        "Urzil's Pride",
         "Vestige of Imprisonment",
         "Wall of Nothing",
         "Wings of Discord",
         "Yrun's Wisdom"
       ],
-      "tolerance": "set-equality (13+ of 15 and no extras = partial; raw stored value_max, not displayed percent)"
+      "tolerance": "set-equality (14+ of 16 and no extras = partial; raw stored value_max, not displayed percent)"
     },
     "ground_truth_sql": "SELECT u.unique_id, u.name, MAX(m.value_max) AS max_roll\nFROM uniques u\nJOIN item_base_types bt ON bt.base_type_id = u.base_type_id AND bt.name = 'Body Armor'\nJOIN mods m ON m.source_kind = 'unique_mod' AND m.source_id = CAST(u.unique_id AS TEXT)\nGROUP BY u.unique_id, u.name\nHAVING MAX(m.value_max) >= 100\nORDER BY u.name",
     "ground_truth_source": null,
@@ -1219,6 +1220,11 @@
         "max_roll": 120
       },
       {
+        "unique_id": 10,
+        "name": "Urzil's Pride",
+        "max_roll": 125
+      },
+      {
         "unique_id": 487,
         "name": "Vestige of Imprisonment",
         "max_roll": 140
@@ -1239,7 +1245,7 @@
         "max_roll": 145
       }
     ],
-    "evidence_total_rows": 15,
+    "evidence_total_rows": 16,
     "name_uniqueness_checks": [
       {
         "check": "no duplicate names among body armour uniques",
@@ -1253,7 +1259,7 @@
       "mods"
     ],
     "requires_join": true,
-    "hints_for_grader": "Raw stored value_max >= 100 (percent mods stored as 0.x never qualify; flat mods such as +100 health or 250 armor do). 15 items. Edge items with max exactly 100 (Doublet of Onos Tull, Titan Heart) are included in ground truth."
+    "hints_for_grader": "Raw stored value_max >= 100 (percent mods stored as 0.x never qualify; flat mods such as +100 health or 250 armor do). 16 items (Urzil Pride is a fixed 125: canRoll 0 mods use their `value`, the raw maxValue 25 is a leftover). Edge items with max exactly 100 (Doublet of Onos Tull, Titan Heart) are included in ground truth."
   },
   {
     "id": "Q26",

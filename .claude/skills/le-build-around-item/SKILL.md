@@ -41,7 +41,7 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
 - `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
-- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `requires` is `[{node_id, node_name, points}]`. Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
 - `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
 
 Without MCP, run `yarn mcp:call <tool> [args]` from the repo root, for example `yarn mcp:call lookup '{"name":"Culnivar","kinds":["unique"]}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. The Q-recipes below contain single quotes, `<`, `>`, `%` or `|`: write the args JSON to a file and pass `@file.json` (or raw SQL with `--query-file`), or pipe it on stdin; inline they can break or be silently corrupted, and item names with apostrophes ("Ignivar's Head") break inline quoting outright (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
@@ -94,7 +94,7 @@ digraph flow {
    - level requirement of the unique and of the base (they can differ: quote both);
    - class requirement (`item_subtypes.class_requirement_names`);
    - primordial, set or WW status;
-   - LP: whether it can become legendary, and which affixes roll on that base (Q10);
+   - LP: `lp_eligible` (derived: not a set item and `legendary_type` 0; the game data has no per-unique LP flag, `legendary_type` 1 = Weaver Will item), and which affixes roll on that base (Q10);
    - corruption: a corrupted item cannot become legendary (`knowledge/reference/uniques-sets-legendary.md`).
    Note what the slot forbids, for example a 2H weapon rules out shields and many uniques.
 
@@ -233,7 +233,7 @@ ORDER BY source_ord, sub_ord;
 Q3. Slot, base, restrictions and legendary fields:
 <!-- params: [33] -->
 ```sql
-SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.is_legendary_capable,
+SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.legendary_type, u.lp_eligible,
        u.effective_level_for_lp, u.can_drop_randomly, bt.name AS slot, bt.category,
        st.name AS base_item, st.level_requirement AS base_level, st.class_requirement_names
 FROM uniques u
@@ -273,7 +273,7 @@ WHERE ca.ability_id = ?;
 Q6. Rule-changing nodes in one skill tree:
 <!-- params: ["lb23il"] -->
 ```sql
-SELECT tree_id || ':' || node_id AS node, name, max_points, requires, description, stats_text
+SELECT tree_id || ':' || node_id AS node, name, max_points, unlocked_by, description, stats_text
 FROM v_skill_node_summary
 WHERE tree_kind = 'skill' AND ability_id = ?
   AND (description LIKE '%convert%' OR description LIKE '%instead%' OR description LIKE '%no longer%'

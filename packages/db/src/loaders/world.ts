@@ -18,7 +18,7 @@
  *  3. tag_bits              AT (30): bit = log2(value), NULL for None.
  *  4. stat_properties       one row per SP (134) and LocalSP (17) id = 151 rows; display fields from
  *                           coreDB.propertyList (113, matched on .property; has_display_rule = 1, list_index);
- *                           name = t(propertyNameKey); is_indirect = 1 for 58, 98, 130 (and 88, see the
+ *                           name = t(propertyNameKey); is_indirect = 1 for 58, 98, 104, 105, 130 (and 88, see the
  *                           column comment); maxroll_name = MR:properties[].propertyName (matched on
  *                           .property, NULL when Maxroll absent); raw_json = the propertyList entry or
  *                           {"enum": name, "value": id} for ids without display rules.
@@ -236,7 +236,7 @@ export function loadWorld(ctx: LoaderContext): void {
       alt_text_key: p ? str(p.altTextKey) : null,
       has_display_rule: p ? 1 : 0,
       list_index: p ? p._index : null,
-      is_indirect: r.id === 58 || r.id === 98 || r.id === 130 ? 1 : 0,
+      is_indirect: r.id === 58 || r.id === 98 || r.id === 104 || r.id === 105 || r.id === 130 ? 1 : 0,
       round_added_to_int: p ? int(p.roundAddedToInt) : null,
       rounding_for_more: p ? int(p.roundingForMore) : null,
       display_added_as_percentage: p ? int(p.displayAddedAsPercentage) : null,
