@@ -1141,8 +1141,12 @@ LEFT JOIN stat_properties sp ON sp.property = m.property;
 -- Every id is the game id used by the tables above (unique_id, affix_id, (base_type_id,
 -- sub_type_id), blessing sub_type_id, tree_id / node_id, ability_id), so joins are direct.
 -- An id that does not resolve is stored as is (its join returns NULL) and counted in the
--- build report under `community.unresolved`. The loader reads the game tables (it runs after
--- world, items and skills); the whole section is empty when maxroll-guides/ does not exist.
+-- build report under `community.unresolved`. Explained quirks are counted under
+-- `community.warnings` instead: guide_mastery (card mastery differs from the profile's),
+-- mainset_unique (profile .mainset is a unique_id) and removed_node (a tree history entry for a
+-- node that no longer exists in LE Tools nor Maxroll; such points are not stored). The loader reads
+-- the game tables (it runs after world, items and skills); the whole section is empty when
+-- maxroll-guides/ does not exist.
 
 CREATE TABLE community_builds (
   build_id      INTEGER PRIMARY KEY,   -- 1.. in GI:guides[] order, then planner_id + profile_ids[] (deduplicated, planner_id first)
@@ -1159,9 +1163,13 @@ CREATE TABLE community_builds (
   mastery_index INTEGER,               -- TAB:mastery of the default tab (masteries.mastery_index: 0 base class, 1..3); else GI mastery by name
   class_name    TEXT,                  -- GI:guides[].class as published
   mastery_name  TEXT,                  -- GI:guides[].mastery as published
+  guide_mastery_index INTEGER,         -- GI:guides[].mastery resolved to masteries.mastery_index of the card class (0 = base class); can differ
+                                       -- from mastery_index: leveling guides open on a base-class tab (build report warning guide_mastery)
   main_ability_id TEXT REFERENCES abilities (ability_id), -- see main_ability_source
   main_ability_source TEXT,            -- 'mainset' (profile .mainset, a Maxroll ability key) | 'title' (a specialized skill named in the title)
                                        -- | 'points' (the specialized skill with the most tree points) | NULL
+  main_unique_id INTEGER REFERENCES uniques (unique_id), -- profile .mainset when it is a numeric unique_id (the centrepiece item) instead
+                                       -- of an ability key (build report warning mainset_unique); main_ability_id then comes from title / points
   tier_corruption TEXT,                -- GI:guides[].tiers.corruption
   tier_speed    TEXT,                  -- GI:guides[].tiers.speed
   tier_bossing  TEXT,                  -- GI:guides[].tiers.bossing
@@ -1206,7 +1214,7 @@ CREATE TABLE community_build_items (
   grid_index    INTEGER,               -- idols: index in TAB:idols[] (5x5 altar grid, = grid_y * 5 + grid_x, the top-left cell of the idol)
   grid_x        INTEGER,               -- idols: grid_index % 5
   grid_y        INTEGER,               -- idols: grid_index / 5
-  item_key      TEXT NOT NULL,         -- key in PD:items the slot points at
+  item_key      TEXT NOT NULL,         -- key in PD:items the slot points at; 'inline' when the slot holds the item object itself
   kind          TEXT NOT NULL,         -- 'unique' | 'legendary' (unique with extra affixes) | 'set' | 'idol' | 'exalted' (an affix tier >= 6)
                                        -- | 'rare' (3+ affixes) | 'magic' (1-2) | 'normal' (none). Legendary potential is not marked in the
                                        -- data: a unique with affixes is 'legendary' whatever made them (LP, Weaver's Will slam)

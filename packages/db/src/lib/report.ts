@@ -133,7 +133,11 @@ export function formatReport(r: BuildReport): string {
       lines.push(
         `community: ${c.guides} guides, ${c.builds} builds, ${c.profiles_loaded} profiles (${c.profiles_missing} missing), ${c.tabs} tabs, ` +
           `${c.items} items, resolution ${c.resolution}, unresolved ${c.unresolved_total}${kinds.length ? ` (${kinds.join(", ")})` : ""}` +
-          (c.unnamed_properties.length ? `, unnamed properties ${c.unnamed_properties.map((p) => p.property).join(",")}` : ""),
+          (c.unnamed_properties.length ? `, unnamed properties ${c.unnamed_properties.map((p) => p.property).join(",")}` : "") +
+          (c.inline_items ? `, inline items ${c.inline_items}` : "") +
+          (c.warnings_total
+            ? `, warnings ${c.warnings_total} (${Object.entries(c.warnings ?? {}).map(([k, v]) => `${k}=${v!.count}`).join(", ")})`
+            : ""),
       );
     }
   }

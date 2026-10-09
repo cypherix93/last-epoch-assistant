@@ -184,6 +184,17 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20, ra
 }
 
 // ---------------------------------------------------------------- lookup
+/** Lookup rows for community builds, matching on `nameExpr` (title or slug), shown with the title. */
+function buildLookupSql(nameExpr: string): string {
+  return `SELECT CAST(b.build_id AS TEXT) AS id, ${nameExpr} AS name, coalesce(b.title, b.slug) AS label,
+    'Maxroll guide ' || b.slug || ': ' || coalesce(c.name, '?') || ' / ' || coalesce(m.name, '?') || coalesce(', ' || ab.name, '') || CASE WHEN b.is_primary = 1 THEN '' ELSE ' (secondary profile)' END AS hint,
+    b.is_primary AS pri
+    FROM community_builds b
+    LEFT JOIN classes c ON c.class_id = b.class_id
+    LEFT JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+    LEFT JOIN abilities ab ON ab.ability_id = b.main_ability_id`;
+}
+
 interface LookupSource {
   kind: string;
   /** SELECT id, name, hint FROM ... (no WHERE) */
@@ -246,6 +257,9 @@ const LOOKUP_SOURCES: LookupSource[] = [
   { kind: "monster_mod", sql: `SELECT CAST(mod_id AS TEXT) AS id, title AS name, COALESCE(mod_type, '') AS hint, 0 AS pri FROM monster_mods WHERE title IS NOT NULL` },
   { kind: "timeline", sql: `SELECT CAST(timeline_id AS TEXT) AS id, name, COALESCE(boss_name, '') AS hint, 0 AS pri FROM timelines` },
   { kind: "dungeon", sql: `SELECT CAST(dungeon_id AS TEXT) AS id, name, COALESCE(boss_name, '') AS hint, 0 AS pri FROM dungeons` },
+  // community builds (Maxroll guides): matched by title and by slug; `label` is the name shown
+  { kind: "build", sql: buildLookupSql("b.title") },
+  { kind: "build", sql: buildLookupSql("b.slug") },
 ];
 
 const FTS_KIND_MAP: Record<string, string> = { item_subtype: "subtype", stat_property: "property" };
@@ -257,7 +271,7 @@ function likeEscape(s: string): string {
 export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Row {
   const q = name.trim();
   if (!q) throw new ToolError("Empty name");
-  const valid = LOOKUP_SOURCES.map((s) => s.kind);
+  const valid = [...new Set(LOOKUP_SOURCES.map((s) => s.kind))];
   if (kinds?.length) {
     const bad = kinds.filter((k) => !valid.includes(k));
     if (bad.length) throw new ToolError(`Unknown kind(s) ${bad.join(", ")}. Valid kinds: ${valid.join(", ")}`);
@@ -272,14 +286,14 @@ export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Ro
   for (const s of sources) {
     const base = s.boost ?? 0;
     for (const r of all(ctx, `SELECT * FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0), r.ability_kind as string | undefined);
+      add(s.kind, r.id as string, (r.label ?? r.name) as string, r.hint as string, 100 + base + (r.pri ? 5 : 0), r.ability_kind as string | undefined);
     }
     for (const r of all(
       ctx,
       `SELECT * FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
       likeEscape(q) + "%",
     )) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2), r.ability_kind as string | undefined);
+      add(s.kind, r.id as string, (r.label ?? r.name) as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2), r.ability_kind as string | undefined);
     }
   }
   // FTS fallback only when the name-based passes did not fill the limit.

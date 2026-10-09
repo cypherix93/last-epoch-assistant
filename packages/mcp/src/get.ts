@@ -22,7 +22,9 @@
  * monster_mod     monster_mods                     mod_id (int)
  * timeline        timelines                        timeline_id (int)
  * dungeon         dungeons                         dungeon_id (int)
+ * build           community_builds (+ children)    build_id (int) | slug; alias of the `build` tool (default tab, all sections)
  */
+import { build as buildDoc } from "./builds.js";
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
 
 export const MOD_COLS =
@@ -480,6 +482,14 @@ export const GETTERS: Record<string, Getter> = {
   dungeon(ctx, id, raw) {
     const d = need(one(ctx, "SELECT * FROM dungeons WHERE dungeon_id = ?", int(id, "dungeon")), "dungeon", id);
     return { dungeon: clean(d, raw), tiers: cleanAll(all(ctx, "SELECT * FROM dungeon_tiers WHERE dungeon_id = ? ORDER BY tier", d.dungeon_id), raw) };
+  },
+  /** Community build (Maxroll guide): the same document as the `build` tool with its defaults. */
+  build(ctx, id) {
+    if (typeof id === "object") {
+      const o = id as Row;
+      return buildDoc(ctx, { id: (o.build_id ?? o.id) as number | undefined, slug: o.slug as string | undefined, tab: o.tab as string | undefined });
+    }
+    return buildDoc(ctx, /^\d+$/.test(String(id).trim()) ? { id: Number(id) } : { slug: String(id) });
   },
 };
 

@@ -248,6 +248,106 @@ describe.skipIf(!hasRawData())("community loader (fixture against the real game 
     }
   });
 
+  /** Write a modified copy of the fixture (index + profile) and load it against the game tables. */
+  const loadModified = (edit: (idx: { guides: Row[] }, env: Row, pd: { profiles: Row[]; items: Record<string, Row> }) => void) => {
+    const dir = mkdtempSync(join(tmpdir(), "le-community-"));
+    try {
+      const guides = join(dir, "maxroll-guides");
+      mkdirSync(join(guides, "profiles"), { recursive: true });
+      const idx = JSON.parse(readFileSync(join(FIXTURE, "index.json"), "utf8"));
+      const env = JSON.parse(readFileSync(join(FIXTURE, "profiles", "0g5ta0n3.json"), "utf8"));
+      const pd = JSON.parse(env.data);
+      edit(idx, env, pd);
+      env.data = JSON.stringify(pd);
+      writeFileSync(join(guides, "index.json"), JSON.stringify(idx));
+      writeFileSync(join(guides, "profiles", "0g5ta0n3.json"), JSON.stringify(env));
+      const b = buildForTest(["world", "items", "skills"]);
+      const ctx = createContext(b.db, loadRaw(currentVersion()!));
+      const r = b.db.transaction(() => loadCommunityFrom(ctx, guides))();
+      return { db: b.db, report: r };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("decodes inline item objects (a slot / idol entry that is the item itself) like PD.items keys", { timeout: 60_000 }, () => {
+    const { db, report } = loadModified((_idx, _env, pd) => {
+      const tab = pd.profiles.find((t) => t.name === "Endgame") as Row & { items: Record<string, unknown>; idols: unknown[] };
+      tab.items.weapon = pd.items[String(tab.items.weapon)]; // the World Splitter object, inline
+      const at = tab.idols.findIndex((k) => k !== null && k !== undefined);
+      tab.idols[at] = pd.items[String(tab.idols[at])];
+    });
+    expect(report.unresolved).toEqual({});
+    expect(report.inline_items).toBe(2);
+    const w = db
+      .prepare(
+        `SELECT i.item_key, i.kind, u.name, (SELECT group_concat(origin || ':' || affix_id || ':T' || tier, ' ') FROM community_build_item_affixes x WHERE x.item_row_id = i.item_row_id) AS affixes
+           FROM community_build_items i JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id LEFT JOIN uniques u ON u.unique_id = i.unique_id
+          WHERE p.name = 'Endgame' AND i.slot = 'weapon'`,
+      )
+      .get();
+    expect(w).toEqual({ item_key: "inline", kind: "legendary", name: "World Splitter", affixes: "extra:76:T7 corruption:986:T7" });
+    const idols = db
+      .prepare(`SELECT item_key, grid_x, grid_y FROM community_build_items i JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id WHERE p.name = 'Endgame' AND slot = 'idol' ORDER BY grid_index`)
+      .all() as Row[];
+    expect(idols).toHaveLength(6);
+    expect(idols[0]).toEqual({ item_key: "inline", grid_x: 2, grid_y: 0 });
+    expect(idols.slice(1).every((r) => r.item_key !== "inline")).toBe(true);
+    db.close();
+  });
+
+  it("class rule: the profile's class / mastery wins; a card mastery mismatch is a warning, a card class mismatch is unresolved", { timeout: 60_000 }, () => {
+    // leveling-guide shape: the card says Forge Guard, the profile's default tab is Void Knight (same class Sentinel)
+    const a = loadModified((idx) => {
+      idx.guides[0]!.mastery = "forge-guard";
+    });
+    expect(a.report.unresolved).toEqual({});
+    expect(a.report.warnings.guide_mastery).toEqual({ count: 1, distinct: 1, examples: ["Sentinel/forge-guard vs Sentinel/Void Knight (erasing-strike-void-knight-guide/0g5ta0n3)"] });
+    expect(a.db.prepare(`SELECT class_id, mastery_index, guide_mastery_index, mastery_name FROM community_builds`).get()).toEqual({
+      class_id: 2,
+      mastery_index: 1,
+      guide_mastery_index: 2,
+      mastery_name: "forge-guard",
+    });
+    a.db.close();
+    // a matching card: guide_mastery_index = mastery_index, no warning
+    const ok = loadModified(() => {});
+    expect(ok.report.warnings).toEqual({});
+    expect(ok.db.prepare(`SELECT mastery_index, guide_mastery_index FROM community_builds`).get()).toEqual({ mastery_index: 1, guide_mastery_index: 1 });
+    ok.db.close();
+    // a different CLASS on the card stays unresolved; the profile's class is still used
+    const bad = loadModified((idx) => {
+      idx.guides[0]!.class = "Mage";
+      idx.guides[0]!.mastery = "Runemaster";
+    });
+    expect(bad.report.unresolved.guide_class?.count).toBe(1);
+    expect(bad.report.warnings).toEqual({});
+    expect(bad.db.prepare(`SELECT class_id, mastery_index FROM community_builds`).get()).toEqual({ class_id: 2, mastery_index: 1 });
+    bad.db.close();
+  });
+
+  it("a numeric mainset is a unique_id; a hole in the node numbering absent from both sources is a removed node", { timeout: 60_000 }, () => {
+    const { db, report } = loadModified((_idx, env, pd) => {
+      env.mainset = "12";
+      const tab = pd.profiles.find((t) => t.name === "Endgame") as Row & { skillTrees: Record<string, { history: number[]; position: number }> };
+      const es = tab.skillTrees.es6ai!;
+      es.history = [...es.history.slice(0, es.position), 25]; // es6ai has nodes 24 and 26 but no 25
+      es.position = es.history.length;
+    });
+    expect(report.unresolved).toEqual({});
+    expect(report.warnings.mainset_unique?.count).toBe(1);
+    expect(report.warnings.removed_node?.examples).toEqual(["es6ai:25 (erasing-strike-void-knight-guide/0g5ta0n3/Endgame)"]);
+    expect(db.prepare(`SELECT main_unique_id, main_ability_id, main_ability_source FROM community_builds`).get()).toEqual({
+      main_unique_id: 12,
+      main_ability_id: "es6ai",
+      main_ability_source: "title",
+    });
+    const endgameId = (db.prepare(`SELECT build_profile_id AS id FROM community_build_profiles WHERE name = 'Endgame'`).get() as Row).id;
+    expect(db.prepare(`SELECT count(*) AS n FROM community_build_skill_nodes WHERE tree_id = 'es6ai' AND node_id = 25`).get()).toEqual({ n: 0 });
+    expect(db.prepare(`SELECT points FROM community_build_skills WHERE build_profile_id = ? AND ability_id = 'es6ai'`).get(endgameId)).toEqual({ points: 26 });
+    db.close();
+  });
+
   it("counts unresolved ids with examples and keeps the rows", () => {
     const dir = mkdtempSync(join(tmpdir(), "le-community-"));
     try {
