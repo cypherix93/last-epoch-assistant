@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = process.env.KB_ROOT || 'D:/src/last-epoch-assistant.wt/kb-ref';
 const dir = path.join(ROOT, 'knowledge/reference');
-const pages = ['classes-and-masteries', 'item-system', 'uniques-sets-legendary', 'idols-and-blessings', 'crafting', 'skills-and-trees', 'endgame-systems', 'glossary'];
+const pages = ['classes-and-masteries', 'item-system', 'uniques-sets-legendary', 'idols-and-blessings', 'crafting', 'skills-and-trees', 'endgame-systems', 'glossary', 'community-builds'];
 let bad = 0;
 for (const p of pages) {
   const f = path.join(dir, p + '.md');

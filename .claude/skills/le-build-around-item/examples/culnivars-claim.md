@@ -1,6 +1,6 @@
 # Worked example: "I dropped Culnivar's Claim"
 
-This walks through the procedure in `../SKILL.md`, step by step, with the queries an agent would issue and the values found. Every value below was read from the built database (`data/le.sqlite`, game 1.5.2) with the tool calls and recipe queries shown, and re-checked against the db when this example was last revised. (On a stub or empty db the skill falls back to the vendored JSON in `vendor/lastepochbuilder/research/data/game/`, 1.5.0; this example does not need it.) Arguments are written in the MCP `tool({json})` form; Q-numbers refer to the Query cookbook in `../SKILL.md` and run via `sql` with the params given there. The example stops before full damage and EHP numbers, but each phase is shown concretely.
+This walks through the procedure in `../SKILL.md`, step by step, with the queries an agent would issue and the values found. Every value below was read from the built database (`data/le.sqlite`, game 1.5.2) with the tool calls and recipe queries shown, and re-checked against the db when this example was last revised. (On a stub or empty db the skill falls back to the vendored JSON in `vendor/lastepochbuilder/research/data/game/`, 1.5.0; this example does not need it.) Arguments are written in the MCP `tool({json})` form; Q-numbers refer to the Query cookbook in `../SKILL.md` and run via `sql` with the params given there. The community figures in Phase C2 (74 Maxroll guides, 1.5.2, label X) were read with the Q18-Q19 queries and `../../le-bis-selection/SKILL.md` example 3; the `item_usage` / `builds` / `slot_meta` tools return the same counts. `vendor/` is never opened. The example stops before full damage and EHP numbers, but each phase is shown concretely.
 
 ## Phase A: Intake
 
@@ -19,14 +19,9 @@ This walks through the procedure in `../SKILL.md`, step by step, with the querie
 
 Tooltip line: "100% of mana converted to ward when you reach full mana". Alt text: "Does not trigger while your mana is replaced with Rage" (A).
 
-**Step 4. Model.** In `unique-effects-index.md`, row 33 shows model `C33:0:resource`, class `Culnivars_Claim/code`. The `unique_effects.json` entry for uid 33 reads:
-- trigger: "every update tick";
-- condition: `currentMana >= maxMana`, and `!BaseMana.manaReplacedByRage()`;
-- formula: `reduceMana(currentMana)` (mana goes to 0), then `ProtectionClass.GainWard(maxMana)`;
-- "creates": the gain goes through GainWard, so it takes the more-ward-generated multipliers, it is blocked by `sourcesOfNoWardGain`, and it is capped by `maxHealthCapForWard`;
-- confidence **D**. The notes add a dead `convertsFocus` branch, flagged **D?**.
-
-The catalogue search for "Culnivar" finds the entry "Mana-to-ward converters": "the cycle rate is mana regen / max mana, so regen stacking (Urzil's Pride, Apathy) feeds ward" (D). `ward-health-sustain.md` §3.3 lists the same effect in its table.
+**Step 4. Model.** `knowledge/interactions/unique-effects-index.md` has the row for uid 33: tooltip "100% of mana converted to ward when you reach full mana", model `C33:0:resource` (a component model of kind resource), notes "class Culnivars_Claim/code". The `get` call of step 3 adds the four mods and the alt-text line. The rule itself is in `knowledge/mechanics/ward-health-sustain.md` section 3.3: "at full mana: mana -> 0, ward += maxMana", unique component, confidence **D**. The catalogue search for "Culnivar" finds the entry "Mana-to-ward converters": "the cycle rate is mana regen / max mana, so regen stacking (Urzil's Pride, Apathy) feeds ward" (**D**).
+- Not stated by any page: whether the gained ward takes more-ward-generated multipliers, is blocked by "no ward gain" sources or is capped by a max-health cap for ward. Write "coded detail not read (**U**)" and make it a test (Phase F, 6).
+- The alt text "Does not trigger while your mana is replaced with Rage" is **A** (from `get`).
 
 **Step 5. Split.**
 - Enabling effect: a full mana bar becomes a ward burst of `maxMana`, after which mana resets to 0.
@@ -132,6 +127,28 @@ Blessings: all three relevant ones are in Ending the Storm, so only one can be t
 - Shaman: totems as distraction.
 - Necromancer: minions as meat.
 
+## Phase C2: Meta check
+
+Community data: 74 Maxroll guides, 1.5.2, label **X**. Counts are "N of 74 guides".
+
+**Step 14b. Item usage.** Q18 with params `[33]` returns `builds_using` 0, `total_builds` 74: no guide wears Culnivar's Claim (`item_usage({"unique_id":33})` returns `total_builds` 0). Partners (Q18 with their uids): Mana Guide (368) 1 of 74, a Runemaster Flame Ward guide, slot `neck` (Q18b); Urzil's Pride (10) 0; Bluefeather Band (440) 0 (it is an anti-synergy anyway); Transient Rest (132, a mana-to-ward unique, boots) 4 of 74.
+
+**Step 14c. Existing builds.** Q19 with params `["Sorcerer", "Lightning Blast", "Sorcerer"]` returns 4 guides: Sorcerer Glacier (C/B/C), Sorcerer Meteor (A/A/A), Sorcerer Static Orb (S/S/S) and Runemaster Lightning Blast (S/A/S), the tiers being corruption / speed / bossing as the guide author gives them (**X**). No guide combines Sorcerer with Lightning Blast, and none uses Culnivar's Claim. So candidate #2 has no direct community build. How it differs from the nearest ones: the Runemaster Lightning Blast guide is the same skill on another mastery (runes, no mana dump); the Sorcerer Static Orb guide is the same mastery with a different main skill and no mana-to-ward loop (Static Orb is also used here only as the nuke after a dump). The proposal must keep that difference visible: the loop (Culnivar dump into Innate Conduit `lb23il:28`) is its reason to exist.
+
+**Step 14d. Community-standard picks per slot** (Sorcerer guides only, 3 of 74; the query of `../../le-bis-selection/SKILL.md` example 3 run for each slot, keeping picks used by at least 2 guides; every pick is a legendary in the guides' data):
+
+| Slot | Picks used by 2 or more of the 3 Sorcerer guides |
+|---|---|
+| body | Unstable Core (3 of 3) |
+| waist | Orian's Descent (3 of 3) |
+| relic | Shattered Worlds (3 of 3), Twisted Heart of Uhkeiros (3 of 3) |
+| feet | Transient Rest (2 of 3) |
+| rings | Red Ring of Atlaria (finger1, 2 of 3), Legends Entwined (finger2, 2 of 3) |
+| offhand | Scales of Eterra (2 of 3) |
+| head, hands, neck, weapon | no item shared by 2 guides (each guide differs) |
+
+The sample is thin (3 guides): treat it as a list of options to compare, not a rule. Two consequences for the skeleton: (1) the relic and belt slots have a community-standard unique, so a "rares only" gear plan needs a reason to skip them; (2) Transient Rest is a community boots unique that is also a mana-to-ward converter (catalogue "Mana-to-ward converters"), so check it as a partner or a competitor of Culnivar's Claim before choosing boots.
+
 ## Phase D: Scores
 
 | # | Archetype | Core | Dmg | Def | Sus | Gear | Nov | Total |
@@ -143,6 +160,8 @@ Blessings: all three relevant ones are in Ending the Storm, so only one can be t
 | 5 | Storm Totem Shaman, Culnivar as pure ward engine | `st38ml`; stat stick wasted (totems) | 3 | 3 | 3 | 4 | 4 | 17 |
 | 6 | Necromancer, ward engine only | minions; stat stick wasted | 3 | 3 | 3 | 4 | 3 | 16 |
 | 7 | Spellblade Mana Strike refill | `ms26` restores 15 mana; Lightning|Melee misses the Spell mask | 2 | 3 | 3 | 5 | 3 | 16 |
+
+Community citations for the two axes that need them: **Gear** (candidate #2 scores 5): the item is used by 0 of 74 guides, so there is no community availability signal; the plan needs only rares for the other slots, with the community-standard uniques (Unstable Core 3 of 3 Sorcerer guides, Orian's Descent 3 of 3) as options, not requirements. **Novelty** (#2 scores 4): 0 of 74 guides use the item and 0 pair Sorcerer with Lightning Blast; the loop is not named in the catalogue as one chain (Innate Conduit is named in no entry), so 4, not 5. Candidate #1 (Novelty 5): Mana Guide is used by 1 of 74 guides (Runemaster Flame Ward), none with Focus and none with Culnivar's Claim. Candidate #3 (Novelty 3): 2 Paladin Radiant Lance guides exist (Radiant Lance Paladin and Ignite Radiant Lance Paladin; Q19 with params `["Paladin", "Radiant Lance", "Paladin"]`), so the pairing with this item is new but the build is not.
 
 Gate: all candidates pass. Druid was excluded before scoring, because forms replace mana with Rage and so disable the effect (`abilities.json` descriptions; Culnivar alt text). The novelty pairing is #1. Converge on **#2**, with **#1** as an alternate. #3 ties on score, but its 24-mana casts keep mana from filling, so its enabler value is lowest.
 
@@ -162,6 +181,7 @@ Gate: all candidates pass. Druid was excluded before scoring, because forms repl
   - Ward Per Second 382 at T6+ on the helmet;
   - Increased Mana Regen 330 at T6+ on the rings and relic.
 - **Blessing:** Ending the Storm, Grand Bastion of Divinity, if Urzil's Pride is used.
+- **Community baseline:** no guide for Sorcerer + Lightning Blast (step 14c); the proposal differs from the Sorcerer Static Orb and Runemaster Lightning Blast guides by the mana-dump loop. Slot picks to compare with the community-standard ones: relic (Shattered Worlds 3 of 3 Sorcerer guides), belt (Orian's Descent 3 of 3), body (Unstable Core 3 of 3).
 
 Still to do, using the sibling skills:
 - the damage path (**le-damage-reasoning**): 90% increased Lightning|Spell lands in the increased bucket, and the tree's display-only nodes are of unknown type;
@@ -175,6 +195,7 @@ Still to do, using the sibling skills:
 3. Does Focus Overcharge `vm53dx:16` waste mana? Watch mana exceed max, then drop to 0 at the dump.
 4. Does Mana Guide's triggered Lightning Blast cost mana? (U) Watch mana during a Focus channel with no other casts.
 5. Measure the cycle time. Expect `T = maxMana / net regen`; time it with a stopwatch on a dummy.
+6. Does the ward gained at the dump take more-ward-generated multipliers, and is it blocked by no-ward-gain sources or capped (**U**, step 4)? Compare the ward bar jump with the sheet's max mana with and without such a modifier.
 
 Assumptions:
 - every regen input in Phase B (U);
@@ -186,4 +207,4 @@ Anti-synergies already checked:
 - Druid Rage forms;
 - "directly" on triggered Lightning Blast casts.
 
-Data citations (ids): uid 33, 368, 10, 440; base 8:5; affixes 330, 382, 759, 973, 999, 178, 328, 893; nodes `lb23il:14/15/22/28`, `vm53dx:7/16/19/23/26/28`, `ra1an:32`, `mg-1:8/14/27/92`; blessings 72-75, 82-83; files `uniques.json`, `unique_effects.json`, `abilities.json`, `affixes.json`, `items.json`, `trees.json`, `tree_node_stats.json`, `blessings.json`.
+Data citations (ids): uid 33, 368, 10, 440; base 8:5; affixes 330, 382, 759, 973, 999, 178, 328, 893; nodes `lb23il:14/15/22/28`, `vm53dx:7/16/19/23/26/28`, `ra1an:32`, `mg-1:8/14/27/92`; blessings 72-75, 82-83; tables `uniques`, `unique_mods` (via `mods`), `abilities`, `affixes`, `item_subtypes`, `trees`, `blessings`; knowledge pages `unique-effects-index.md` (row 33), `ward-health-sustain.md` section 3.3, `catalogue.md` (Mana-to-ward converters); community views `v_item_usage`, `v_build_items_named`, `v_build_summary` (Q18-Q19; 74 guides, **X**).

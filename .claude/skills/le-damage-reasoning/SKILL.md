@@ -64,6 +64,19 @@ ORDER BY ord;
 - `base_by_type` order: Physical, Fire, Cold, Lightning, Necrotic, Void, Poison (7 slots). `ade` is `addedDamageScaling` (1.25 = 125%). Fireball: Fire 25, ADE 1.25, crit 5% x2.0.
 - Each damaging component is its own pipeline run (a multi-component skill = sum of components). `hit = false` means DoT: no crit, no Hit tag.
 - Melee skills show ~2 base damage; the weapon supplies the rest as **added** damage, multiplied by ADE. Weapon damage is never base damage. [damage-pipeline.md#1-where-the-numbers-live-data-fields] **A/G**
+- **If the player ability's components carry no damage, follow `sub_abilities` (or `ref_ability_id`) from `get`; the hit usually lives on the sub-ability.** `get` on a player skill lists `sub_abilities` (each with `kind` `player_sub` and its decoded damage components); the parent's pointer is a component with a `ref_ability_id`. Example, Erasing Strike: `es6ai` has no damage component, only `CreateAbilityObjectOnDeath` with `ref_ability_id = es6ai_1`; the hit is `es6ai_1` (kind `player_sub`, parent `es6ai`): `DamageEnemyOnHit`, Void 2 base, ADE 6, `hit` true. Run the pipeline on `es6ai_1`, and read the skill tree from the parent id `es6ai`. Never conclude "no damage" from an empty parent. **A**
+
+```sql
+SELECT a.ability_id, a.kind, a.parent_ability_id, c.ord, c.component_type, c.ref_ability_id,
+       json_extract(c.raw_json, '$.baseDamageStats.damage')             AS base_by_type,
+       json_extract(c.raw_json, '$.baseDamageStats.addedDamageScaling') AS ade,
+       json_extract(c.raw_json, '$.baseDamageStats.hit')                AS is_hit
+FROM abilities a JOIN ability_components c ON c.ability_id = a.ability_id
+WHERE a.ability_id IN ('es6ai', 'es6ai_1')
+  AND (c.component_type LIKE '%Damage%' OR c.ref_ability_id IS NOT NULL)
+ORDER BY a.ability_id, c.ord;
+```
+
 - Ailments the skill applies: `component_type = 'ChanceToApplyAilmentsOnHit'`, field `$.ailments[]` (`ailment` = AilmentID, `chance` e.g. 0.4).
 
 ```sql

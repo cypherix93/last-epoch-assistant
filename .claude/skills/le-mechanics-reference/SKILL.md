@@ -71,6 +71,9 @@ Rules for uncertainty:
 | How is an affix / unique / node turned into stats? | `knowledge/mechanics/stat-model.md#how-each-source-reduces-to-stats` |
 | How do I sum a whole build? | `knowledge/mechanics/stat-model.md#how-an-agent-should-sum-a-build` |
 | Classes, masteries, base stats, passive points | `knowledge/reference/classes-and-masteries.md#class-and-mastery-ids`, `#base-stats-identical-for-every-class` |
+| Which nodes of the other masteries a character can take (mastery gate) | `knowledge/reference/classes-and-masteries.md#mastery-access-rule` |
+| Mana recovery and cost-reduction mechanisms (toolbox) | `knowledge/mechanics/speed-cooldowns-mana.md#51-mana-sustain-toolbox` |
+| What the community (Maxroll) builds wear and play; the 74 guides | `knowledge/reference/community-builds.md` (guide data for 1.5.2, label X, not game truth) |
 | Item bases, affix tiers, rarity, sealed affixes | `knowledge/reference/item-system.md#base-types`, `#affix-slots-tiers-sealed-affixes` |
 | Uniques, legendary potential, sets, weaver's will | `knowledge/reference/uniques-sets-legendary.md#unique-structure-uniquesjson`, `#set-items-and-set-bonuses` |
 | Idols, altars, blessings | `knowledge/reference/idols-and-blessings.md#idol-affixes-a`, `#idol-altars`, `#blessings` |
@@ -104,7 +107,7 @@ The reply is `{ok, path, lines, text}` with the whole page in one `text` string 
 | `knowledge/mechanics/minions.md` | minion stat transfer, minion power, base stats, caps |
 | `knowledge/mechanics/enemies-and-corruption.md` | monster levels, rarity, corruption, monster mods, boss ward |
 | `knowledge/mechanics/stat-model.md` | `Stat` record, tag bits, SP ids, enums, how sources reduce to stats |
-| `knowledge/reference/*.md` | classes, items, uniques and sets, idols and blessings, crafting, skills and trees, endgame, glossary |
+| `knowledge/reference/*.md` | classes, items, uniques and sets, idols and blessings, crafting, skills and trees, endgame, glossary, community builds |
 | `knowledge/interactions/*.md` | catalogue of unintuitive interactions (scan by tag), index of all uniques |
 
 ## Rules agents get wrong most (restated)

@@ -126,6 +126,44 @@ mana spent/s = cost × uses/s (+ channel/s while channelling)                   
 - Example costs: Fireball 3, Smite 3, Javelin 9, Shurikens 3, Static 15, Lunge 8, Meteor 56, Volcanic Orb 50. **A**
 - Full mana model and negative-mana rules: [ward-health-sustain.md](ward-health-sustain.md#6-mana). **G/X**
 
+### 5.1 Mana sustain toolbox
+
+Every generic way the data exposes to keep mana up or to make it last longer, found with `sql` over `stat_properties`, `player_properties` and `v_mods_named` (1.5.2). "SP" is a stat property id, "PP" a PlayerProperty index (SP 98 rows store the PP index in `tags`, read `value_min` as the magnitude). Ranges are the min..max over all tiers or rolls of the quoted source (A); mechanics labelled G come from the in-game guide, X from community planners, U is our inference.
+
+| # | Mechanism | Property id | Example source (id) | Range | Label |
+|---|---|---|---|---|---|
+| 1 | Mana regeneration per second (added, increased, more); base 8/s, no level scaling | SP 18 ManaRegen | affix 330 Mana Regeneration (prefix; belt, amulet, ring, relic): T1 +10-14%, T7 +50-60%, T8 +94-110% increased | 151 lines, -1..12 over 7 source kinds | A (values), G (base 8/s) |
+| 2 | Regen that scales with max mana or other stats | PP 256 (+regen per 100 max mana) | affix 999 Added Mana and Increased Mana Regen per Maximum Mana (prefix; sceptre, wand, two-handed staff) | +1..12% per 100 max mana | A |
+| 3 | Flat mana per event, event named by the HitEventTag in `special_tag` (0 plain use or hit, 6 block) | SP 40 ManaGain | skill node Mana Arrow `detar:32` (+8 on hit); passive/skill nodes Mana Surge `arcas:7` (+6 on killing a distant enemy), Fire Eater `cstri:20` (+3); unique Horns of Uhkeiros (uid 155, special_tag 6: +2 on block) | 88 lines, -40..25 (negative lines are costs) | A |
+| 4 | Mana per potion use | PP 336 Mana Gained on Potion Use | affix 712 Experimental Mana on Potion Use (T1 8-9), affix 997 (with ward on potion use, 5-25), implicit of the catalyst Crystal Core (`19:18`) | 5..70 over 19 lines | A |
+| 5 | Mana per potion, scaling with Intelligence or recent Meteor casts | PP 343 (per 4 Int), PP 248 (per recent Meteor, max 200) | Mad Alchemist's Ladle (uid 321, 1 per 4 Int); Harbinger of Stars (uid 288, 9-12) | 1; 9..12 | A |
+| 6 | Mana on a zero-mana-cost skill streak (3 uses in a row, 3 s cooldown) | PP 289 | Bluefeather Band (uid 440): 15-21 mana, but it also carries -48..-54% MORE mana, mana regen and mana cost (SP 8, 18, 66; the streak is the only recovery) | 15..21 | A |
+| 7 | Mana on dodge while channelling | PP 242 | Telf'un's Mirage (uid 280) | 2 | A |
+| 8 | Mana on transforming back to human form (Druid) | PP 6 | affix 219 (idol affix) | 5..15 | A |
+| 9 | Skill-specific mana on use or hit | SP 58 AbilityProperty (`tags` = ability index) | affix 377 Smite (direct cast, T1 4 .. T8 23-27), 376 Rive and 375 Vengeance (on hit, T1 3 .. T8 19-23), 411 Harvest (T1 5-6 .. T8 35-42); affix 690 chance to gain 20 mana on a direct Runebolt or Fireball cast (5-6%, T1) | per source | A |
+| 10 | Skill that restores mana by itself | ability description | Mana Strike `ms26`: a mana orb "restores 15 mana" when it hits at least one enemy; Fireball `fi9` ability property 11 "Mana restored when you directly use Fireball and hit" | 15 | A (text) |
+| 11 | Reduce what skills cost: flat and increased cost | SP 66 ManaCost | wand implicits -3..-4 (flat); affix 506 Spell Damage and Reduced Mana Cost (T7: -5 flat, tag Spell); skill-node cost lines (307 of the 371 lines) | 371 lines, -30..60 | A |
+| 12 | Mana efficiency (cost divided by 1 + efficiency; formula is a community model) | SP 69 ManaEfficiency | idol affix 195 Void spells (9-25%), set bonus Isadora's (30%), Halvar's Pledge uid 97 (5-10%), attribute scaling of 65 skills (1-3% per attribute point, `ability_attribute_scaling`) | 118 lines, -14..40% | A (values), X (formula), U (division vs multiplication, see Open questions) |
+| 13 | Channelled skills: cost is per second and can be reduced separately | SP 25 ChannelCost; `channelCost` field of the ability | affix 369 Channel Cost (helmet): T1 -12..-15%, T7 -41..-45%, T8 -60..-68% | 9 lines, -60..8% | A (values), X (formula in section 5) |
+| 14 | Negative mana rule: a skill can be used whenever mana > 0 even if it costs more; mana goes negative; skills with cost >= 1 cannot be used at negative mana; regeneration continues | rule | ward-health-sustain.md section 6 | n/a | G |
+| 15 | NOT recovery: mana spent gained as ward | SP 99 ManaSpentGainedAsWard | affixes 328, 400, 759, 973, 1021 | 0.05..2 per mana spent | A. It converts spending into ward; mana is still spent. |
+| 16 | NOT recovery: damage dealt to mana before health | SP 24 ManaBeforeHealthPercent | affix 53; Bluefeather Band | 0.01..0.64 | A. It makes mana a damage pool (1 mana absorbs 5 damage, G); it drains mana. |
+| 17 | NOT recovery: current mana converted to ward | PP 90, 135, 136, 345 | Transient Rest (uid 132, when you stop moving), affix 963 (on block), Aergon's Refuge (uid 169, per fire spell), affix 1009 (per second) | 0.02..0.6 of current mana | A. It spends mana. |
+
+Absent: there is no generic "mana per skill echo" property (searched `player_properties` and `ability_properties` for "echo" and "mana"): only the Void Knight ability properties `an0my:10` and `ab0lh:8` (Abyssal Echoes' own cost lines) exist. PlayerProperties 108 (mana on a zero-cost attack that hits), 352 (13 mana per curse on hit) and 387 (mana on dodge) are defined in `player_properties` but no loaded source uses them (U). SP 94 ManaBeforeWardPercent has no loaded line. No affix carries SP 40 (mana on hit, on kill, on crit are node effects, not gear); the only gear-side flat gains are the SP 58 and PP rows above.
+
+Verification (one row per generic property; run on the 1.5.2 database, counts as in the table):
+
+```sql
+SELECT property, CASE WHEN property = 98 THEN tags END AS pp, property_name, count(*) AS line_count,
+       count(DISTINCT source_kind) AS source_kinds, min(value_min) AS lo, max(value_max) AS hi
+FROM v_mods_named
+WHERE property IN (18, 24, 25, 40, 66, 69, 99) OR (property = 98 AND tags IN (6, 242, 248, 256, 289, 336, 343))
+GROUP BY property, CASE WHEN property = 98 THEN tags END ORDER BY property, pp;
+```
+
+Practical reading (U): outside potions and skill-specific gains, a build's sustained mana comes from regeneration (rows 1-2) and from not spending (rows 11-13); the lump gains (rows 3-9) are small beside the 8/s base, so a mana-hungry plan needs the regen multipliers first. Rows 15-17 are ward and survivability tools that consume mana, not sustain.
+
 ## 6. Trigger frequency
 
 ```

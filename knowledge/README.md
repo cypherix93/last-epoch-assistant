@@ -45,11 +45,11 @@ Every `vendor/corpus/<file>` citation resolves to a plain-text capture committed
 | [mechanics/enemies-and-corruption.md](mechanics/enemies-and-corruption.md) | ActorScaler level tables, monster health and damage formulas, rarity multipliers, corruption scaling, timeline levels, monster mods, average monster damage, boss ward. |
 | [mechanics/stat-model.md](mechanics/stat-model.md) | The `Stat` record, every AT tag bit and SP id, enums, rounding grid, how affixes, uniques, sets, idols, blessings, passive and skill nodes reduce to stats, and how to sum a build. |
 
-Reference pages (game systems, mostly generated from data by `reference/_gen/`): [classes-and-masteries](reference/classes-and-masteries.md), [item-system](reference/item-system.md), [uniques-sets-legendary](reference/uniques-sets-legendary.md), [idols-and-blessings](reference/idols-and-blessings.md), [crafting](reference/crafting.md), [skills-and-trees](reference/skills-and-trees.md), [endgame-systems](reference/endgame-systems.md), [glossary](reference/glossary.md).
+Reference pages (game systems, mostly generated from data by `reference/_gen/`): [classes-and-masteries](reference/classes-and-masteries.md), [item-system](reference/item-system.md), [uniques-sets-legendary](reference/uniques-sets-legendary.md), [idols-and-blessings](reference/idols-and-blessings.md), [crafting](reference/crafting.md), [skills-and-trees](reference/skills-and-trees.md), [endgame-systems](reference/endgame-systems.md), [glossary](reference/glossary.md), [community-builds](reference/community-builds.md) (the 74 Maxroll guides in the database: counts, how to query, table of builds; guide data for 1.5.2, label X, not game truth).
 
 Interactions: [interactions/README.md](interactions/README.md) (how to use them), [catalogue.md](interactions/catalogue.md) (117 tagged, sourced interactions and anti-synergies), [unique-effects-index.md](interactions/unique-effects-index.md) (one row per unique with its special effect and model).
 
-Skills that use this knowledge: the six `le-*` skills in [`.claude/skills/`](../.claude/skills/README.md) (start with `le-mechanics-reference`, which maps questions to pages and sections).
+Skills that use this knowledge: the seven `le-*` skills in [`.claude/skills/`](../.claude/skills/README.md) (start with `le-mechanics-reference`, which maps questions to pages and sections).
 
 ## How agents should use this
 
