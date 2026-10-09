@@ -232,6 +232,16 @@ export interface ModInput {
   isDownside?: boolean | number | null;
   /** Tree node stats only: stats[].noScaling (true = not per point). Leave undefined for every other source. */
   noScaling?: boolean | number | null;
+  /** Tree node stats only: 'stat' | 'tooltip_category' | 'ailment' | 'display_only' (what `property` is). */
+  propertyKind?: string | null;
+  /** Tree node stats only: added | increased | more | skill_parameter | conversion | unknown. */
+  statKind?: string | null;
+  /** Tree node stats only: 'structured' | 'inferred' (where modifierType comes from). */
+  modifierSource?: string | null;
+  /** Tree node stats only: the property is an SP id but the line is not a plain stat of it. */
+  labelMismatch?: boolean | number | null;
+  /** Tree node stats only: the matched decompiled code effect. */
+  codeRef?: string | null;
   /** Override the resolved property name (default: StatNamer.lineName). */
   propertyName?: string | null;
   /** The source stat line object (stored as raw_json). Required. */
@@ -268,15 +278,20 @@ export function validateMod(m: ModInput): void {
   if ((m.value ?? null) !== null && ((m.valueMin ?? null) !== null || (m.valueMax ?? null) !== null)) {
     fail("give either value or valueMin/valueMax, not both");
   }
+  if (m.modifierSource !== undefined && m.modifierSource !== null && m.modifierSource !== "structured" && m.modifierSource !== "inferred") {
+    fail(`modifier_source must be 'structured', 'inferred' or null, got ${String(m.modifierSource)}`);
+  }
   if (m.raw === undefined) fail("raw (the source line) is required");
 }
 
 const insertSql = `INSERT INTO mods (source_kind, source_id, source_ord, sub_ord, tier, property, property_name,
   special_tag, tags, tag_names, extra_tag, modifier_type, value_min, value_max, display, label, label_key,
-  context, set_requirement, hidden, is_downside, no_scaling, raw_json)
+  context, set_requirement, hidden, is_downside, no_scaling, property_kind, stat_kind, modifier_source, label_mismatch,
+  code_ref, raw_json)
   VALUES (@source_kind, @source_id, @source_ord, @sub_ord, @tier, @property, @property_name,
   @special_tag, @tags, @tag_names, @extra_tag, @modifier_type, @value_min, @value_max, @display, @label, @label_key,
-  @context, @set_requirement, @hidden, @is_downside, @no_scaling, @raw_json)`;
+  @context, @set_requirement, @hidden, @is_downside, @no_scaling, @property_kind, @stat_kind, @modifier_source, @label_mismatch,
+  @code_ref, @raw_json)`;
 const stmts = new WeakMap<DB, Database.Statement>();
 
 const flag = (v: boolean | number | null | undefined) => (v ? 1 : 0);
@@ -321,6 +336,11 @@ export function insertMod(db: DB, m: ModInput, namer: StatNamer): number {
     hidden: flag(m.hidden),
     is_downside: flag(m.isDownside),
     no_scaling: m.noScaling === null || m.noScaling === undefined ? null : flag(m.noScaling),
+    property_kind: m.propertyKind ?? null,
+    stat_kind: m.statKind ?? null,
+    modifier_source: m.modifierSource ?? null,
+    label_mismatch: m.labelMismatch === null || m.labelMismatch === undefined ? null : flag(m.labelMismatch),
+    code_ref: m.codeRef ?? null,
     raw_json: JSON.stringify(m.raw ?? null),
   });
   return Number(info.lastInsertRowid);

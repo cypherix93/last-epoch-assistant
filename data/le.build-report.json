@@ -83,12 +83,13 @@
     "monolith_reward_groups": 25,
     "monolith_rewards": 57,
     "monster_mods": 287,
+    "node_tooltip_properties": 131,
     "player_properties": 713,
     "prophecy_unlocks": 28,
     "raw_globals": 34,
     "relations": 5443,
     "scenes": 385,
-    "search": 12967,
+    "search": 13231,
     "set_tooltips": 18,
     "sets": 25,
     "stat_properties": 151,
@@ -101,6 +102,7 @@
     "tree_nodes": 4577,
     "trees": 142,
     "ui_buffs": 264,
+    "unique_drop_sources": 178,
     "unique_subtypes": 486,
     "unique_tooltip_entries": 2459,
     "unique_tooltips": 562,
@@ -111,10 +113,12 @@
   "views": [
     "v_affix_summary",
     "v_affix_usage",
+    "v_affix_values",
     "v_blessings",
     "v_build_items_named",
     "v_build_nodes_named",
     "v_build_summary",
+    "v_idol_affix_values",
     "v_item_usage",
     "v_mods_named",
     "v_skill_node_summary",
@@ -144,6 +148,7 @@
     "affix": 1156,
     "ailment": 148,
     "blessing": 224,
+    "buff": 264,
     "build": 74,
     "dungeon": 3,
     "item_subtype": 1558,
@@ -159,7 +164,7 @@
   },
   "foreign_key_violations": {},
   "expected": {
-    "ok": 95,
+    "ok": 98,
     "failed": 0,
     "results": [
       {
@@ -513,6 +518,20 @@
         "ok": true
       },
       {
+        "name": "items: unique_drop_sources",
+        "expected": 178,
+        "op": "=",
+        "actual": 178,
+        "ok": true
+      },
+      {
+        "name": "items: uniques[with a drop source]",
+        "expected": 106,
+        "op": "=",
+        "actual": 106,
+        "ok": true
+      },
+      {
         "name": "items: unique_subtypes",
         "expected": 486,
         "op": "=",
@@ -734,6 +753,13 @@
         "expected": 4928,
         "op": "=",
         "actual": 4928,
+        "ok": true
+      },
+      {
+        "name": "skills: node_tooltip_properties",
+        "expected": 131,
+        "op": "=",
+        "actual": 131,
         "ok": true
       },
       {

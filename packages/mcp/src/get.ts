@@ -14,6 +14,7 @@
  * skill_node / passive_node / weaver_node
  *                 tree_nodes (+tree_kind check)    "tree:node" | {tree,node}
  * ailment         ailments                         ailment_id (int)
+ * buff            ui_buffs                         buff_id (int, UIBuffIds value) | enum name ('Craterborn')
  * property        stat_properties                  property (int, SP id)
  * player_property player_properties                idx (int)
  * ability_property ability_properties              "ability_index:prop_index"
@@ -28,7 +29,7 @@ import { build as buildDoc } from "./builds.js";
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
 
 export const MOD_COLS =
-  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling";
+  "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling, property_kind, stat_kind, modifier_source, label_mismatch, code_ref";
 
 export type Id = string | number | { [k: string]: string | number };
 
@@ -100,6 +101,55 @@ export function applyNodeScaling(m: Row, node: { no_scaling_type?: unknown; no_s
     return { ...rest, scales_with_points: false, scaling: "at_threshold", threshold: node.no_scaling_point_threshold };
   }
   return { ...rest, scales_with_points: false, scaling: "fixed" };
+}
+
+const tooltipCategoryCache = new WeakMap<Ctx, Map<number, string>>();
+function tooltipCategory(ctx: Ctx, property: number): string | undefined {
+  let m = tooltipCategoryCache.get(ctx);
+  if (!m) {
+    let rows: Row[] = [];
+    try {
+      rows = all(ctx, "SELECT property, name FROM node_tooltip_properties");
+    } catch {
+      rows = []; // older database without the table
+    }
+    m = new Map(rows.map((r) => [r.property as number, r.name as string]));
+    tooltipCategoryCache.set(ctx, m);
+  }
+  return m.get(property);
+}
+
+const MODIFIER_NAME = ["added", "increased", "more"];
+
+/**
+ * Tree node stat lines (skill / passive / weaver): explain what `property` is and how sure the kind is.
+ *   property_kind 'stat'             property is an SP id, but only the tooltip icon hint of the line
+ *   property_kind 'tooltip_category' property 5000-9999: a global tooltip category; `property_hint` names it
+ *   property_kind 'ailment'          property >= 10000: an ailment icon; `property_hint` names the ailment
+ *   property_kind 'display_only'     property 54 (None): text only; property_name is dropped
+ * `modifier` (added / increased / more) comes from the decompiled node code when modifier_source is 'structured',
+ * from the label text when 'inferred'. label_mismatch: the line is NOT a plain stat of property_name (conditional,
+ * scoped to part of the skill, or a different stat): a `warning` says so; read `label` and `code_ref`.
+ */
+export function decorateNodeMod(ctx: Ctx, m: Row): Row {
+  if (m.property_kind === undefined) return m;
+  const out: Row = { ...m };
+  const p = m.property as number | undefined;
+  if (m.property_kind === "display_only") delete out.property_name;
+  if (m.property_kind === "tooltip_category" && typeof p === "number") {
+    const c = tooltipCategory(ctx, p);
+    if (c) out.property_hint = c;
+  }
+  if (m.property_kind === "ailment" && typeof p === "number" && p >= 10000 && p < 15000) {
+    const n = ailmentName(ctx, p - 10000);
+    if (n) out.property_hint = n;
+  }
+  if (typeof m.modifier_type === "number") out.modifier = MODIFIER_NAME[m.modifier_type];
+  if (m.label_mismatch === 1) {
+    out.label_mismatch = true;
+    out.warning = `property ${p} (${m.property_name ?? "?"}) is only the tooltip icon hint: this line is '${m.label ?? "?"}', not a plain ${m.property_name ?? "stat"} line. Read label${m.code_ref ? " and code_ref" : ""}.`;
+  } else delete out.label_mismatch;
+  return out;
 }
 
 export function modsFor(ctx: Ctx, sourceKind: string, sourceId: string | number): Row[] {
@@ -245,7 +295,7 @@ function nodeGetter(treeKind: string): Getter {
     return {
       node: clean(n, raw),
       tree: t,
-      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => applyNodeScaling(m, n)),
+      mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => decorateNodeMod(ctx, applyNodeScaling(m, n))),
       requirements: all(
         ctx,
         "SELECT r.required_node_id, r.required_points, n.name AS required_name FROM tree_node_requirements r LEFT JOIN tree_nodes n ON n.tree_id = r.tree_id AND n.node_id = r.required_node_id WHERE r.tree_id = ? AND r.node_id = ? ORDER BY r.ord",
@@ -264,6 +314,26 @@ function treeSummary(ctx: Ctx, row: Row, raw: boolean): Row {
 /** Legendary Potential is not stored per unique in the game data; `lp_eligible` is derived (see docs/schema.md, table uniques). */
 const UNIQUE_LP_NOTE =
   "lp_eligible is DERIVED, not in the data: the game data has no per-unique 'can roll legendary potential' flag. Non-set uniques with legendary_type 0 can drop with LP; set items cannot; legendary_type 1 (weavers_will) uniques use Weaver's Will instead. legendary_type is the raw .legendaryType enum (0 LegendaryPotential, 1 WeaversWill), can_drop_as_legendary is .canDropAsLegendary (4 uniques with fixed legendary affix pools), effective_level_for_lp counts only when override_effective_level_for_lp = 1 (0 + override 0 = no override, so LP presumably uses the item's own level: unverified).";
+
+/** Content-specific drop sources of a unique (unique_drop_sources; empty on an older database). */
+function dropSources(ctx: Ctx, uniqueId: number): Row[] {
+  try {
+    return all(
+      ctx,
+      "SELECT source_kind, source_name, timeline_id, timeline_name, empowered_only, dungeon_id, dungeon_name, woven_echo_id, woven_echo_name, min_corruption, chance, max_chance FROM unique_drop_sources WHERE unique_id = ? ORDER BY ord",
+      uniqueId,
+    ).map(dropNulls);
+  } catch {
+    return [];
+  }
+}
+
+/** How a unique is obtained, in one line: random drops (can_drop_randomly) and the content-specific sources. */
+function obtainNote(u: Row): string {
+  const random = u.can_drop_randomly === 1 ? "drops randomly (can_drop_randomly = 1)" : "does NOT drop randomly (can_drop_randomly = 0)";
+  const src = u.drop_source ? `; sources: ${u.drop_source}` : "; the data names no drop source";
+  return random + src;
+}
 
 export const GETTERS: Record<string, Getter> = {
   unique(ctx, id, raw) {
@@ -286,6 +356,8 @@ export const GETTERS: Record<string, Getter> = {
         u.unique_id,
       ),
       set: u.set_id == null ? null : one(ctx, "SELECT set_id, name, item_count FROM sets WHERE set_id = ?", u.set_id),
+      drop_sources: dropSources(ctx, u.unique_id as number),
+      obtain: obtainNote(u),
       note: UNIQUE_LP_NOTE,
     };
   },
@@ -426,6 +498,42 @@ export const GETTERS: Record<string, Getter> = {
   ailment(ctx, id, raw) {
     const a = need(one(ctx, "SELECT * FROM ailments WHERE ailment_id = ?", int(id, "ailment")), "ailment", id);
     return { ailment: clean(a, raw), buff_mods: modsFor(ctx, "ailment_buff", a.ailment_id as number) };
+  },
+  /** Non-ailment buff (Craterborn, Lightning Aegis, ...): the buff bar record, its BuffPropId stat slots and what mentions it. */
+  buff(ctx, id, raw) {
+    const s = typeof id === "object" ? "" : String(id).trim();
+    const b = need(
+      /^\d+$/.test(s) ? one(ctx, "SELECT * FROM ui_buffs WHERE buff_id = ?", Number(s)) : one(ctx, "SELECT * FROM ui_buffs WHERE enum_name = ? OR lower(name) = lower(?)", s, s),
+      "buff",
+      id,
+    );
+    const en = (b.enum_name as string | null) ?? "";
+    const props = en
+      ? all(ctx, "SELECT name, value FROM enums WHERE enum_name = 'BuffPropId' AND substr(name, 1, length(?) + 1) = ? || '_' ORDER BY value", en, en).map((r) => ({
+          index: r.value,
+          stat: String(r.name).slice(en.length + 1),
+        }))
+      : [];
+    let mentions: Row[] = [];
+    if (b.name) {
+      try {
+        mentions = all(
+          ctx,
+          "SELECT kind, id, name FROM search WHERE search MATCH ? AND kind NOT IN ('buff') ORDER BY bm25(search, 0, 0, 8, 1) LIMIT 20",
+          `"${String(b.name).replace(/"/g, '""')}"`,
+        );
+      } catch {
+        mentions = [];
+      }
+    }
+    return {
+      buff: clean(b, raw),
+      buff_id_enum: en ? (one(ctx, "SELECT value FROM enums WHERE enum_name = 'BuffId' AND name = ?", en)?.value ?? null) : null,
+      stat_slots: props,
+      same_name_abilities: b.name ? all(ctx, "SELECT ability_id, name, description, alt_text FROM abilities WHERE lower(name) = lower(?) ORDER BY ability_id", b.name).map(dropNulls) : [],
+      mentions,
+      note: "ui_buffs are the non-ailment buffs of the buff bar (UIBuffs). The data has their name, description and BuffPropId stat slot names but not their values: read the values from the granting node / item text in `mentions`. Buffs that are ailments (Spark Charge 55, Frenzy, Haste, ...) are kind 'ailment'.",
+    };
   },
   property(ctx, id, raw) {
     const p = need(one(ctx, "SELECT * FROM stat_properties WHERE property = ?", int(id, "property")), "property", id);

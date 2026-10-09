@@ -83,6 +83,7 @@ import type { LoaderContext } from "../lib/context.js";
 import { insertRow } from "../lib/sqlite.js";
 import { bool, classRequirementNames, classSpecificityNames, int, num, rawJson, sortedEntries, str, type JsonObject } from "../lib/util.js";
 import { affixCompactId, decodeCompactId, implicitCompactId, setCompactId } from "../lib/ids.js";
+import { collectDropSources, dropSummary } from "./items-drops.js";
 
 /** Tables this loader owns (the build and tests check they exist in schema.sql). */
 export const tables = [
@@ -97,6 +98,7 @@ export const tables = [
   "sets",
   "set_tooltips",
   "uniques",
+  "unique_drop_sources",
   "unique_subtypes",
   "unique_tooltips",
   "unique_tooltip_entries",
@@ -125,6 +127,8 @@ export const expected: ExpectedCount[] = [
   count("set_tooltips", 18),
   count("uniques", 486),
   count("uniques", 61, "is_set_item = 1"),
+  count("unique_drop_sources", 178, undefined, undefined, "monsterItemDrops with a uniqueId 173 + experimental 4 + cache 1"),
+  count("uniques", 106, "drop_source_count > 0", "uniques[with a drop source]"),
   count("unique_subtypes", 486),
   count("unique_tooltips", 562),
   count("unique_tooltip_entries", 2459),
@@ -152,6 +156,31 @@ type Obj = JsonObject;
 const BLESSING_BASE = 34;
 const ALTAR_BASE = 41;
 const LENS_BASES = new Set([35, 36, 37, 38, 39, 109]);
+
+/** PropertyRounding enum (coreDB roundAddedToInt / roundingForMore) -> grid scale: 0 Hundredth x100, 1 Integer x1, 2 Tenth x10, 3 Thousandth x1000. */
+const ROUNDING_SCALE: Record<number, number> = { 0: 100, 1: 1, 2: 10, 3: 1000 };
+
+/**
+ * Rounding grid of an affix line (vendor 07a_assets_core_data.md "How rounding picked", D): INCREASED always
+ * Hundredth; ADDED the property's roundAddedToInt; MORE its moreRoundingOverrides[specialTag] else roundingForMore.
+ * The property record is the SP entry of coreDB.propertyList, or for indirect stats the player property (98, tags),
+ * ability property (58, tags = ability index, specialTag = property index) or idol altar property (130, tags);
+ * missing entries use the list's defaultProperty.
+ */
+export function roundingScale(core: Obj, property: number, modifierType: number, tags: number, specialTag: number): number {
+  if (modifierType === 1) return 100;
+  let rec: Obj | undefined;
+  if (property === 98) rec = (core.playerPropertyList as Obj[])[tags];
+  else if (property === 58) rec = (core.abilityPropertyList as Obj[]).find((a) => a.abilityID === tags)?.properties?.[specialTag];
+  else if (property === 130) rec = (core.idolAltarPropertyList?.list as Obj[] | undefined)?.[tags];
+  else rec = (core.propertyList as Obj[]).find((p) => p.property === property);
+  rec ??= core.defaultProperty as Obj;
+  let r: number | undefined;
+  if (modifierType === 2) {
+    r = ((rec?.moreRoundingOverrides as Obj[] | undefined) ?? []).find((o) => o.specialTag === specialTag)?.roundingForMore ?? rec?.roundingForMore;
+  } else r = rec?.roundAddedToInt;
+  return ROUNDING_SCALE[Number(r ?? 0)] ?? 100;
+}
 
 function implicitKind(base: number): "blessing" | "idol_altar" | "implicit" {
   return base === BLESSING_BASE ? "blessing" : base === ALTAR_BASE ? "idol_altar" : "implicit";
@@ -230,6 +259,8 @@ export function loadItems(ctx: LoaderContext): void {
           attack_rate: num(s.attackRate),
           added_weapon_range: num(s.addedWeaponRange),
           affix_effectiveness: num(s.affixEffectiveness),
+          // affixes scale with the item's AEM; Omen idol sub types (affixEffectiveness 1) use omenIdolAffixEffectModifier
+          affix_effect_modifier: int(s.affixEffectiveness) === 1 ? (num(itemList.omenIdolAffixEffectModifier) ?? 0) : num(b.affixEffectModifier),
           item_tags: int(s.itemTags),
           im_set_tier: int(s.IMSetTier),
           lens_effect: t(s.lensEffectKey) ?? str(s.lensEffect),
@@ -329,6 +360,7 @@ export function loadItems(ctx: LoaderContext): void {
         label_key: str(p.modDisplayNameKey),
         set_property: int(p.setProperty),
         disable_alt_text: bool(p.disableAltText),
+        rounding_scale: roundingScale(ctx.raw.letools.coreDB as Obj, p.property, p.modifierType, p.tags ?? 0, p.specialTag ?? 0),
       });
     });
     tiers.forEach((tier, ti) => {
@@ -422,6 +454,7 @@ export function loadItems(ctx: LoaderContext): void {
 
   // --- 14..18. uniques ------------------------------------------------------------------------
   const uniqueIds = new Set<number>();
+  const drops = collectDropSources(itemDB, ctx.raw.letools.timelineData as Obj, ctx.raw.letools.dungeonData as Obj, (ctx.raw.letools.wovenEchoList ?? []) as Obj[], t);
   for (const [, u] of sortedEntries<Obj>(itemDB.uniqueList?.uniques)) {
     const id = u.uniqueId as number;
     uniqueIds.add(id);
@@ -463,8 +496,14 @@ export function loadItems(ctx: LoaderContext): void {
       reroll_chance: num(u.rerollChance),
       sprite: str(u.sprite),
       mod_count: mods.length,
+      drop_source: dropSummary(u, drops.get(id)),
+      drop_source_count: drops.get(id)?.length ?? 0,
       raw_json: rawJson(u),
     });
+    for (const d of drops.get(id) ?? []) {
+      const { raw, ...row } = d;
+      insertRow(db, "unique_drop_sources", { unique_id: id, ...row, raw_json: rawJson(raw) });
+    }
     subIds.forEach((sub, ord) => {
       insertRow(db, "unique_subtypes", { unique_id: id, ord, base_type_id: int(u.baseTypeId), sub_type_id: sub });
     });

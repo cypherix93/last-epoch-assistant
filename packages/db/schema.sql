@@ -276,7 +276,8 @@ CREATE TABLE item_subtypes (
   is_starting_item INTEGER,            -- subItems[].isStartingItem
   attack_rate   REAL,                  -- subItems[].attackRate
   added_weapon_range REAL,             -- subItems[].addedWeaponRange
-  affix_effectiveness REAL,            -- subItems[].affixEffectiveness
+  affix_effectiveness REAL,            -- subItems[].affixEffectiveness (0 Standard, 1 OmenIdol)
+  affix_effect_modifier REAL,          -- the item AEM affixes on this sub type scale with: item_base_types.affix_effect_modifier, or itemList.omenIdolAffixEffectModifier (0) when affix_effectiveness = 1 (Omen idols)
   item_tags     INTEGER,               -- subItems[].itemTags
   im_set_tier   INTEGER,               -- subItems[].IMSetTier
   lens_effect   TEXT,                  -- t(subItems[].lensEffectKey) or subItems[].lensEffect (lenses)
@@ -342,6 +343,7 @@ CREATE TABLE affix_stats (
   label_key     TEXT,                  -- .affixProperties[].modDisplayNameKey
   set_property  INTEGER,               -- .affixProperties[].setProperty
   disable_alt_text INTEGER,            -- .affixProperties[].disableAltText
+  rounding_scale INTEGER NOT NULL DEFAULT 100, -- rounding grid of the rolled value (coreDB rounding of the stat: increased -> Hundredth; added -> roundAddedToInt, more -> roundingForMore / moreRoundingOverrides of the property, player property (98), ability property (58) or altar property (130)): 100 Hundredth, 1 Integer, 10 Tenth, 1000 Thousandth
   PRIMARY KEY (affix_id, ord)
 ) WITHOUT ROWID;
 
@@ -427,9 +429,36 @@ CREATE TABLE uniques (
   reroll_chance REAL,                  -- .rerollChance
   sprite        TEXT,                  -- .sprite (LE atlas id 'I<n>')
   mod_count     INTEGER NOT NULL,      -- .mods.length (lines -> mods 'unique_mod')
+  drop_source   TEXT,                  -- summary of unique_drop_sources ('Formosus the Undying (timeline boss, The Age of Winter); ...'), or a note
+                                       -- for primordial / cocooned uniques without a drop table; NULL when the data names no source
+  drop_source_count INTEGER NOT NULL DEFAULT 0, -- unique_drop_sources rows of this unique
   raw_json      TEXT NOT NULL          -- the unique record (mods/tooltips kept inline)
 );
 CREATE INDEX uniques_name ON uniques (name);
+
+-- Content-specific drop sources of uniques: itemDB.monsterItemDrops[] entries with a uniqueId (bosses, harbingers, dungeons,
+-- woven echoes, loot lizards, arena, ...), randomEncounterData.experimentalUniqueDropInfo[] and oneShotCaches[] guaranteed
+-- uniques. A unique can also drop randomly when uniques.can_drop_randomly = 1. dropBossLoot.json regroups the same data.
+CREATE TABLE unique_drop_sources (
+  unique_id     INTEGER NOT NULL REFERENCES uniques (unique_id),
+  ord           INTEGER NOT NULL,      -- order in the source lists (monsterItemDrops, then experimental, then caches)
+  source_kind   TEXT NOT NULL,         -- harbinger | aberroth | shade_of_orobyss | nemesis | arena | loot_lizard | soul_gambler | rune_prison |
+                                       -- dungeon | timeline_boss | woven_echo | zone | monster | experimental | cache (from the entry's flags)
+  source_name   TEXT,                  -- t(.monsterNameKey) (e.g. 'Formosus the Undying'), else the woven echo / cache name
+  monster_name_key TEXT,               -- .monsterNameKey (cache: .displayNameKey)
+  timeline_id   INTEGER,               -- .timelineInfo.id (timelines.timeline_id)
+  timeline_name TEXT,                  -- t(timelineData.<id>.nameKey)
+  empowered_only INTEGER,              -- .timelineInfo.empoweredOnly
+  dungeon_id    INTEGER,               -- .dungeonInfo.id (dungeons.dungeon_id)
+  dungeon_name  TEXT,                  -- t(dungeonData.<id>.nameKey)
+  woven_echo_id INTEGER,               -- .wovenEcho (woven_echoes.echo_id)
+  woven_echo_name TEXT,                -- t(wovenEchoList[id].displayNameKey)
+  min_corruption INTEGER,              -- .minCorruption
+  chance        REAL,                  -- .chance (base drop chance; experimental: randomEncounterData.experimentalUniqueDropChance)
+  max_chance    REAL,                  -- .maxChance
+  raw_json      TEXT NOT NULL,         -- the source entry
+  PRIMARY KEY (unique_id, ord)
+) WITHOUT ROWID;
 CREATE INDEX uniques_base ON uniques (base_type_id, sub_type_id);
 
 CREATE TABLE unique_subtypes (
@@ -591,6 +620,16 @@ CREATE TABLE ui_buffs (
   max_instances INTEGER,               -- .maxInstances
   icon          TEXT,                  -- .icon
   raw_json      TEXT NOT NULL          -- UIBuffs.<k>
+);
+
+-- Tooltip categories of tree node stats with property 5000-9999 (NodeTooltipPropertyList.properties[p - 5000]).
+-- A GLOBAL list (the same id means the same category in every tree); the category is only the line's icon /
+-- grouping, the line label says what the stat is. Not in the LE Tools / Maxroll data: names from the vendored
+-- 1.5.0 asset extract vendor/lastepochbuilder/research/data/game/tree_node_stats.json (tooltipStats[].propertyName).
+CREATE TABLE node_tooltip_properties (
+  property      INTEGER PRIMARY KEY,   -- node stat property id (5000..9999)
+  name          TEXT NOT NULL,         -- category name, e.g. 5110 'Melee Damage', 5048 'Global Spell Damage'
+  source        TEXT NOT NULL          -- 'vendor:lastepochbuilder 1.5.0 tree_node_stats.json'
 );
 
 CREATE TABLE entities (
@@ -936,7 +975,7 @@ CREATE TABLE mods (
   tags          INTEGER NOT NULL DEFAULT 0, -- .tags (AT mask; an index for indirect properties 58/88/98/104/105/130)
   tag_names     TEXT,                  -- describeTags(tags), comma list; NULL for indirect properties or tags = 0
   extra_tag     INTEGER NOT NULL DEFAULT 0, -- .extraTag (ability index for ability-bound lines)
-  modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; NULL for display-only lines (tree nodes)
+  modifier_type INTEGER CHECK (modifier_type IS NULL OR modifier_type IN (0, 1, 2)), -- 0 added, 1 increased, 2 more; tree node stats: from the decompiled code or inferred (see modifier_source), NULL when unknown
   value_min     REAL,                  -- minimum roll (affix rolls[].min, unique mods[].value, implicitValue, set mods[].value, addedValue...)
   value_max     REAL,                  -- maximum roll (rolls[].max, mods[].maxValue, implicitMaxValue); = value_min for fixed values
   display       TEXT,                  -- display string when the source only has text (tree node stats[].value, e.g. '+25%')
@@ -947,6 +986,11 @@ CREATE TABLE mods (
   hidden        INTEGER NOT NULL DEFAULT 0, -- .hideInTooltip
   is_downside   INTEGER NOT NULL DEFAULT 0, -- tree node stats[].downside
   no_scaling    INTEGER,               -- tree node stats[].noScaling (0 = value is PER POINT allocated; 1 = does not scale per point: fixed, or a lump at the threshold, see tree_nodes.no_scaling_type); NULL for every other source
+  property_kind TEXT,                  -- tree node stats only: what `property` is: 'stat' (SP id < 5000, only the tooltip icon hint) | 'tooltip_category' (5000-9999, node_tooltip_properties) | 'ailment' (>= 10000 ailment icon) | 'display_only' (54 None); NULL for every other source
+  stat_kind     TEXT,                  -- tree node stats only: added | increased | more | skill_parameter (a skill mutator field, not a stat) | conversion | unknown
+  modifier_source TEXT,                -- tree node stats only: 'structured' (modifier_type / stat_kind from the decompiled node effect, vendor 1.5.0, matched by node name and magnitude) | 'inferred' (from the label / value text)
+  label_mismatch INTEGER,              -- tree node stats only: 1 = `property` is an SP id but the line is NOT a plain stat of it (read label / code_ref, not property_name), e.g. Foe Cleaver 'Effect of Damage Stats on a 2h Weapon' on SP 0
+  code_ref      TEXT,                  -- tree node stats with modifier_source 'structured': the matched code effect ('add_stat Damage more [Spell] -> ...', 'field RiveMutator.twoHandedWeaponStatModifier')
   raw_json      TEXT NOT NULL          -- the source stat line object
 );
 CREATE INDEX mods_property ON mods (property, modifier_type);
@@ -957,7 +1001,7 @@ CREATE UNIQUE INDEX mods_identity ON mods (source_kind, source_id, coalesce(tier
 -- =============================================================================
 -- Full-text search                                                      [search]
 -- =============================================================================
--- kind: unique | affix | item_subtype | ability | skill_node | passive_node | weaver_node | ailment |
+-- kind: unique | affix | item_subtype | ability | skill_node | passive_node | weaver_node | ailment | buff |
 --       stat_property | player_property | ability_property | set | blessing | monster_mod | timeline | dungeon
 -- id:   the key of the row in its table (as text; '<tree>:<node>' / '<base>:<sub>' / '<ability_index>:<prop_index>')
 
@@ -1015,7 +1059,12 @@ SELECT
   m.set_requirement,
   m.hidden,
   m.is_downside,
-  m.no_scaling
+  m.no_scaling,
+  m.property_kind,
+  m.stat_kind,
+  m.modifier_source,
+  m.label_mismatch,
+  m.code_ref
 FROM mods m
 LEFT JOIN stat_properties sp ON sp.property = m.property;
 
@@ -1031,6 +1080,8 @@ SELECT
   s.name AS set_name,
   u.legendary_type,
   u.lp_eligible,
+  u.can_drop_randomly,
+  u.drop_source,
   u.mod_count,
   (SELECT group_concat(
             coalesce(m.property_name, m.label, '?') || ' ' ||
@@ -1093,8 +1144,13 @@ SELECT
   n.mastery,
   n.mastery_requirement,
   n.description,
+  -- each line: 'label: display', then [added|increased|more|skill parameter] (+ '?' when inferred from the text),
+  -- '(no scaling)' for non-per-point lines and '(not a plain <property>)' for label_mismatch lines
   (SELECT group_concat(coalesce(m.label, m.property_name, '?') || ': ' || coalesce(m.display, printf('%g', m.value_min), '') ||
-                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END,
+                       CASE WHEN m.stat_kind IN ('added', 'increased', 'more') THEN ' [' || m.stat_kind || CASE WHEN m.modifier_source = 'inferred' THEN '?' ELSE '' END || ']'
+                            WHEN m.stat_kind = 'skill_parameter' THEN ' [skill parameter]' ELSE '' END ||
+                       CASE WHEN m.no_scaling = 1 THEN ' (no scaling)' ELSE '' END ||
+                       CASE WHEN m.label_mismatch = 1 THEN ' (not a plain ' || coalesce(m.property_name, '?') || ')' ELSE '' END,
                        '; ' ORDER BY m.source_ord, m.sub_ord)
      FROM mods m
     WHERE m.source_kind IN ('skill_node', 'passive_node', 'weaver_node')
@@ -1280,6 +1336,9 @@ CREATE TABLE community_build_skills (
   bar_slot      INTEGER,               -- index in TAB:activeSkills
   points        INTEGER NOT NULL,      -- points in the skill tree (TAB:skillTrees[tree].history[0:position]); a tree of a
                                        -- non-specialized skill is a planner leftover and does not apply in game
+  node_count    INTEGER NOT NULL DEFAULT 0, -- allocated nodes of its tree in this tab (community_build_skill_nodes rows; removed nodes excluded)
+  has_tree_points INTEGER NOT NULL DEFAULT 0, -- 1 when points > 0; has_tree_points 1 with is_specialized 0 = a leftover tree (the skill was
+                                       -- specialized earlier in the planner, e.g. spellblade-leveling-guide 'Final Setup' Volcanic Orb, 9 nodes)
   PRIMARY KEY (build_profile_id, ord)
 ) WITHOUT ROWID;
 CREATE INDEX community_build_skills_ability ON community_build_skills (ability_id);
@@ -1351,13 +1410,18 @@ SELECT
   bt.name AS base_type,
   i.unique_id,
   i.is_corrupted,
+  -- values are the in-game values: the stored tier range scaled by the item's affix effect modifier
+  -- ((1 + aem) / (1 + standard_affix_effect_modifier), see v_affix_values), rounded to the stat's grid, then the roll
+  -- applied; ' x<factor>' after the tier marks a scaled affix
   (SELECT group_concat(
             coalesce(af.name, 'affix ' || x.affix_id) || ' T' || x.tier ||
+            CASE WHEN abs((CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) - 1.0) > 1e-9 THEN ' x' || printf('%g', round((CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END), 4)) ELSE '' END ||
             CASE x.origin WHEN 'normal' THEN '' ELSE ' [' || x.origin || ']' END ||
             coalesce(' (' || (SELECT group_concat(coalesce(md.label, md.property_name, '?') || ' ' ||
-                                                  printf('%g', round(md.value_min + (coalesce(md.value_max, md.value_min) - md.value_min) * coalesce(x.roll, 1), 4)),
+                                                  printf('%g', round((round(md.value_min * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale) + ((round(coalesce(md.value_max, md.value_min) * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale) - (round(md.value_min * (CASE WHEN coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) = coalesce(af.standard_affix_effect_modifier, 0) THEN 1.0 ELSE (1.0 + coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0)) / (1.0 + coalesce(af.standard_affix_effect_modifier, 0)) END) * ast.rounding_scale) / ast.rounding_scale)) * coalesce(x.roll, 1), 4)),
                                                   ', ' ORDER BY md.source_ord, md.sub_ord)
                                 FROM mods md
+                                JOIN affix_stats ast ON ast.affix_id = x.affix_id AND ast.ord = md.source_ord
                                WHERE md.source_kind = 'affix_tier' AND md.source_id = CAST(x.affix_id AS TEXT) AND md.tier = x.tier) || ')', ''),
             '; ' ORDER BY x.ord)
      FROM community_build_item_affixes x LEFT JOIN affixes af ON af.affix_id = x.affix_id
@@ -1368,6 +1432,43 @@ JOIN community_builds b ON b.build_id = p.build_id
 LEFT JOIN uniques u ON u.unique_id = i.unique_id
 LEFT JOIN item_subtypes st ON st.base_type_id = i.base_type_id AND st.sub_type_id = i.sub_type_id
 LEFT JOIN item_base_types bt ON bt.base_type_id = i.base_type_id;
+
+-- Affix tier values as they roll on each base type the affix can roll on. The stored ranges (mods affix_tier) are
+-- authored for the affix's standard_affix_effect_modifier (std); on an item whose affix effect modifier is aem the
+-- range is scaled by (1 + aem) / (1 + std) (1 when aem = std) and rounded to the stat's grid
+-- (affix_stats.rounding_scale; SQLite rounds half away from zero, the game half to even in float32).
+-- Source: AffixList+Affix.getModifier (vendor/lastepochbuilder/research/07a_assets_core_data.md 0.3 / 6, D),
+-- knowledge/reference/item-system.md. Example: affix 119 (std 0) T1 0.6 on a Grand Idol (aem -0.33) rolls up to 0.40;
+-- affix 912 (std -0.33) 8 on an Ornate Idol (aem 0) rolls up to 12. Omen idol sub types use aem 0
+-- (item_subtypes.affix_effect_modifier), i.e. the factor of an aem-0 base.
+CREATE VIEW v_affix_values AS
+WITH f AS (
+  SELECT a.affix_id, a.name AS affix_name, coalesce(a.standard_affix_effect_modifier, 0) AS std_aem,
+         r.base_type_id, bt.name AS base_type, coalesce(bt.affix_effect_modifier, 0) AS item_aem,
+         CASE WHEN coalesce(bt.affix_effect_modifier, 0) = coalesce(a.standard_affix_effect_modifier, 0) THEN 1.0
+              ELSE (1.0 + coalesce(bt.affix_effect_modifier, 0)) / (1.0 + coalesce(a.standard_affix_effect_modifier, 0)) END AS factor
+    FROM affixes a
+    JOIN affix_can_roll_on r ON r.affix_id = a.affix_id
+    JOIN item_base_types bt ON bt.base_type_id = r.base_type_id
+)
+SELECT f.affix_id, f.affix_name, f.base_type_id, f.base_type, m.tier, m.source_ord AS ord, s.label,
+       m.property, m.property_name, m.tag_names, m.special_tag, m.modifier_type,
+       f.std_aem, f.item_aem, round(f.factor, 6) AS scale_factor, s.rounding_scale,
+       m.value_min AS stored_min, m.value_max AS stored_max,
+       round(m.value_min * f.factor * s.rounding_scale) / s.rounding_scale AS value_min,
+       round(m.value_max * f.factor * s.rounding_scale) / s.rounding_scale AS value_max
+  FROM f
+  JOIN mods m ON m.source_kind = 'affix_tier' AND m.source_id = CAST(f.affix_id AS TEXT)
+  JOIN affix_stats s ON s.affix_id = f.affix_id AND s.ord = m.source_ord;
+
+-- v_affix_values restricted to the idol sizes (base types 25-33), with the idol grid size (WxH).
+CREATE VIEW v_idol_affix_values AS
+SELECT v.affix_id, v.affix_name, v.base_type_id, v.base_type AS idol, bt.size_x || 'x' || bt.size_y AS idol_size,
+       v.tier, v.ord, v.label, v.property, v.property_name, v.tag_names, v.special_tag, v.modifier_type,
+       v.std_aem, v.item_aem, v.scale_factor, v.value_min, v.value_max, v.stored_min, v.stored_max
+  FROM v_affix_values v
+  JOIN item_base_types bt ON bt.base_type_id = v.base_type_id
+ WHERE bt.is_idol = 1;
 
 -- Uniques used by community builds, per slot: builds using it in any tab / in the default tab.
 CREATE VIEW v_item_usage AS

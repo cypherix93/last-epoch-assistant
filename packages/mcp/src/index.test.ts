@@ -31,7 +31,7 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
 
   it("schema", () => {
     const s = schema(ctx) as R;
-    expect(s.table_count).toBe(70);
+    expect(s.table_count).toBe(72);
     expect(s.tables.find((t: R) => t.name === "mods").rows).toBeGreaterThan(20000);
     expect(s.docs).toBe("docs/schema.md");
     const m = schema(ctx, "uniques") as R;
@@ -187,8 +187,61 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(f.nodes.length).toBeLessThan(all_.nodes.length);
     expect(f.node_count).toBe(all_.node_count);
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
-    expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("buffs that are not ailments (ui_buffs) are searchable, resolvable and gettable", () => {
+    const l = lookup(ctx, "Craterborn", ["buff"]) as R;
+    expect(l.results[0]).toMatchObject({ kind: "buff", id: "14", name: "Craterborn" });
+    expect((lookup(ctx, "Lightning Aegis", ["buff"]) as R).results[0]).toMatchObject({ kind: "buff", id: "86" });
+    expect((search(ctx, "aegis", ["buff"]) as R).results.map((r: R) => r.name)).toContain("Lightning Aegis");
+    const c = getTool(ctx, "buff", "Craterborn") as R;
+    expect(c.buff).toMatchObject({ buff_id: 14, description: "Increases fire damage and cast speed" });
+    expect(c.stat_slots.map((x: R) => x.stat)).toEqual(["FirePenetration", "CastSpeed"]);
+    expect(c.mentions.map((m: R) => m.id)).toContain("me27:25"); // the Meteor node that grants it
+    expect((getTool(ctx, "buff", 86) as R).buff.name).toBe("Lightning Aegis");
+    // Spark Charge is an ailment (kind ailment), not a ui buff
+    expect((lookup(ctx, "Spark Charge", ["ailment"]) as R).results[0]).toMatchObject({ kind: "ailment", id: "55" });
+    expect(() => getTool(ctx, "buff", "Nope")).toThrow(/No buff/);
+  });
+
+  it("get unique says how it is obtained (can_drop_randomly + drop sources)", () => {
+    const fs = getTool(ctx, "unique", 213) as R;
+    expect(fs.unique).toMatchObject({ name: "Frostbite Shackles", can_drop_randomly: 0 });
+    expect(fs.obtain).toMatch(/does NOT drop randomly.*Formosus the Undying/);
+    expect(fs.drop_sources[0]).toMatchObject({ source_kind: "timeline_boss", source_name: "Formosus the Undying", timeline_id: 4 });
+    expect((getTool(ctx, "unique", 434) as R).obtain).toMatch(/primordial item/);
+    const v = sql(ctx, "SELECT can_drop_randomly, drop_source FROM v_unique_summary WHERE unique_id = 152") as R;
+    expect(v.rows[0]).toMatchObject({ can_drop_randomly: 0, drop_source: expect.stringContaining("Harton's Husk") });
+  });
+
+  it("compact trees keep node descriptions (the 'directly' / 'for Rive' scope words live there) unless keep_descriptions is false", () => {
+    const fc = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true }) as R).nodes[0];
+    expect(fc.description).toMatch(/directly add damage.*double effect for Rive/);
+    expect(fc).not.toHaveProperty("x");
+    const bare = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true, keep_descriptions: false }) as R).nodes[0];
+    expect(bare).not.toHaveProperty("description");
+    const long = (skillTree(ctx, "sndr1", { compact: true }) as R).nodes.map((n: R) => String(n.description ?? ""));
+    expect(Math.max(...long.map((d: string) => d.length))).toBeLessThanOrEqual(400);
+  });
+
+  it("tree node stat lines say what the property is, the modifier kind and label mismatches", () => {
+    const [dmg, ail] = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver" }) as R).nodes[0].mods;
+    expect(dmg).toMatchObject({ property: 0, property_kind: "stat", stat_kind: "skill_parameter", modifier_source: "structured", label_mismatch: true });
+    expect(dmg.warning).toMatch(/only the tooltip icon hint/);
+    expect(dmg.code_ref).toContain("twoHandedWeaponStatModifier");
+    expect(ail).toMatchObject({ property: 10001, property_kind: "ailment", property_hint: "Ignite" });
+    expect(ail).not.toHaveProperty("label_mismatch");
+    const q = (getTool(ctx, "passive_node", "mg-1:54") as R).mods;
+    expect(q[0]).toMatchObject({ property_kind: "tooltip_category", property_hint: "Global Spell Damage", modifier: "increased" });
+    expect(q[1]).toMatchObject({ property: 41, modifier: "more", label_mismatch: true });
+    const duel = (passiveTree(ctx, "mg-1", { filter: "Essence Duel" }) as R).nodes[0].mods[0];
+    expect(duel).toMatchObject({ property: 54, property_kind: "display_only", modifier: "increased" });
+    expect(duel).not.toHaveProperty("property_name");
+    const wf = (skillTree(ctx, "fi9", { filter: "Winged Fire" }) as R).nodes[0].mods[1];
+    expect(wf).toMatchObject({ label: "Damage", modifier: "more", modifier_source: "structured" });
+    const fm = findMods(ctx, { source_id: "sndr1:24" }) as R;
+    expect(fm.rows[0]).toMatchObject({ label_mismatch: true, stat_kind: "skill_parameter" });
   });
 
   it("tree node stats say whether they scale with points", () => {
@@ -289,6 +342,16 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(es.tabs).toEqual(["Starter", "Endgame", "Aspirational"]);
     expect(Object.keys(es.tiers)).toEqual(["corruption", "speed", "bossing"]);
     expect((builds(ctx, { ability: "Erasing Strike" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    // ability filter: every result says how each tab uses the skill; leftover trees (points, not specialized) are flagged
+    const vo = (builds(ctx, { ability: "Volcanic Orb", any_skill: true }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(vo.ability_tabs).toEqual([
+      { tab: "Intermediate Setup (lvl 11 - 37)", specialized: true, on_bar: true, points: 14, node_count: 9 },
+      { tab: "Final Setup (lvl 38 - 80)", specialized: false, on_bar: false, points: 14, node_count: 9, leftover_tree: true },
+    ]);
+    // a Spellblade filter matches this leveling guide through its guide card (its profile opens on the Mage tab)
+    const sb = (builds(ctx, { mastery: "Spellblade" }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(sb).toMatchObject({ mastery: "Mage", guide_mastery: "Spellblade" });
+    expect(sb.mastery_match).toMatch(/guide card/);
     expect((builds(ctx, { ability: "es6ai", class: "Sentinel", item: "World Splitter", tab: "Endgame" }) as R).builds.map((b: R) => b.slug)).toEqual([ES_SLUG]);
     expect((builds(ctx, { affix: 76, mastery: "void-knight" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
     const s = builds(ctx, { tier: "S", tier_list: "bossing" }) as R;
@@ -312,7 +375,19 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     const w = b.gear.find((g: R) => g.slot === "weapon");
     expect(w).toMatchObject({ name: "World Splitter", kind: "legendary", unique_id: 365, base: "Bardiche", corrupted: true });
     expect(w.affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, type: "prefix", origin: "extra", roll: 1 });
-    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 65, modifier: "added" });
+    // in-game value: affix 76 (std 0.75) on a two-handed axe (aem 2.2) rolls x3.2/1.75; the data value is stored_value
+    expect(w.affixes[0]).toMatchObject({ scale_factor: 1.8286 });
+    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 119, stored_value: 65, modifier: "added" });
+    // idols: Ornate (aem 0) unscaled, Large (aem -0.33) x0.67 on std-0 affixes, Omen idols aem 0
+    const large = b.idols.find((i: R) => i.name === "Heretical Large Rahyeh Idol");
+    expect(large.affixes[0]).toMatchObject({ affix_id: 211, scale_factor: 0.67 });
+    expect(large.affixes[0].values[0]).toMatchObject({ value: 0.54, stored_value: 0.8 });
+    const ornate = b.idols.find((i: R) => i.name === "Heretical Ornate Solar Idol");
+    expect(ornate.affixes.map((a: R) => a.values.map((v: R) => v.value))).toEqual([[7], [0.9], [0.05, 0.18]]);
+    expect(ornate.affixes[0]).not.toHaveProperty("scale_factor");
+    const omen = b.idols.find((i: R) => i.name === "Grand Iron Omen Idol");
+    expect(omen.affixes.map((a: R) => a.values[0].value)).toEqual([7, 0.8, 10]);
+    expect(b.units).toMatch(/scale_factor/);
     expect(w.implicits.length).toBeGreaterThan(0);
     expect(b.idols).toHaveLength(6);
     expect(b.idols[0]).toMatchObject({ grid_x: 2, grid_y: 0, name: "Minor Weaver Idol", size: "1x1" });

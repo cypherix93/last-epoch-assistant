@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { applyNodeScaling, classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { applyNodeScaling, classIdOf, decorateMod, decorateNodeMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -250,6 +250,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
     sql: `SELECT n.tree_id || ':' || n.node_id AS id, n.name, 'Weaver tree' AS hint, 0 AS pri FROM tree_nodes n WHERE n.tree_kind = 'weaver'`,
   },
   { kind: "ailment", sql: `SELECT CAST(ailment_id AS TEXT) AS id, name, CASE WHEN positive = 1 THEN 'buff' ELSE 'debuff' END AS hint, 0 AS pri FROM ailments` },
+  { kind: "buff", sql: `SELECT CAST(buff_id AS TEXT) AS id, name, 'buff bar entry (ui_buffs)' || coalesce(', ' || enum_name, '') AS hint, 0 AS pri FROM ui_buffs WHERE name IS NOT NULL` },
   { kind: "property", sql: `SELECT CAST(property AS TEXT) AS id, name, enum_name AS hint, 0 AS pri FROM stat_properties` },
   { kind: "player_property", sql: `SELECT CAST(idx AS TEXT) AS id, name, '' AS hint, 0 AS pri FROM player_properties` },
   { kind: "class", sql: `SELECT CAST(class_id AS TEXT) AS id, name, 'tree ' || tree_id AS hint, 0 AS pri FROM classes` },
@@ -352,7 +353,8 @@ export const MODS_SELECT_SQL = `
          COALESCE(mm.title, v.source_name) AS source_name,
          tr.name AS source_context,
          m.tier, m.property, m.property_name, m.special_tag, m.tags, m.tag_names,
-         m.modifier_type, m.value_min, m.value_max, m.display, m.label`;
+         m.modifier_type, m.value_min, m.value_max, m.display, m.label,
+         m.property_kind, m.stat_kind, m.modifier_source, m.label_mismatch, m.code_ref`;
 
 export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const where: string[] = [];
@@ -406,7 +408,7 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const total = (one(ctx, `SELECT count(*) n ${MODS_JOIN_SQL}${w}`, ...params) as Row).n as number;
   const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim)
     .map(dropNulls)
-    .map((m) => decorateMod(ctx, m));
+    .map((m) => decorateNodeMod(ctx, decorateMod(ctx, m)));
   return { total_matching: total, count: rows.length, truncated: total > rows.length, rows };
 }
 
@@ -414,8 +416,17 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
 export interface TreeOpts {
   /** keep only nodes whose name, description or any mod label/property_name contains this text (case-insensitive) */
   filter?: string;
-  /** drop description and x/y */
+  /** drop x/y and the UI fields; descriptions are kept (truncated) unless keep_descriptions is false */
   compact?: boolean;
+  /** compact mode only: keep description / alt_text (default true; they carry 'directly', 'on hit', 'for Rive' scope words) */
+  keep_descriptions?: boolean;
+}
+
+/** Description length kept in compact mode. */
+export const COMPACT_DESCRIPTION_MAX = 400;
+function truncate(v: unknown, max = COMPACT_DESCRIPTION_MAX): unknown {
+  if (typeof v !== "string" || v.length <= max) return v;
+  return v.slice(0, max - 3).trimEnd() + "...";
 }
 
 function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
@@ -437,7 +448,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
     const node = nodes.find((x) => x.id === nid) ?? {};
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node));
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateNodeMod(ctx, applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node)));
   }
   const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();
@@ -466,8 +477,13 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       const id = n.id as number;
       const req = reqByNode.get(id);
       if (opts.compact) {
-        delete n.description;
-        delete n.alt_text;
+        if (opts.keep_descriptions === false) {
+          delete n.description;
+          delete n.alt_text;
+        } else {
+          n.description = truncate(n.description);
+          n.alt_text = truncate(n.alt_text);
+        }
         delete n.x;
         delete n.y;
       }

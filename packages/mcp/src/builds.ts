@@ -274,15 +274,20 @@ export function builds(ctx: Ctx, a: BuildsArgs = {}): Row {
     rows = rows.filter((b) => b.class_id === cid);
     applied.class = cid;
   }
+  const byGuideCard = new Set<number>();
   if (a.mastery) {
     const m = resolveMasteryArg(ctx, a.mastery);
     rows = rows.filter((b) => (m.mastery_index === 0 ? b.class_id === m.class_id : isMastery(b, m)));
+    // leveling guides open on a base-class tab: they match through the guide card's mastery
+    if (m.mastery_index !== 0) for (const b of rows) if (b.mastery_index !== m.mastery_index) byGuideCard.add(b.build_id);
     applied.mastery = m.name;
   }
   // tabs considered by the ability (any_skill) / item / affix filters
   const tabsOf = (b: BuildRow) => pickTabs(tabsBy.get(b.build_id) ?? [], a.tab, "any");
+  let abilityId: string | undefined;
   if (a.ability) {
     const ab = resolveAbilityArg(ctx, a.ability);
+    abilityId = ab.ability_id;
     applied.ability = ab.name;
     if (a.any_skill) {
       const spec = new Set(
@@ -319,7 +324,37 @@ export function builds(ctx: Ctx, a: BuildsArgs = {}): Row {
     rows = rows.filter((b) => String(b.season ?? "").toLowerCase().includes(s));
   }
   const lim = Math.max(1, Math.min(a.limit ?? 50, 500));
-  const out = rows.slice(0, lim).map((b) => buildHeader(b, ms, tabsBy.get(b.build_id) ?? []));
+  // with an ability filter: how every tab of the build uses that skill (specialized, on the bar, tree points / nodes;
+  // a tree with points on a non-specialized skill is a planner leftover with no effect in game)
+  const skillRows = abilityId
+    ? all(
+        ctx,
+        `SELECT s.build_profile_id, s.is_specialized, s.on_bar, s.points, s.node_count FROM community_build_skills s WHERE s.ability_id = ?`,
+        abilityId,
+      )
+    : [];
+  const skillBy = new Map<number, Row>(skillRows.map((r) => [r.build_profile_id as number, r]));
+  const out = rows.slice(0, lim).map((b) => {
+    const h = buildHeader(b, ms, tabsBy.get(b.build_id) ?? []);
+    if (byGuideCard.has(b.build_id)) h.mastery_match = "guide card (the profile opens on another tab, e.g. a leveling guide's base-class tab)";
+    if (abilityId) {
+      const uses = (tabsBy.get(b.build_id) ?? [])
+        .filter((t) => skillBy.has(t.build_profile_id))
+        .map((t) => {
+          const s = skillBy.get(t.build_profile_id)!;
+          return dropNulls({
+            tab: t.name,
+            specialized: s.is_specialized === 1,
+            on_bar: s.on_bar === 1,
+            points: s.points,
+            node_count: s.node_count,
+            leftover_tree: s.is_specialized !== 1 && (s.points as number) > 0 ? true : undefined,
+          });
+        });
+      if (uses.length) h.ability_tabs = uses;
+    }
+    return h;
+  });
   return {
     builds: out,
     count: out.length,
@@ -370,15 +405,39 @@ interface AffixLine extends Row {
   name: string | null;
 }
 
-function modValue(m: Row, roll: number | null | undefined): number {
-  const lo = m.value_min as number;
-  const hi = (m.value_max as number | null) ?? lo;
+/**
+ * Affix scaling by item base (AffixList+Affix.getModifier, D; docs/schema.md v_affix_values): the stored tier range is
+ * authored for the affix's standard_affix_effect_modifier (std); on an item with affix effect modifier aem it is
+ * multiplied by (1 + aem) / (1 + std) (1 when equal) and rounded to the stat's grid (affix_stats.rounding_scale).
+ */
+export function affixScaleFactor(itemAem: number | null | undefined, std: number | null | undefined): number {
+  const a = itemAem ?? 0;
+  const b = std ?? 0;
+  return a === b ? 1 : (1 + a) / (1 + b);
+}
+/** Round half away from zero on a grid of 1/scale (SQLite round(); the game rounds half to even in float32). */
+export function roundToGrid(v: number, scale: number): number {
+  const x = v * scale;
+  return (Math.sign(x) * Math.round(Math.abs(x))) / scale;
+}
+
+function modValue(m: Row, roll: number | null | undefined, factor = 1): number {
+  const sc = (m.rounding_scale as number | null | undefined) ?? 0;
+  let lo = m.value_min as number;
+  let hi = (m.value_max as number | null) ?? lo;
+  if (factor !== 1 && sc) {
+    lo = roundToGrid(lo * factor, sc);
+    hi = roundToGrid(hi * factor, sc);
+  }
   return round(lo + (hi - lo) * (roll ?? 1));
 }
-function modLine(m: Row, roll: number | null | undefined): Row {
+function modLine(m: Row, roll: number | null | undefined, factor = 1): Row {
+  const value = modValue(m, roll, factor);
+  const stored = factor !== 1 ? modValue(m, roll) : undefined;
   return dropNulls({
     stat: (m.label as string | null) ?? [m.tag_names, m.property_name].filter(Boolean).join(" "),
-    value: modValue(m, roll),
+    value,
+    stored_value: stored !== undefined && stored !== value ? stored : undefined,
     modifier: m.modifier_type === null || m.modifier_type === undefined ? undefined : MODIFIER[m.modifier_type as number],
   });
 }
@@ -389,8 +448,13 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
   if (!itemIds.length) return out;
   const lines = all(
     ctx,
-    `SELECT x.item_row_id, x.ord, x.origin, x.affix_id, x.tier, x.roll, x.is_prefix, af.name
-       FROM community_build_item_affixes x LEFT JOIN affixes af ON af.affix_id = x.affix_id
+    `SELECT x.item_row_id, x.ord, x.origin, x.affix_id, x.tier, x.roll, x.is_prefix, af.name,
+            af.standard_affix_effect_modifier AS std_aem, coalesce(st.affix_effect_modifier, bt.affix_effect_modifier, 0) AS item_aem
+       FROM community_build_item_affixes x
+       LEFT JOIN affixes af ON af.affix_id = x.affix_id
+       JOIN community_build_items i ON i.item_row_id = x.item_row_id
+       LEFT JOIN item_subtypes st ON st.base_type_id = i.base_type_id AND st.sub_type_id = i.sub_type_id
+       LEFT JOIN item_base_types bt ON bt.base_type_id = i.base_type_id
       WHERE x.item_row_id IN ${inList(itemIds.length)} ORDER BY x.item_row_id, x.ord`,
     ...itemIds,
   ) as AffixLine[];
@@ -399,8 +463,9 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
   if (keys.length) {
     for (const m of all(
       ctx,
-      `SELECT source_id, tier, label, property_name, tag_names, modifier_type, value_min, value_max FROM mods
-        WHERE source_kind = 'affix_tier' AND source_id IN ${inList(keys.length)} ORDER BY source_id, tier, source_ord, sub_ord`,
+      `SELECT m.source_id, m.tier, m.label, m.property_name, m.tag_names, m.modifier_type, m.value_min, m.value_max, s.rounding_scale
+         FROM mods m LEFT JOIN affix_stats s ON s.affix_id = CAST(m.source_id AS INTEGER) AND s.ord = m.source_ord
+        WHERE m.source_kind = 'affix_tier' AND m.source_id IN ${inList(keys.length)} ORDER BY m.source_id, m.tier, m.source_ord, m.sub_ord`,
       ...keys,
     )) {
       const k = `${m.source_id}:${m.tier}`;
@@ -408,6 +473,7 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
     }
   }
   for (const l of lines) {
+    const factor = affixScaleFactor(l.item_aem as number | null, l.std_aem as number | null);
     const row = dropNulls({
       affix_id: l.affix_id,
       name: l.name ?? `affix ${l.affix_id}`,
@@ -415,7 +481,8 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
       type: l.is_prefix === null ? undefined : l.is_prefix ? "prefix" : "suffix",
       origin: l.origin,
       roll: l.roll,
-      values: (mods.get(`${l.affix_id}:${l.tier}`) ?? []).map((m) => modLine(m, l.roll)),
+      scale_factor: factor !== 1 ? round(factor, 4) : undefined,
+      values: (mods.get(`${l.affix_id}:${l.tier}`) ?? []).map((m) => modLine(m, l.roll, factor)),
     });
     (out.get(l.item_row_id) ?? out.set(l.item_row_id, []).get(l.item_row_id)!).push(row);
   }
@@ -558,7 +625,7 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
     );
     out.skills = all(
       ctx,
-      `SELECT s.ability_id, a.name, s.maxroll_key, s.tree_id, s.is_specialized, s.spec_slot, s.on_bar, s.bar_slot, s.points
+      `SELECT s.ability_id, a.name, s.maxroll_key, s.tree_id, s.is_specialized, s.spec_slot, s.on_bar, s.bar_slot, s.points, s.node_count
          FROM community_build_skills s LEFT JOIN abilities a ON a.ability_id = s.ability_id
         WHERE s.build_profile_id = ? ORDER BY s.is_specialized DESC, coalesce(s.spec_slot, 99), s.on_bar DESC, coalesce(s.bar_slot, 99), s.ord`,
       pid,
@@ -572,9 +639,10 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
         bar_slot: s.bar_slot,
         tree_id: s.tree_id,
         points: s.points,
+        node_count: s.node_count,
         // trees of non-specialized skills are planner leftovers with no in-game effect: listed only for specialized skills
         nodes: s.is_specialized === 1 && s.tree_id ? nodeList(skillNodes.filter((n) => n.tree_id === s.tree_id)) : undefined,
-        note: s.is_specialized !== 1 && (s.points as number) > 0 ? "not specialized: its tree points are a planner leftover (no effect in game)" : undefined,
+        note: s.is_specialized !== 1 && (s.points as number) > 0 ? `not specialized: its ${s.node_count} allocated tree nodes (${s.points} points) are a planner leftover (no effect in game)` : undefined,
       }),
     );
   }
@@ -584,7 +652,8 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
       tab: parseJson<Row>(one(ctx, "SELECT notes_json FROM community_build_profiles WHERE build_profile_id = ?", pid)?.notes_json),
     });
   }
-  out.units = "affix / implicit values are rolled values in stored units: 'increased' and 'more' are fractions (0.08 = 8%); roll 0..1 within the tier range (1 = max)";
+  out.units =
+    "affix / implicit values are the rolled in-game values: 'increased' and 'more' are fractions (0.08 = 8%); roll 0..1 within the tier range (1 = max). Affix ranges are scaled by the item's affix effect modifier ((1 + item aem) / (1 + affix standard aem), e.g. x0.67 for a std-0 affix on a Grand Idol, x1.5 on Body Armor): such affixes carry scale_factor and each line stored_value (the unscaled data value)";
   out.source = SOURCE_NOTE;
   return out;
 }

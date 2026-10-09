@@ -132,6 +132,54 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(db.prepare("SELECT count(*) AS n FROM set_tooltips WHERE set_id = 3").get()).toEqual({ n: 2 });
   });
 
+  it("scales affix values by item base: v_idol_affix_values / v_affix_values (judge corrections)", () => {
+    const db = get().db;
+    const v = (affix: number, base: number, tier = 1, ord = 0) =>
+      db.prepare("SELECT scale_factor, value_min, value_max, stored_max FROM v_affix_values WHERE affix_id = ? AND base_type_id = ? AND tier = ? AND ord = ?").get(affix, base, tier, ord) as Record<string, number>;
+    // affix 119 (std 0) on a Grand Idol (aem -0.33): 0.60 stored -> 0.40
+    expect(v(119, 29)).toMatchObject({ scale_factor: 0.67, value_max: 0.4, stored_max: 0.6 });
+    // affix 912 (std -0.33) T7 on an Ornate Idol (aem 0): 8 stored -> 12 (x1/0.67)
+    expect(v(912, 31, 7)).toMatchObject({ value_max: 12, stored_max: 8 });
+    expect(v(912, 29, 7)).toMatchObject({ scale_factor: 1, value_max: 8 }); // authored for Grand / Large idols
+    // affix 105 Health (std 0) 30..80 on a Minor Idol (aem -0.83): 5..14
+    expect(v(105, 26)).toMatchObject({ value_min: 5, value_max: 14 });
+    // gear too: Added Health (25) T5 61..90 on Body Armor (aem 0.5) -> 92..135 (knowledge/reference/item-system.md worked vector)
+    expect(v(25, 1, 5)).toMatchObject({ value_min: 92, value_max: 135 });
+    const idol = db.prepare("SELECT idol, idol_size FROM v_idol_affix_values WHERE affix_id = 119 AND base_type_id = 29 LIMIT 1").get();
+    expect(idol).toEqual({ idol: "Grand Idol", idol_size: "3x1" });
+    expect(db.prepare("SELECT count(*) AS n FROM v_idol_affix_values WHERE base_type_id NOT BETWEEN 25 AND 33").get()).toEqual({ n: 0 });
+    // Omen idol sub types scale with omenIdolAffixEffectModifier (0), every other sub type with its base type
+    expect(db.prepare("SELECT affix_effect_modifier AS aem FROM item_subtypes WHERE base_type_id = 29 AND name = 'Grand Iron Omen Idol'").get()).toEqual({ aem: 0 });
+    expect(db.prepare("SELECT count(*) AS n FROM item_subtypes s JOIN item_base_types b ON b.base_type_id = s.base_type_id WHERE coalesce(s.affix_effectiveness, 0) <> 1 AND s.affix_effect_modifier IS NOT b.affix_effect_modifier").get()).toEqual({ n: 0 });
+  });
+
+  it("rounds affix values on the stat's grid (affix_stats.rounding_scale)", () => {
+    const db = get().db;
+    const r = (affix: number, ord = 0) => (db.prepare("SELECT rounding_scale AS s FROM affix_stats WHERE affix_id = ? AND ord = ?").get(affix, ord) as { s: number }).s;
+    expect(r(25)).toBe(1); // added Health: Integer
+    expect(r(119)).toBe(100); // increased: Hundredth
+    expect(r(0)).toBe(100); // added Penetration: Hundredth (displayed as a percentage)
+  });
+
+  it("loads unique drop sources (itemDB.monsterItemDrops, experimental uniques, caches)", () => {
+    const db = get().db;
+    const u = (id: number) => db.prepare("SELECT can_drop_randomly, drop_source, drop_source_count FROM uniques WHERE unique_id = ?").get(id) as Record<string, unknown>;
+    // the judge's non-random uniques: Frostbite Shackles, Anchor of Oblivion, World Splitter, The Inevitable, Shattered Chains
+    expect(u(213)).toMatchObject({ can_drop_randomly: 0, drop_source: "Formosus the Undying (timeline boss, Blood, Frost, and Death)", drop_source_count: 1 });
+    expect(u(152).drop_source).toBe("Harton's Husk (timeline boss, Fall of the Empire, empowered)");
+    expect(u(365).drop_source).toMatch(/^Harbinger of Hatred \(harbinger, The Black Sun, empowered\); Aberroth/);
+    expect(u(347).drop_source).toMatch(/Harbinger of Fear \(harbinger, The Last Ruin, empowered\)/);
+    expect(u(180).drop_source).toMatch(/^Shade of Orobyss \(Shade of Orobyss, corruption 120\+\); Confluence of Oblivion \(woven echo, corruption 120\+\)$/);
+    // primordial (Mask of Indifference) and cocooned uniques have no drop table: a note instead
+    expect(u(434).drop_source).toMatch(/^primordial item: no drop source in the data/);
+    expect(u(379).drop_source).toBe("cocooned item: no drop source in the data");
+    const rows = db.prepare("SELECT source_kind, timeline_id, empowered_only, chance, max_chance FROM unique_drop_sources WHERE unique_id = 152").all();
+    expect(rows).toEqual([{ source_kind: "timeline_boss", timeline_id: 6, empowered_only: 1, chance: 0, max_chance: 0.45 }]);
+    // only 4 non-random uniques are left without any source or note (Fractured Crown, Gambler's Fallacy, Avarice, Evolution's End)
+    expect(db.prepare("SELECT count(*) AS n FROM uniques WHERE can_drop_randomly = 0 AND unique_id > 0 AND drop_source IS NULL").get()).toEqual({ n: 4 });
+    expect(db.prepare("SELECT count(*) AS n FROM uniques u WHERE drop_source_count <> (SELECT count(*) FROM unique_drop_sources d WHERE d.unique_id = u.unique_id)").get()).toEqual({ n: 0 });
+  });
+
   it("decodes relation compact ids", () => {
     const db = get().db;
     const r = db

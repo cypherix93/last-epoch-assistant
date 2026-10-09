@@ -22,6 +22,7 @@ export const SEARCH_KINDS = [
   "passive_node",
   "weaver_node",
   "ailment",
+  "buff",
   "stat_property",
   "player_property",
   "ability_property",
@@ -99,6 +100,17 @@ export const SEARCH_SQL: Record<SearchKind, string> = {
       FROM ailments al
      WHERE al.name IS NOT NULL
      ORDER BY al.ailment_id`,
+  // non-ailment buffs shown in the buff bar (Craterborn, Lightning Aegis, ...): name, description, enum name and the
+  // BuffPropId stat slots named '<enum>_<stat>' (their values are in game code, not in the data)
+  buff: `
+    INSERT INTO search (kind, id, name, text)
+    SELECT 'buff', CAST(b.buff_id AS TEXT), b.name,
+           concat_ws(' ', b.description, b.enum_name,
+                     (SELECT group_concat(e.name, ' ' ORDER BY e.value) FROM enums e
+                       WHERE e.enum_name = 'BuffPropId' AND substr(e.name, 1, length(b.enum_name) + 1) = b.enum_name || '_'))
+      FROM ui_buffs b
+     WHERE b.name IS NOT NULL
+     ORDER BY b.buff_id`,
   stat_property: `
     INSERT INTO search (kind, id, name, text)
     SELECT 'stat_property', CAST(p.property AS TEXT), coalesce(p.name, p.enum_name), concat_ws(' ', p.enum_name, p.alt_text)

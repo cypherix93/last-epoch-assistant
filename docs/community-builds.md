@@ -23,7 +23,7 @@ All four are on the `le-data` MCP server (`mcp__le-data__<tool>`) and on the CLI
 printf '%s' '{"mastery":"Void Knight","tier":"S"}' | yarn mcp:call builds
 ```
 
-Arguments (all optional, combined with AND): `class`, `mastery` (also matches a leveling guide's card mastery), `ability` (main skill; with `any_skill: true` also any specialized skill), `item` (unique / set item equipped in any tab, or in `tab`), `affix` (same), `tab`, `tier` + `tier_list` (`corruption` default, `speed`, `bossing`), `playstyle` (`Endgame` / `Leveling`), `season` (substring, default all), `limit` (50).
+Arguments (all optional, combined with AND): `class`, `mastery` (also matches a leveling guide's card mastery), `ability` (main skill; with `any_skill: true` also any specialized skill; with an ability filter every result carries `ability_tabs`: per tab that has the skill `{tab, specialized, on_bar, points, node_count, leftover_tree?}`, where `leftover_tree` = tree points on a skill that is not specialized in that tab, a planner leftover with no effect in game; results matched only through a leveling guide's card mastery carry `mastery_match`), `item` (unique / set item equipped in any tab, or in `tab`), `affix` (same), `tab`, `tier` + `tier_list` (`corruption` default, `speed`, `bossing`), `playstyle` (`Endgame` / `Leveling`), `season` (substring, default all), `limit` (50).
 
 Returns `{builds: [{build_id, slug, title, url, author, updated, season, playstyle, class, mastery, main_skill, main_ability_id, tiers: {corruption, speed, bossing}, tabs: [names], is_primary}], count, total_matching, truncated, resolved}` (`resolved` echoes what the filters resolved to, e.g. the unique name or affix ids). Sparse extras: `guide_mastery` (leveling guide whose card mastery differs from its default tab), `main_unique` (`{unique_id, name}` when the planner's main pick is an item). The example returns three S-tier corruption Void Knight guides (Erasing Strike, Time Rot, Warpath).
 
@@ -43,7 +43,7 @@ Returns `build` (the `builds` header plus `profile_id`, `profile_name`, `profile
 | `idols` | the same per idol, with `grid_x`, `grid_y` (top-left cell on the 5x5 altar) and `size` (`1x3`) |
 | `blessings` | `{timeline_id, timeline, blessing_id, name, is_grand, roll}` |
 | `passives` | groups per mastery (`Sentinel`, `Void Knight`, ..., `Weaver`): `{tree_id, mastery_index, mastery, points, nodes: [{node_id, name, points, max_points}]}` |
-| `skills` | `{ability_id, name, specialized, spec_slot, on_bar, bar_slot, tree_id, points, nodes}`; nodes only for specialized skills (other trees are planner leftovers and carry a `note`) |
+| `skills` | `{ability_id, name, specialized, spec_slot, on_bar, bar_slot, tree_id, points, node_count, nodes}`; nodes only for specialized skills (other trees are planner leftovers and carry a `note` with their node count) |
 | `notes` | `{guide: {intro, faqs, summary, changelog}, tab: {skills, passives, equipment}}` as plain text |
 
 Values are in stored units: `increased` / `more` are fractions (`0.08` = 8%), `roll` is 0..1 inside the tier range (1 = max). For the example: Endgame weapon World Splitter (unique 365, Bardiche, corrupted) with extra affix Melee Void Damage T7 (`+65`), Erasing Strike 26 points with Time Loop at 1 point.
