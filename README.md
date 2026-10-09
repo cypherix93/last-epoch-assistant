@@ -28,7 +28,7 @@ Without MCP, every tool is also reachable from the shell: `yarn mcp:call lookup 
 ```
 packages/
   fetch/      @le/fetch  download LE Tools + Maxroll data to data/raw/<version>/
-  db/         @le/db     build data/le.sqlite (62 tables, unified `mods` table, FTS5 `search`)
+  db/         @le/db     build data/le.sqlite (70 tables, unified `mods` table, FTS5 `search`)
   mcp/        @le/mcp    MCP server "le-data" (10 tools) + CLI (yarn mcp:call / mcp:list)
 data/
   raw/<ver>/            raw downloads per game version (committed), raw/CURRENT = latest

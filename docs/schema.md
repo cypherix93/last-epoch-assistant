@@ -200,6 +200,31 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 | `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list), `requires` |
 | `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, modifier_name, value_min, value_max |
 
+### 3.9 Community builds
+
+Maxroll build guides and their planner profiles, loaded by `packages/db/src/loaders/community.ts` from `data/raw/<version>/maxroll-guides/` (`index.json` + `profiles/<id>.json`, see [data-sources/maxroll.md](data-sources/maxroll.md#planner-profiles-community-build-guides)). Every id is the game id of the tables above, so a build joins directly to `uniques`, `affixes` / `mods` (tier rolls), `item_subtypes`, `blessings`, `trees` / `tree_nodes` and `abilities`. An id that does not resolve is stored as is and counted in the build report under `community.unresolved` (kinds `class`, `mastery`, `guide_class`, `ability`, `skill_tree`, `skill_node`, `passive_tree`, `passive_node`, `unique`, `item_subtype`, `affix`, `affix_tier`, `blessing`, `timeline`, `blessing_timeline`, `item_key`, each with a count and up to 5 examples); `community.unnamed_properties` lists stat properties used by the build items that have no display name (1.5.2: property 120 `EffectOfAilmentOnYou`). The tables are empty when the folder does not exist.
+
+| table | purpose | key |
+|---|---|---|
+| `community_builds` | one row per guide x planner profile: slug, title, url, author, updated_at, season, playstyle, style_tags (JSON), `class_id` / `mastery_index` (our ids), `main_ability_id` (+ `main_ability_source` `mainset` / `title` / `points`), `tier_corruption` / `tier_speed` / `tier_bossing`, planner_id, profile_id, `is_primary`, `profile_status` (`ok` / `missing` / `invalid` / `none`), `profile_name_default`, strengths / weaknesses (JSON), `notes_json` (guide notes as plain text per section) | build_id |
+| `community_build_profiles` | the planner tabs (Starter / Endgame / Aspirational): `is_default` (the tab the planner opens on), class, mastery, level, `passive_points`, `skill_points`, `notes_json` | build_profile_id; (build_id, ord) |
+| `community_build_items` | one row per equipped item and idol of a tab: `slot` (`weapon`, `head`, ..., `altar`, `idol`), idol `grid_x` / `grid_y` (5x5 altar grid, top-left cell) and `size_x` / `size_y`, `kind` (`unique` / `legendary` / `set` / `idol` / `exalted` / `rare` / `magic` / `normal`), base_type_id, sub_type_id, unique_id, set_id, is_corrupted, implicit / unique roll arrays (JSON) | item_row_id |
+| `community_build_item_affixes` | affixes of an item: `origin` (`normal`, `extra` = on a unique (LP or slam, not distinguished by the data), `sealed`, `corruption`), affix_id, 1-based `tier`, `roll` (0..1, 1 = max of the tier range), `is_prefix` | (item_row_id, ord) |
+| `community_build_blessings` | blessing per timeline slot: `timeline_id` (= slot + 1), `blessing_id` (= `blessings.sub_type_id`), roll, is_grand | (build_profile_id, slot) |
+| `community_build_passives` | class tree (and Weaver tree) allocation: tree_id, node_id, points, `first_ord` (allocation order) | (build_profile_id, tree_id, node_id) |
+| `community_build_skills` | skills of a tab: ability_id, Maxroll key, tree_id, `is_specialized` / `spec_slot`, `on_bar` / `bar_slot`, tree points. Trees of skills that are not specialized are planner leftovers (no effect in game) | (build_profile_id, ord) |
+| `community_build_skill_nodes` | skill tree allocation: tree_id (= ability id), node_id, points, first_ord | (build_profile_id, tree_id, node_id) |
+
+| view | one row per | columns |
+|---|---|---|
+| `v_build_summary` | build | class / mastery / main skill names, tiers, default tab name and level, `specialized_skills` and `uniques` of the default tab |
+| `v_build_items_named` | build item (all tabs) | profile_name, is_default, slot, grid_x/y, kind, `item_name` (unique or base name), sub_type, base_type, `affixes_text` (`<affix> T<tier> [origin] (<line> <rolled value>, ...)`; values in stored units, fractions for percentages) |
+| `v_item_usage` | (unique, slot) | `builds` (any tab), `default_builds`, `guides`, `items` |
+| `v_affix_usage` | (affix, slot, origin) | builds, default_builds, items, min / max / avg tier |
+| `v_build_nodes_named` | allocated node | `kind` (`passive` / `skill`), tree_id, tree_name, node_id, node_name, points, max_points, mastery |
+
+Example row (`v_build_summary`, the sample Erasing Strike guide): `slug 'erasing-strike-void-knight-guide', class_name 'Sentinel', mastery_name 'Void Knight', main_skill 'Erasing Strike', profile_name_default 'Endgame', specialized_skills 'Erasing Strike, Devouring Orb, Anomaly, Void Cleave, Abyssal Echoes'`.
+
 ## 4. Example queries
 
 Every block below is checked by `packages/db/src/schema.test.ts` (prepared and run against the empty schema).
@@ -399,12 +424,51 @@ ORDER BY pp.idx;
 SELECT key, value FROM meta ORDER BY key;
 ```
 
+20. Most used uniques in community builds (default tab), per slot:
+
+```sql
+SELECT name, slot, default_builds, builds
+FROM v_item_usage
+ORDER BY default_builds DESC, builds DESC, name
+LIMIT 20;
+```
+
+21. Gear and passives of one build's default tab, with names and rolled affix values:
+
+```sql
+SELECT i.slot, i.grid_x, i.grid_y, i.kind, i.item_name, i.affixes_text
+FROM v_build_items_named i
+JOIN community_builds b ON b.build_id = i.build_id
+WHERE b.slug = 'erasing-strike-void-knight-guide' AND i.is_default = 1
+ORDER BY i.item_row_id;
+
+SELECT n.kind, n.tree_name, n.node_name, n.points, n.max_points
+FROM v_build_nodes_named n
+JOIN community_build_profiles p ON p.build_profile_id = n.build_profile_id
+JOIN community_build_skills s ON s.build_profile_id = p.build_profile_id AND s.tree_id = n.tree_id
+WHERE p.is_default = 1 AND p.build_id = 1 AND s.is_specialized = 1
+ORDER BY n.tree_id, n.first_ord;
+```
+
+22. Builds of a mastery that use a given affix, with the tier they aim for:
+
+```sql
+SELECT b.title, i.slot, x.tier, x.origin
+FROM community_build_item_affixes x
+JOIN community_build_items i ON i.item_row_id = x.item_row_id
+JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id AND p.is_default = 1
+JOIN community_builds b ON b.build_id = p.build_id
+JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+WHERE m.name = 'Void Knight' AND x.affix_id = 34
+ORDER BY b.title, i.slot;
+```
+
 ## 5. Version and provenance
 
 - **Game version**: `meta.game_version` (`Version 1.5.2`, from the LE Tools `gameVersion` global) and `meta.game_version_number` (`1.5.2`).
 - **Data version**: `meta.data_version` is the folder under `data/raw/` that was built (from `data/raw/CURRENT` unless `--version` was given); `meta.data_version_folder` is the LE Tools data folder (`version152`).
 - **Fetch time and source hashes**: copied from `data/raw/<version>/sources.lock.json`: `fetched_at`, one `letools_sha256:<section>/<file>` per LE Tools data file, `letools_sha256:i18n/en.json`, `maxroll_data_hash` (the 8-hex cache-busting hash), `maxroll_sha256`, `maxroll_etag`, `maxroll_last_modified`. Two databases with equal hashes were built from identical inputs.
-- **Build**: `meta.schema_version` (bumped on incompatible schema changes), `meta.build_tool_version` (`@le/db <version>`), `meta.loaded_steps` (which build steps succeeded; a full build has `world,items,skills,search,crosscheck`).
+- **Build**: `meta.schema_version` (bumped on incompatible schema changes), `meta.build_tool_version` (`@le/db <version>`), `meta.loaded_steps` (which build steps succeeded; a full build has `world,items,skills,community,search,crosscheck`).
 - **Determinism**: the build iterates source collections in sorted key order and writes no timestamps other than `fetched_at`; rebuilding from the same raw data gives the same rows and the same `data/le.build-report.json`.
-- **Build report** (`data/le.build-report.json`, committed, regenerated by every full `yarn db:build`; expected-count checks live in each loader's `expected` export, 89 checks in 1.5.2): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings and the cross-check mismatch count. `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
+- **Build report** (`data/le.build-report.json`, committed, regenerated by every full `yarn db:build`; expected-count checks live in each loader's `expected` export, 93 checks in 1.5.2 without community builds): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings, the cross-check mismatch count and `community` (guides / builds / profiles loaded, `unresolved` Maxroll ids per kind with examples, `unnamed_properties`). `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
 - **After a game patch**: `yarn fetch` then `yarn db:build`; review `git diff data/le.build-report.json`.

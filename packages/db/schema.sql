@@ -19,7 +19,8 @@
 --     (partial builds), the build report counts violations via PRAGMA foreign_key_check.
 --
 -- Owner domains (which loader fills the table): [build] build-db.ts, [world] loaders/world.ts,
--- [items] loaders/items.ts, [skills] loaders/skills.ts, [search] search.ts, [shared] several.
+-- [items] loaders/items.ts, [skills] loaders/skills.ts, [community] loaders/community.ts,
+-- [search] search.ts, [shared] several.
 
 PRAGMA foreign_keys = OFF;
 
@@ -1115,3 +1116,308 @@ FROM blessings b
 LEFT JOIN timelines tl ON tl.timeline_id = b.timeline_id
 LEFT JOIN mods m ON m.source_kind = 'blessing' AND m.source_id = '34:' || b.sub_type_id
 LEFT JOIN stat_properties sp ON sp.property = m.property;
+
+-- =============================================================================
+-- Community builds (Maxroll build guides and their planner profiles)  [community]
+-- =============================================================================
+-- Source: data/raw/<v>/maxroll-guides/index.json (guide list, `GI:` below) and
+-- maxroll-guides/profiles/<id>.json (verbatim planners.maxroll.gg/profiles/le/<id> response;
+-- `data` is a JSON string, `PD:` below = the parsed data, `TAB:` = PD:profiles[i]).
+-- Every id is the game id used by the tables above (unique_id, affix_id, (base_type_id,
+-- sub_type_id), blessing sub_type_id, tree_id / node_id, ability_id), so joins are direct.
+-- An id that does not resolve is stored as is (its join returns NULL) and counted in the
+-- build report under `community.unresolved`. The loader reads the game tables (it runs after
+-- world, items and skills); the whole section is empty when maxroll-guides/ does not exist.
+
+CREATE TABLE community_builds (
+  build_id      INTEGER PRIMARY KEY,   -- 1.. in GI:guides[] order, then planner_id + profile_ids[] (deduplicated, planner_id first)
+  source        TEXT NOT NULL,         -- 'maxroll'
+  slug          TEXT NOT NULL,         -- GI:guides[].slug
+  title         TEXT,                  -- GI:guides[].title
+  url           TEXT,                  -- GI:guides[].url
+  author        TEXT,                  -- GI:guides[].author
+  updated_at    TEXT,                  -- GI:guides[].updated (as published)
+  season        TEXT,                  -- GI:guides[].season (else TAB:season of the default tab)
+  playstyle     TEXT,                  -- GI:guides[].playstyle
+  style_tags    TEXT,                  -- GI:guides[].style_tags (JSON array)
+  class_id      INTEGER REFERENCES classes (class_id), -- TAB:class of the default tab; else GI:guides[].class resolved by name
+  mastery_index INTEGER,               -- TAB:mastery of the default tab (masteries.mastery_index: 0 base class, 1..3); else GI mastery by name
+  class_name    TEXT,                  -- GI:guides[].class as published
+  mastery_name  TEXT,                  -- GI:guides[].mastery as published
+  main_ability_id TEXT REFERENCES abilities (ability_id), -- see main_ability_source
+  main_ability_source TEXT,            -- 'mainset' (profile .mainset, a Maxroll ability key) | 'title' (a specialized skill named in the title)
+                                       -- | 'points' (the specialized skill with the most tree points) | NULL
+  tier_corruption TEXT,                -- GI:guides[].tiers.corruption
+  tier_speed    TEXT,                  -- GI:guides[].tiers.speed
+  tier_bossing  TEXT,                  -- GI:guides[].tiers.bossing
+  planner_id    TEXT,                  -- GI:guides[].planner_id (the main planner of the guide)
+  profile_id    TEXT,                  -- the planner profile of this row (planner_id or one of GI:guides[].profile_ids)
+  is_primary    INTEGER NOT NULL,      -- 1 when profile_id = planner_id (or the first profile when the guide has no planner_id)
+  profile_status TEXT NOT NULL,        -- 'ok' | 'missing' (profile file absent) | 'invalid' (unparseable) | 'none' (guide lists no profile)
+  profile_name  TEXT,                  -- profile .name (planner title)
+  profile_date  TEXT,                  -- profile .date
+  profile_name_default TEXT,           -- name of the tab PD:activeProfile points at (e.g. 'Endgame')
+  strengths     TEXT,                  -- PD:strAndWeak.strengths (JSON array)
+  weaknesses    TEXT,                  -- PD:strAndWeak.weaknesses (JSON array)
+  notes_json    TEXT,                  -- PD:globalNotes flattened to plain text: JSON object {intro, faqs, summary, changelog, ...}
+  raw_json      TEXT NOT NULL          -- {"guide": GI:guides[i], "profile": profile envelope WITHOUT data}
+);
+CREATE INDEX community_builds_class ON community_builds (class_id, mastery_index);
+CREATE INDEX community_builds_slug ON community_builds (slug);
+
+CREATE TABLE community_build_profiles (
+  build_profile_id INTEGER PRIMARY KEY, -- insertion order (build_id, ord)
+  build_id      INTEGER NOT NULL REFERENCES community_builds (build_id),
+  ord           INTEGER NOT NULL,      -- index in PD:profiles[]
+  name          TEXT,                  -- TAB:name ('Starter' | 'Endgame' | 'Aspirational' | ...)
+  is_default    INTEGER NOT NULL,      -- 1 when ord = PD:activeProfile (the tab the planner opens on)
+  class_id      INTEGER REFERENCES classes (class_id), -- TAB:class
+  mastery_index INTEGER,               -- TAB:mastery
+  level         INTEGER,               -- TAB:level
+  season        INTEGER,               -- TAB:season
+  passive_points INTEGER NOT NULL,     -- points spent in the class tree (TAB:passives.history[0:position])
+  skill_points  INTEGER NOT NULL,      -- points spent in the trees of the specialized skills
+  notes_json    TEXT,                  -- TAB:widgetNotes flattened to plain text: JSON object {skills, passives, equipment, ...}
+  raw_json      TEXT NOT NULL,         -- TAB WITHOUT items, idols, blessings, passives, weaver, skillTrees, activeSkills,
+                                       -- specializedSkills, widgetNotes (own tables / notes_json)
+  UNIQUE (build_id, ord)
+);
+
+CREATE TABLE community_build_items (
+  item_row_id   INTEGER PRIMARY KEY,   -- insertion order (profile, gear slots, then idols by grid index)
+  build_profile_id INTEGER NOT NULL REFERENCES community_build_profiles (build_profile_id),
+  slot          TEXT NOT NULL,         -- TAB:items key: weapon | offhand | head | body | waist | hands | feet | neck | finger1 | finger2 | relic | altar | ...;
+                                       -- 'idol' for TAB:idols[] entries
+  grid_index    INTEGER,               -- idols: index in TAB:idols[] (5x5 altar grid, = grid_y * 5 + grid_x, the top-left cell of the idol)
+  grid_x        INTEGER,               -- idols: grid_index % 5
+  grid_y        INTEGER,               -- idols: grid_index / 5
+  item_key      TEXT NOT NULL,         -- key in PD:items the slot points at
+  kind          TEXT NOT NULL,         -- 'unique' | 'legendary' (unique with extra affixes) | 'set' | 'idol' | 'exalted' (an affix tier >= 6)
+                                       -- | 'rare' (3+ affixes) | 'magic' (1-2) | 'normal' (none). Legendary potential is not marked in the
+                                       -- data: a unique with affixes is 'legendary' whatever made them (LP, Weaver's Will slam)
+  base_type_id  INTEGER REFERENCES item_base_types (base_type_id), -- PD:items[k].itemType
+  sub_type_id   INTEGER,               -- PD:items[k].subType (item_subtypes (base_type_id, sub_type_id))
+  unique_id     INTEGER REFERENCES uniques (unique_id), -- PD:items[k].uniqueID
+  set_id        INTEGER REFERENCES sets (set_id), -- uniques.set_id of a set item
+  is_corrupted  INTEGER NOT NULL,      -- PD:items[k].corrupted
+  size_x        INTEGER,               -- item_base_types.size_x (idol footprint width)
+  size_y        INTEGER,               -- item_base_types.size_y
+  affix_count   INTEGER NOT NULL,      -- PD:items[k].affixes.length (normal affixes; 'extra' ones on uniques)
+  implicit_rolls TEXT,                 -- PD:items[k].implicits (JSON array of 0..1 rolls, index = implicit / mods source_ord)
+  unique_rolls  TEXT,                  -- PD:items[k].uniqueRolls (JSON array of 0..1 rolls, index = unique mod rollID)
+  raw_json      TEXT NOT NULL          -- PD:items[k]
+);
+CREATE INDEX community_build_items_profile ON community_build_items (build_profile_id, slot);
+CREATE INDEX community_build_items_unique ON community_build_items (unique_id);
+CREATE INDEX community_build_items_subtype ON community_build_items (base_type_id, sub_type_id);
+
+CREATE TABLE community_build_item_affixes (
+  item_row_id   INTEGER NOT NULL REFERENCES community_build_items (item_row_id),
+  ord           INTEGER NOT NULL,      -- position: affixes[] first, then sealedAffix, then corruptedAffixes[]
+  origin        TEXT NOT NULL,         -- 'normal' (affixes[] of a non-unique) | 'extra' (affixes[] of a unique: LP / slam) | 'sealed' | 'corruption'
+  affix_id      INTEGER NOT NULL REFERENCES affixes (affix_id), -- .id
+  tier          INTEGER NOT NULL,      -- .tier, 1-based like affix_tiers.tier / mods.tier
+  roll          REAL,                  -- .roll, 0..1 (1 = max of the tier range; value = value_min + (value_max - value_min) * roll)
+  is_prefix     INTEGER,               -- 1 prefix / 0 suffix from affixes.affix_type (NULL when the affix does not resolve)
+  PRIMARY KEY (item_row_id, ord)
+) WITHOUT ROWID;
+CREATE INDEX community_build_item_affixes_affix ON community_build_item_affixes (affix_id, tier);
+
+CREATE TABLE community_build_blessings (
+  build_profile_id INTEGER NOT NULL REFERENCES community_build_profiles (build_profile_id),
+  slot          INTEGER NOT NULL,      -- index in TAB:blessings[] (0..9)
+  timeline_id   INTEGER NOT NULL REFERENCES timelines (timeline_id), -- slot + 1
+  blessing_id   INTEGER NOT NULL REFERENCES blessings (sub_type_id), -- TAB:blessings[slot].subType (itemType 34)
+  roll          REAL,                  -- TAB:blessings[slot].implicits[0] (0..1)
+  is_grand      INTEGER,               -- blessings.is_grand
+  PRIMARY KEY (build_profile_id, slot)
+) WITHOUT ROWID;
+CREATE INDEX community_build_blessings_blessing ON community_build_blessings (blessing_id);
+
+CREATE TABLE community_build_passives (
+  build_profile_id INTEGER NOT NULL REFERENCES community_build_profiles (build_profile_id),
+  tree_id       TEXT NOT NULL,         -- classes.tree_id of TAB:class ('kn-1', ...) for TAB:passives; 'weaver' for TAB:weaver
+  node_id       INTEGER NOT NULL,      -- node id from .history (one entry per point)
+  points        INTEGER NOT NULL,      -- occurrences of node_id in .history[0:position]
+  first_ord     INTEGER NOT NULL,      -- index of the first point in .history (allocation order)
+  PRIMARY KEY (build_profile_id, tree_id, node_id),
+  FOREIGN KEY (tree_id, node_id) REFERENCES tree_nodes (tree_id, node_id)
+) WITHOUT ROWID;
+CREATE INDEX community_build_passives_node ON community_build_passives (tree_id, node_id);
+
+CREATE TABLE community_build_skills (
+  build_profile_id INTEGER NOT NULL REFERENCES community_build_profiles (build_profile_id),
+  ord           INTEGER NOT NULL,      -- specializedSkills order, then the rest of activeSkills, then other TAB:skillTrees keys
+  ability_id    TEXT REFERENCES abilities (ability_id), -- resolved: MR:abilities[key].playerAbilityID, or trees.ability_id of a tree key
+  maxroll_key   TEXT,                  -- Maxroll ability key as used by the planner ('ErasingStrike'); NULL for a tree-only entry
+  tree_id       TEXT,                  -- TAB:skillTrees key of the skill (trees.tree_id), NULL when it has no tree entry
+  is_specialized INTEGER NOT NULL,     -- in TAB:specializedSkills
+  spec_slot     INTEGER,               -- index in TAB:specializedSkills
+  on_bar        INTEGER NOT NULL,      -- in TAB:activeSkills
+  bar_slot      INTEGER,               -- index in TAB:activeSkills
+  points        INTEGER NOT NULL,      -- points in the skill tree (TAB:skillTrees[tree].history[0:position]); a tree of a
+                                       -- non-specialized skill is a planner leftover and does not apply in game
+  PRIMARY KEY (build_profile_id, ord)
+) WITHOUT ROWID;
+CREATE INDEX community_build_skills_ability ON community_build_skills (ability_id);
+
+CREATE TABLE community_build_skill_nodes (
+  build_profile_id INTEGER NOT NULL REFERENCES community_build_profiles (build_profile_id),
+  tree_id       TEXT NOT NULL,         -- TAB:skillTrees key (= trees.tree_id)
+  ability_id    TEXT,                  -- trees.ability_id of tree_id
+  node_id       INTEGER NOT NULL,      -- node id from .history
+  points        INTEGER NOT NULL,      -- occurrences in .history[0:position]
+  first_ord     INTEGER NOT NULL,      -- index of the first point in .history
+  PRIMARY KEY (build_profile_id, tree_id, node_id),
+  FOREIGN KEY (tree_id, node_id) REFERENCES tree_nodes (tree_id, node_id)
+) WITHOUT ROWID;
+CREATE INDEX community_build_skill_nodes_node ON community_build_skill_nodes (tree_id, node_id);
+
+-- One row per build: class / mastery / main skill names, tiers, the default tab and its skills.
+CREATE VIEW v_build_summary AS
+SELECT
+  b.build_id,
+  b.slug,
+  b.title,
+  b.author,
+  b.updated_at,
+  b.season,
+  b.playstyle,
+  b.style_tags,
+  c.name AS class_name,
+  m.name AS mastery_name,
+  b.main_ability_id,
+  ab.name AS main_skill,
+  b.tier_corruption,
+  b.tier_speed,
+  b.tier_bossing,
+  b.is_primary,
+  b.profile_id,
+  b.profile_status,
+  b.profile_name_default,
+  p.level,
+  (SELECT group_concat(coalesce(a2.name, s.maxroll_key), ', ' ORDER BY s.spec_slot)
+     FROM community_build_skills s LEFT JOIN abilities a2 ON a2.ability_id = s.ability_id
+    WHERE s.build_profile_id = p.build_profile_id AND s.is_specialized = 1) AS specialized_skills,
+  (SELECT group_concat(u.name || ' (' || i.slot || ')', ', ' ORDER BY i.item_row_id)
+     FROM community_build_items i JOIN uniques u ON u.unique_id = i.unique_id
+    WHERE i.build_profile_id = p.build_profile_id) AS uniques,
+  b.url
+FROM community_builds b
+LEFT JOIN classes c ON c.class_id = b.class_id
+LEFT JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+LEFT JOIN abilities ab ON ab.ability_id = b.main_ability_id
+LEFT JOIN community_build_profiles p ON p.build_id = b.build_id AND p.is_default = 1;
+
+-- One row per build item (every tab): item name, base, and its affixes with tier and rolled values
+-- (value = value_min + (value_max - value_min) * roll, in the stored units: fractions for percentages).
+CREATE VIEW v_build_items_named AS
+SELECT
+  i.item_row_id,
+  p.build_id,
+  b.slug,
+  p.build_profile_id,
+  p.name AS profile_name,
+  p.is_default,
+  i.slot,
+  i.grid_x,
+  i.grid_y,
+  i.kind,
+  coalesce(u.name, st.name) AS item_name,
+  st.name AS sub_type,
+  bt.name AS base_type,
+  i.unique_id,
+  i.is_corrupted,
+  (SELECT group_concat(
+            coalesce(af.name, 'affix ' || x.affix_id) || ' T' || x.tier ||
+            CASE x.origin WHEN 'normal' THEN '' ELSE ' [' || x.origin || ']' END ||
+            coalesce(' (' || (SELECT group_concat(coalesce(md.label, md.property_name, '?') || ' ' ||
+                                                  printf('%g', round(md.value_min + (coalesce(md.value_max, md.value_min) - md.value_min) * coalesce(x.roll, 1), 4)),
+                                                  ', ' ORDER BY md.source_ord, md.sub_ord)
+                                FROM mods md
+                               WHERE md.source_kind = 'affix_tier' AND md.source_id = CAST(x.affix_id AS TEXT) AND md.tier = x.tier) || ')', ''),
+            '; ' ORDER BY x.ord)
+     FROM community_build_item_affixes x LEFT JOIN affixes af ON af.affix_id = x.affix_id
+    WHERE x.item_row_id = i.item_row_id) AS affixes_text
+FROM community_build_items i
+JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id
+JOIN community_builds b ON b.build_id = p.build_id
+LEFT JOIN uniques u ON u.unique_id = i.unique_id
+LEFT JOIN item_subtypes st ON st.base_type_id = i.base_type_id AND st.sub_type_id = i.sub_type_id
+LEFT JOIN item_base_types bt ON bt.base_type_id = i.base_type_id;
+
+-- Uniques used by community builds, per slot: builds using it in any tab / in the default tab.
+CREATE VIEW v_item_usage AS
+SELECT
+  i.unique_id,
+  u.name,
+  i.slot,
+  count(DISTINCT p.build_id) AS builds,
+  count(DISTINCT CASE WHEN p.is_default = 1 THEN p.build_id END) AS default_builds,
+  count(DISTINCT b.slug) AS guides,
+  count(*) AS items
+FROM community_build_items i
+JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id
+JOIN community_builds b ON b.build_id = p.build_id
+LEFT JOIN uniques u ON u.unique_id = i.unique_id
+WHERE i.unique_id IS NOT NULL
+GROUP BY i.unique_id, i.slot;
+
+-- Affixes used by community builds, per slot and origin: build counts and tiers.
+CREATE VIEW v_affix_usage AS
+SELECT
+  x.affix_id,
+  af.name,
+  i.slot,
+  x.origin,
+  count(DISTINCT p.build_id) AS builds,
+  count(DISTINCT CASE WHEN p.is_default = 1 THEN p.build_id END) AS default_builds,
+  count(*) AS items,
+  min(x.tier) AS min_tier,
+  max(x.tier) AS max_tier,
+  round(avg(x.tier), 2) AS avg_tier
+FROM community_build_item_affixes x
+JOIN community_build_items i ON i.item_row_id = x.item_row_id
+JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id
+LEFT JOIN affixes af ON af.affix_id = x.affix_id
+GROUP BY x.affix_id, i.slot, x.origin;
+
+-- Passive and skill tree allocations with node names (one row per allocated node).
+CREATE VIEW v_build_nodes_named AS
+SELECT
+  p.build_id,
+  p.build_profile_id,
+  p.name AS profile_name,
+  p.is_default,
+  'passive' AS kind,
+  a.tree_id,
+  t.name AS tree_name,
+  a.node_id,
+  n.name AS node_name,
+  a.points,
+  n.max_points,
+  n.mastery,
+  a.first_ord
+FROM community_build_passives a
+JOIN community_build_profiles p ON p.build_profile_id = a.build_profile_id
+LEFT JOIN trees t ON t.tree_id = a.tree_id
+LEFT JOIN tree_nodes n ON n.tree_id = a.tree_id AND n.node_id = a.node_id
+UNION ALL
+SELECT
+  p.build_id,
+  p.build_profile_id,
+  p.name,
+  p.is_default,
+  'skill',
+  s.tree_id,
+  t.name,
+  s.node_id,
+  n.name,
+  s.points,
+  n.max_points,
+  n.mastery,
+  s.first_ord
+FROM community_build_skill_nodes s
+JOIN community_build_profiles p ON p.build_profile_id = s.build_profile_id
+LEFT JOIN trees t ON t.tree_id = s.tree_id
+LEFT JOIN tree_nodes n ON n.tree_id = s.tree_id AND n.node_id = s.node_id;

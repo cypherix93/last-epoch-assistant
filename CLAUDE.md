@@ -11,7 +11,7 @@ Answering a game question: load the matching skill (`.claude/skills/README.md` l
 ```
 packages/
   fetch/   @le/fetch  download LE Tools + Maxroll data to data/raw/<version>/
-  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 62 tables, unified `mods`)
+  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 70 tables incl. 8 community-build tables, unified `mods`)
   mcp/     @le/mcp    MCP server "le-data" over the db (@modelcontextprotocol/sdk, stdio) + CLI
 data/
   raw/<ver>/          raw downloads per game version (committed); raw/CURRENT = latest version string
@@ -32,7 +32,7 @@ docs/                 data-source study, schema.md, loader-contract.md
 - `yarn typecheck` - `tsc -b --noEmit`
 - `yarn test` - vitest (the db and mcp suites need the built database; they skip with a warning without it)
 - `yarn fetch` - download raw game data (`--source letools|maxroll`, `--force`, `--version 150`)
-- `yarn db:build` - build `data/le.sqlite` from `data/raw/CURRENT`. Flags: `--only <steps|none>` (steps `world,items,skills,search,crosscheck`, comma separated, repeatable; `none` = schema + meta only), `--version <folder>`, `--out <path>` (default `data/le.sqlite`), `--report <path>` / `--no-report` (write neither the build nor the crosscheck report), `--allow-stubs`, `--quiet`. `LE_DB_ALLOW_STUBS=1` (same as `--allow-stubs`) skips loaders that still throw "not implemented" (status `stub`) instead of failing. Exit 1 when a step fails or an expected count does not match.
+- `yarn db:build` - build `data/le.sqlite` from `data/raw/CURRENT`. Flags: `--only <steps|none>` (steps `world,items,skills,community,search,crosscheck`, comma separated, repeatable; `none` = schema + meta only), `--version <folder>`, `--out <path>` (default `data/le.sqlite`), `--report <path>` / `--no-report` (write neither the build nor the crosscheck report), `--allow-stubs`, `--quiet`. `LE_DB_ALLOW_STUBS=1` (same as `--allow-stubs`) skips loaders that still throw "not implemented" (status `stub`) instead of failing. Exit 1 when a step fails or an expected count does not match.
 - `yarn setup` - `yarn fetch && yarn db:build`
 - `yarn mcp` - start the MCP server on stdio
 - `yarn mcp:list` - list the server's tools (one line each)
