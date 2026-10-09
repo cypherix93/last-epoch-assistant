@@ -30,6 +30,29 @@ describe.skipIf(!hasRawData())("items loader", () => {
     expect(orphans.n).toBe(0);
   });
 
+  it("unique mods with canRoll 0 are fixed at value (raw maxValue is a leftover)", () => {
+    const db = get().db;
+    const row = (name: string, prop: number) =>
+      db
+        .prepare(
+          "SELECT m.value_min, m.value_max FROM mods m JOIN uniques u ON CAST(m.source_id AS INTEGER) = u.unique_id WHERE m.source_kind = 'unique_mod' AND u.name = ? AND m.property = ?",
+        )
+        .get(name, prop) as { value_min: number; value_max: number };
+    // raw: Trident of the Last Abyss Void Resistance value 0.75 maxValue 90; Dreamthorn Damage 40/25, Penetration 0.4/125 (all canRoll 0)
+    expect(row("Trident of the Last Abyss", 26)).toEqual({ value_min: 0.75, value_max: 0.75 });
+    expect(row("Dreamthorn", 0)).toEqual({ value_min: 40, value_max: 40 });
+    expect(row("Dreamthorn", 59)).toEqual({ value_min: 0.4, value_max: 0.4 });
+    // rollable mods keep their range
+    expect(row("Trident of the Last Abyss", 51)).toEqual({ value_min: 0.5, value_max: 0.7 });
+    const bad = db
+      .prepare("SELECT count(*) AS n FROM mods WHERE source_kind = 'unique_mod' AND value_min > value_max")
+      .get() as { n: number };
+    expect(bad.n).toBe(0);
+    const text = (db.prepare("SELECT mods_text FROM v_unique_summary WHERE name = 'Dreamthorn'").get() as { mods_text: string }).mods_text;
+    expect(text).toContain("Damage added 40 [");
+    expect(text).not.toContain("40..25");
+  });
+
   it("stores affix tier roll ranges", () => {
     const db = get().db;
     const a = db.prepare("SELECT name, tier_count FROM affixes WHERE affix_id = 0").get() as { name: string; tier_count: number };

@@ -41,7 +41,7 @@ modifier = { property  (stat property id, SP 0..133; 5000+ skill-local ids in tr
 | `property_name` | the name of the stat the line grants. **Indirect properties are resolved**: SP 98 `PlayerProperty` -> the player property name (`tags` = index), SP 58 `AbilityProperty` -> the ability property name (`tags` = ability index, `special_tag` = property index), SP 130 `IdolAltarProperty` -> the altar property name, SP 88 `LevelOfSkills` with `special_tag = 1` -> `Level of <ability>`. NULL for skill-local ids (use `label`). |
 | `tag_names` | `tags` decoded with `AT`, comma list (`Physical,Melee`); NULL when `tags = 0` or `tags` is an index (indirect properties). Filter by bit with `tags & 8192 <> 0` (Minion), or by name with `tag_names LIKE '%Minion%'`. |
 | `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative). NULL for display-only lines (tree node stats carry only text). |
-| `value_min`, `value_max` | roll range; equal for fixed values. For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
+| `value_min`, `value_max` | roll range; equal for fixed values (unique mods with raw `canRoll` 0 are loaded as fixed at `value`: the raw `maxValue` of those is a leftover, see docs/data-sources/letools.md). For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
 | `display`, `label` | source text: `display` is the value text of tree node stats (`'+25%'`), `label` the line name (`'Pierce Chance'`, affix line display name). |
 | `context` | qualifier, e.g. `'attribute:2'` (ability scaling per point of Intelligence) or `'per_level'`. |
 | `set_requirement`, `hidden`, `is_downside` | set pieces needed; `hideInTooltip`; tree node stat marked as a downside. |

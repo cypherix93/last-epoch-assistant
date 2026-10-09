@@ -55,7 +55,7 @@
  * 15. unique_subtypes       .subTypeIds[] (486)
  * 16. mods (unique mods)    .mods[] (2440): sourceKind 'unique_mod', sourceId unique_id, sourceOrd =
  *                           index (tooltipEntries modDisplay < 128 refers to it), modifierType = .type,
- *                           valueMin = .value, valueMax = .maxValue, hidden = .hideInTooltip
+ *                           valueMin = .value, valueMax = .maxValue (= .value when canRoll is 0), hidden = .hideInTooltip
  * 17. unique_tooltips       .tooltipDescriptions[] (562)
  * 18. unique_tooltip_entries .tooltipEntries[] (2459); ref_kind 'mod' when modDisplay < 128 else
  *                           'description' with ref_index = modDisplay - 128
@@ -477,7 +477,8 @@ export function loadItems(ctx: LoaderContext): void {
         extraTag: m.extraTag,
         modifierType: m.type,
         valueMin: m.value,
-        valueMax: m.maxValue,
+        // canRoll 0 = fixed mod: the game shows `value` only; maxValue is a leftover (often 0 or an unrelated number).
+        valueMax: m.canRoll === 0 ? m.value : m.maxValue,
         hidden: m.hideInTooltip,
         raw: m,
       });

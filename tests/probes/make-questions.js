@@ -338,8 +338,8 @@ JOIN mods m ON m.source_kind = 'unique_mod' AND m.source_id = CAST(u.unique_id A
 GROUP BY u.unique_id, u.name
 HAVING MAX(m.value_max) >= 100
 ORDER BY u.name`,
-  compute: (r) => { assert(r.length === 15, 'Q25 rows'); return { answer: sorted(r.map(x => x.name)), tolerance: 'set-equality (13+ of 15 and no extras = partial; raw stored value_max, not displayed percent)' }; },
-  hints: 'Raw stored value_max >= 100 (percent mods stored as 0.x never qualify; flat mods such as +100 health or 250 armor do). 15 items. Edge items with max exactly 100 (Doublet of Onos Tull, Titan Heart) are included in ground truth.' });
+  compute: (r) => { assert(r.length === 16, 'Q25 rows'); return { answer: sorted(r.map(x => x.name)), tolerance: 'set-equality (14+ of 16 and no extras = partial; raw stored value_max, not displayed percent)' }; },
+  hints: 'Raw stored value_max >= 100 (percent mods stored as 0.x never qualify; flat mods such as +100 health or 250 armor do). 16 items (Urzil Pride is a fixed 125: canRoll 0 mods use their `value`, the raw maxValue 25 is a leftover). Edge items with max exactly 100 (Doublet of Onos Tull, Titan Heart) are included in ground truth.' });
 
 add({ id: 'Q26', category: 'cross_cutting',
   question: 'What is the highest-tier (best) stored roll range of the "Melee Physical Damage" affix, which can roll on two-handed axes? State the tier number and min-max.',
