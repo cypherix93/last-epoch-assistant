@@ -14,6 +14,7 @@
  * skill_node / passive_node / weaver_node
  *                 tree_nodes (+tree_kind check)    "tree:node" | {tree,node}
  * ailment         ailments                         ailment_id (int)
+ * buff            ui_buffs                         buff_id (int, UIBuffIds value) | enum name ('Craterborn')
  * property        stat_properties                  property (int, SP id)
  * player_property player_properties                idx (int)
  * ability_property ability_properties              "ability_index:prop_index"
@@ -497,6 +498,42 @@ export const GETTERS: Record<string, Getter> = {
   ailment(ctx, id, raw) {
     const a = need(one(ctx, "SELECT * FROM ailments WHERE ailment_id = ?", int(id, "ailment")), "ailment", id);
     return { ailment: clean(a, raw), buff_mods: modsFor(ctx, "ailment_buff", a.ailment_id as number) };
+  },
+  /** Non-ailment buff (Craterborn, Lightning Aegis, ...): the buff bar record, its BuffPropId stat slots and what mentions it. */
+  buff(ctx, id, raw) {
+    const s = typeof id === "object" ? "" : String(id).trim();
+    const b = need(
+      /^\d+$/.test(s) ? one(ctx, "SELECT * FROM ui_buffs WHERE buff_id = ?", Number(s)) : one(ctx, "SELECT * FROM ui_buffs WHERE enum_name = ? OR lower(name) = lower(?)", s, s),
+      "buff",
+      id,
+    );
+    const en = (b.enum_name as string | null) ?? "";
+    const props = en
+      ? all(ctx, "SELECT name, value FROM enums WHERE enum_name = 'BuffPropId' AND substr(name, 1, length(?) + 1) = ? || '_' ORDER BY value", en, en).map((r) => ({
+          index: r.value,
+          stat: String(r.name).slice(en.length + 1),
+        }))
+      : [];
+    let mentions: Row[] = [];
+    if (b.name) {
+      try {
+        mentions = all(
+          ctx,
+          "SELECT kind, id, name FROM search WHERE search MATCH ? AND kind NOT IN ('buff') ORDER BY bm25(search, 0, 0, 8, 1) LIMIT 20",
+          `"${String(b.name).replace(/"/g, '""')}"`,
+        );
+      } catch {
+        mentions = [];
+      }
+    }
+    return {
+      buff: clean(b, raw),
+      buff_id_enum: en ? (one(ctx, "SELECT value FROM enums WHERE enum_name = 'BuffId' AND name = ?", en)?.value ?? null) : null,
+      stat_slots: props,
+      same_name_abilities: b.name ? all(ctx, "SELECT ability_id, name, description, alt_text FROM abilities WHERE lower(name) = lower(?) ORDER BY ability_id", b.name).map(dropNulls) : [],
+      mentions,
+      note: "ui_buffs are the non-ailment buffs of the buff bar (UIBuffs). The data has their name, description and BuffPropId stat slot names but not their values: read the values from the granting node / item text in `mentions`. Buffs that are ailments (Spark Charge 55, Frenzy, Haste, ...) are kind 'ailment'.",
+    };
   },
   property(ctx, id, raw) {
     const p = need(one(ctx, "SELECT * FROM stat_properties WHERE property = ?", int(id, "property")), "property", id);

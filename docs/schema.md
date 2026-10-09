@@ -176,7 +176,7 @@ Example rows:
 | `ability_components` | the prefab components (87 types: `DamageEnemyOnHit`, `ChanceToApplyAilmentsOnHit`, `CastAfterDuration`, ...) with full JSON | (ability_id, ord) | 2,516 |
 | `ability_links` | combo and shared-cooldown abilities | (ability_id, link_kind, ord) | 129 |
 | `ailments` | 148 ailments with duration, stacks, per-type base damage (`dmg_*`), damage types; buffs are mods `ailment_buff` | ailment_id | 148 |
-| `ui_buffs` | non-ailment buffs shown in the UI (Iron Mastery, Reactive Ward, ...) | buff_id | 264 |
+| `ui_buffs` | non-ailment buffs shown in the buff bar (Iron Mastery, Reactive Ward, Craterborn 14, Lightning Aegis 86, ...): name, description, max_instances. Their stat slots are the `BuffPropId` enum entries named `<enum_name>_<stat>` (Craterborn_FirePenetration, Craterborn_CastSpeed; `BuffId` is a separate id space, Craterborn = 59); the values are in game code, not in the data (read them from the granting node / item text). Buffs that are ailments (Spark Charge 55, Frenzy, Haste) are in `ailments`. Search kind `buff`, lookup kind `buff`, get kind `buff` (by buff_id or enum name; returns stat_slots and the nodes / items that mention it) | buff_id | 264 |
 | `entities` | minion / summoned actors | entity_id | 96 |
 | `trees` | 136 skill trees, 5 class passive trees, the Weaver tree | tree_id | 142 |
 | `tree_nodes` | all nodes with names, descriptions, max points, mastery, UI position; stats are mods `skill_node` / `passive_node` / `weaver_node` | (tree_id, node_id) | 3,956 + 541 + 80 |
@@ -218,7 +218,7 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 
 ### 3.7 Full-text search
 
-`search` is an FTS5 table `(kind UNINDEXED, id UNINDEXED, name, text)` with `tokenize = 'porter unicode61'` (stemming: "ignites" matches "ignite"). Kinds, in insertion order: `unique`, `affix`, `item_subtype`, `ability` (player abilities first), `skill_node`, `passive_node`, `weaver_node`, `ailment`, `stat_property`, `player_property`, `ability_property`, `set`, `blessing`, `monster_mod`, `timeline`, `dungeon`, `build` (community builds: `id` = `community_builds.build_id`, name = guide title, text = title, class, mastery, main skill, author, slug). `id` is the key of the row in its table as text (`'<tree>:<node>'` for nodes, `'<base>:<sub>'` for sub types, `'<ability_index>:<prop_index>'` for ability properties). `text` concatenates descriptions, tooltip lines and the owner's mod labels / property names. Rank with `bm25(search, 0, 0, 10, 1)` to weight name matches 10x.
+`search` is an FTS5 table `(kind UNINDEXED, id UNINDEXED, name, text)` with `tokenize = 'porter unicode61'` (stemming: "ignites" matches "ignite"). Kinds, in insertion order: `unique`, `affix`, `item_subtype`, `ability` (player abilities first), `skill_node`, `passive_node`, `weaver_node`, `ailment`, `buff` (ui_buffs: name, description, enum name, BuffPropId stat slots), `stat_property`, `player_property`, `ability_property`, `set`, `blessing`, `monster_mod`, `timeline`, `dungeon`, `build` (community builds: `id` = `community_builds.build_id`, name = guide title, text = title, class, mastery, main skill, author, slug). `id` is the key of the row in its table as text (`'<tree>:<node>'` for nodes, `'<base>:<sub>'` for sub types, `'<ability_index>:<prop_index>'` for ability properties). `text` concatenates descriptions, tooltip lines and the owner's mod labels / property names. Rank with `bm25(search, 0, 0, 10, 1)` to weight name matches 10x.
 
 ### 3.8 Views
 

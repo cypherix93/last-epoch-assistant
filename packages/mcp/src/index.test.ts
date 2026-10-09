@@ -190,6 +190,21 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
   });
 
+  it("buffs that are not ailments (ui_buffs) are searchable, resolvable and gettable", () => {
+    const l = lookup(ctx, "Craterborn", ["buff"]) as R;
+    expect(l.results[0]).toMatchObject({ kind: "buff", id: "14", name: "Craterborn" });
+    expect((lookup(ctx, "Lightning Aegis", ["buff"]) as R).results[0]).toMatchObject({ kind: "buff", id: "86" });
+    expect((search(ctx, "aegis", ["buff"]) as R).results.map((r: R) => r.name)).toContain("Lightning Aegis");
+    const c = getTool(ctx, "buff", "Craterborn") as R;
+    expect(c.buff).toMatchObject({ buff_id: 14, description: "Increases fire damage and cast speed" });
+    expect(c.stat_slots.map((x: R) => x.stat)).toEqual(["FirePenetration", "CastSpeed"]);
+    expect(c.mentions.map((m: R) => m.id)).toContain("me27:25"); // the Meteor node that grants it
+    expect((getTool(ctx, "buff", 86) as R).buff.name).toBe("Lightning Aegis");
+    // Spark Charge is an ailment (kind ailment), not a ui buff
+    expect((lookup(ctx, "Spark Charge", ["ailment"]) as R).results[0]).toMatchObject({ kind: "ailment", id: "55" });
+    expect(() => getTool(ctx, "buff", "Nope")).toThrow(/No buff/);
+  });
+
   it("get unique says how it is obtained (can_drop_randomly + drop sources)", () => {
     const fs = getTool(ctx, "unique", 213) as R;
     expect(fs.unique).toMatchObject({ name: "Frostbite Shackles", can_drop_randomly: 0 });

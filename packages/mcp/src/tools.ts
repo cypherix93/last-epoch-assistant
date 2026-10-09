@@ -250,6 +250,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
     sql: `SELECT n.tree_id || ':' || n.node_id AS id, n.name, 'Weaver tree' AS hint, 0 AS pri FROM tree_nodes n WHERE n.tree_kind = 'weaver'`,
   },
   { kind: "ailment", sql: `SELECT CAST(ailment_id AS TEXT) AS id, name, CASE WHEN positive = 1 THEN 'buff' ELSE 'debuff' END AS hint, 0 AS pri FROM ailments` },
+  { kind: "buff", sql: `SELECT CAST(buff_id AS TEXT) AS id, name, 'buff bar entry (ui_buffs)' || coalesce(', ' || enum_name, '') AS hint, 0 AS pri FROM ui_buffs WHERE name IS NOT NULL` },
   { kind: "property", sql: `SELECT CAST(property AS TEXT) AS id, name, enum_name AS hint, 0 AS pri FROM stat_properties` },
   { kind: "player_property", sql: `SELECT CAST(idx AS TEXT) AS id, name, '' AS hint, 0 AS pri FROM player_properties` },
   { kind: "class", sql: `SELECT CAST(class_id AS TEXT) AS id, name, 'tree ' || tree_id AS hint, 0 AS pri FROM classes` },

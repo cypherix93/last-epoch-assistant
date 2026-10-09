@@ -1001,7 +1001,7 @@ CREATE UNIQUE INDEX mods_identity ON mods (source_kind, source_id, coalesce(tier
 -- =============================================================================
 -- Full-text search                                                      [search]
 -- =============================================================================
--- kind: unique | affix | item_subtype | ability | skill_node | passive_node | weaver_node | ailment |
+-- kind: unique | affix | item_subtype | ability | skill_node | passive_node | weaver_node | ailment | buff |
 --       stat_property | player_property | ability_property | set | blessing | monster_mod | timeline | dungeon
 -- id:   the key of the row in its table (as text; '<tree>:<node>' / '<base>:<sub>' / '<ability_index>:<prop_index>')
 

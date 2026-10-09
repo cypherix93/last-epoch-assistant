@@ -50,7 +50,7 @@ export const TOOL_DEFS: ToolDef[] = [
   },
   {
     name: "get",
-    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name). An ability reply has kind (player | player_sub | minion | other) and, for a player skill, sub_abilities (the abilities it spawns, with their decoded damage components; the skill's own hit damage is often there).`,
+    description: `Full normalized record for one entity with its children (mods, tooltips, tiers, ...). Kinds: ${t.KINDS.join(", ")}. id is the natural key (unique_id, affix_id, "base:sub", ability id "fi9", tree id "mg-1", node "tree:node", class 0-4 or name). An ability reply has kind (player | player_sub | minion | other) and, for a player skill, sub_abilities (the abilities it spawns, with their decoded damage components; the skill's own hit damage is often there). Kind buff = a non-ailment buff of the buff bar (ui_buffs: Craterborn, Lightning Aegis; id = buff_id or enum name) with its BuffPropId stat slots and the nodes / items that mention it; buffs that are ailments (Spark Charge 55, Frenzy, Haste) are kind ailment. A unique reply has drop_sources and obtain (can_drop_randomly + named sources).`,
     shape: { kind: z.string(), id: idSchema, include_raw: z.boolean().default(false) },
     run: (ctx, a) => t.getTool(ctx, a.kind, a.id, a.include_raw ?? false),
   },
@@ -64,7 +64,7 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: "find_mods",
     description:
-      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), include_indirect (default false: rows of properties 58/98/104/105/130 store an index, not a tag mask, and are excluded from tag filters), modifier_type (0 added, 1 increased, 2 more, null display-only), source_kinds, source_id, min_value (value_max >=), special_tag.",
+      "Find stat lines (mods table) across all sources with the source name resolved. filters: property (SP id), property_name (substring), tags_any / tags_all (tag names like Minion, Fire, or integer bits), include_untagged (default true: tags_any also returns tags=0 rows), include_indirect (default false: rows of properties 58/98/104/105/130 store an index, not a tag mask, and are excluded from tag filters), modifier_type (0 added, 1 increased, 2 more, null = unknown: tree node lines that neither the decompiled code nor the label classifies, and skill parameters; tree rows also carry stat_kind / modifier_source / label_mismatch), source_kinds, source_id, min_value (value_max >=), special_tag.",
     shape: {
       filters: z
         .object({
