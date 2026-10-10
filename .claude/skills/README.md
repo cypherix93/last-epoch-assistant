@@ -40,6 +40,8 @@ The `le-data` MCP server has 14 tools (`yarn mcp:list` prints them). Arguments a
 | `item_usage` | `{"name"?: string, "unique_id"?: int, "affix"?: id \| name, "slot"?, "tab"?, "class"?, "mastery"?, "limit"? (100)}` (which guides use a unique / set item (with their extra affixes) or an affix (per slot, typical tier)) |
 | `slot_meta` | `{"slot": string, "class"?, "mastery"?, "ability"?, "tab"? ("Endgame"), "kind"?: "unique" \| "rare" \| "all", "limit"? (25)}` (what guides wear in a slot: items with count / pct / example slugs, affixes with typical tier and prefix / suffix) |
 
+**In-game names in replies.** Alongside the ids, replies carry the names the game UI shows: `display` on tree nodes ("Circle of Elements (Runemaster passive)"), uniques (name with slot, base item, class requirement, tooltip `effects`), affixes (line names, prefix / suffix, class restriction, slots, `tier_lines`), blessings, `lookup` hits and the community tools' gear, affix lines and nodes; `stat_name` / `stat_line` on every mod row ("+116-140% Chance to Shock on Lightning Hit"), `source_display` on `find_mods` rows, `special_tag_name` / `condition` / `converts_from` / `converts_to` for ailment, conditional and conversion lines. Quote those in answers (see "Player-facing names" below).
+
 The last four read the community builds tables: Maxroll community guides for 1.5.2, community choices and not game truth (`docs/community-builds.md`). `lookup` / `search` kind `build` resolve a guide title or slug to its build_id.
 
 CLI form (from the repo root): `yarn mcp:call <tool> [args] [--pretty]`. Only the JSON result goes to stdout, on one line (`--pretty` indents); logs go to stderr; exit code 1 on `ok:false`. Args, first match wins: `@file.json` (for `sql`, a file not starting with `{` is raw SQL), `sql --query-file q.sql`, stdin (`-` or piped input; raw SQL is accepted for `sql`), or inline JSON for simple args:
@@ -62,3 +64,28 @@ JSON
 > Never use `yarn -s` (not supported by yarn berry). For `find_mods`, always nest the filter keys under `filters` (top-level `property` and friends are not accepted).
 
 Every number an agent reports must carry a confidence label (D, A, G, X, U) and a source (`knowledge/` page#section or table + id).
+
+## Player-facing names (applies to every skill)
+
+**Never show internal ids in player-facing text; use the in-game name as the game UI shows it.** The player only sees names in the game: tree-node keys (`mg-1:88`, `lb23il:28`), uids, affix ids ("Body: 392 + 391"), property ids (`SP 18`), tag masks (`258`), `PP464` / `AP162` codes, ability ids (`fi9`, `ability_gen98`), base:sub keys (`8:5`), blessing sub ids and guide slugs are unreadable to them.
+
+| Thing | Write it as | Not | Where the wording comes from |
+|---|---|---|---|
+| Skill | Lightning Blast | `lb23il` | `abilities.name` |
+| Skill-tree node | Innate Conduit (Lightning Blast node, 1/1 pt) | `lb23il:28` | `skill_tree` node `name` + the tree's skill name |
+| Passive node | Circle of Elements (Runemaster passive, 10 pts) | `mg-1:88` | `passive_tree` node `name` + mastery name (class name for the base tree) |
+| Weaver node | Shifted Knowledge (Weaver tree) | `weaver:1` | same |
+| Unique / set item | Crest of Unity (unique helmet) | "uid 307" | `uniques.name` + base type (slot); base item (Runed Visage) when it matters |
+| Rare / exalted affix, slam, LP target | Body armour: +174-210% Chance to Shock on Lightning Hit (T7) | "Body: 392" | the affix's stat line: `affix_stats.label` + value range on that base + tier |
+| Idol affix | Ornate Idol (4x1): +12-40 Ward per Second (T1) | "idol affix 178" | same stat line, from `v_idol_affix_values` (`idol`, `idol_size`, scaled values) |
+| Unique mod line | +90% increased Lightning Spell Damage | "Damage (0) 258 increased 0.9" | `mods` value + modifier word + tag words + property name |
+| Coded effect (PlayerProperty / AbilityProperty) | Spells deal 1% more damage per 2 mana cost, up to 50% more | `PP464`, `AP162` | the tooltip text (`unique_tooltips.text`, `masteries.passive_bonus_labels`, node `description`) or the resolved `property_name` |
+| Ability an item casts | Fire Aura (cast by Ignivar's Head) | `ability_gen98` | `abilities.name` + the owner |
+| Stat | Mana Regen, Ward per Second | `SP 18`, `property 92` | `stat_properties.name` / `property_name` |
+| Tags | Lightning Spell | `258`, "Lightning\|Spell" | `tag_names`, written as words |
+| Blessing | Grand Bastion of Divinity (Ending the Storm blessing) | "blessing 73", `34:73` | `v_blessings.name` (Grand is part of the name) + `timeline_name` |
+| Community guide | the Maxroll "Runemaster Lightning Blast" guide (Endgame tab) | the slug | `v_build_summary.title` + tab |
+
+The tools return these names directly (`display`, `source_display`, `stat_line`; see "In-game names in replies" above). The SQL that renders them (node + tree, unique + slot, affix stat line on a base and tier, unique mod line) is in **le-data-query**, "Player-facing names".
+
+Ids are still useful for reproducibility, but only in one place: the **Data citations** (or **Sources**) table at the end of a proposal, audit or report, and always paired with the in-game name (`Innate Conduit (Lightning Blast node) | skill node | lb23il:28`). Tool-call and SQL recipes in the skills use ids; that is agent-facing and fine. Working notes may carry ids; translate them before they reach the player. If an answer has no citations table, it shows no ids at all.

@@ -41,7 +41,7 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
 - `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
-- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops x/y and the UI fields but keeps descriptions truncated at 400 chars (`keep_descriptions:false` drops them); every node stat line carries `stat_kind` / `modifier_type`, `modifier_source` (`structured` = decompiled node code, `inferred` = label), `code_ref`, `property_hint` (the tooltip category of a 5000+ id, named in the global `node_tooltip_properties` list) and a `warning` when `label_mismatch` is 1 (not a plain stat: read the label); `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops x/y and the UI fields but keeps descriptions truncated at 400 chars (`keep_descriptions:false` drops them); every node stat line carries `stat_kind` / `modifier_type`, `modifier_source` (`structured` = decompiled node code, `inferred` = label), `code_ref`, `property_hint` (the tooltip category of a 5000+ id, named in the global `node_tooltip_properties` list) and a `warning` when `label_mismatch` is 1 (not a plain stat: read the label); `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); the key `<tree_id>:<id>` (`lb23il:28`, the form Q6 and Q13 build) is for tool calls and the Data citations table only. In the proposal write the node as the game shows it: "Innate Conduit (Lightning Blast node)" (see "Player-facing names" below).
 - `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
 - Community builds (Maxroll guides, 1.5.2, label **X**; shapes and caveats in **le-data-query**, "Community builds"): `builds({class?, mastery?, ability?, any_skill?, item?, affix?, tier?, tier_list?, playstyle?, season?, limit?})`, `build({id? | slug?, tab?, sections?})`, `item_usage({name? | unique_id? | affix?, slot?, tab?, class?, mastery?})`, `slot_meta({slot, class?, mastery?, ability?, tab?, kind?})`. Used in Phase C2. If the tools are missing on your checkout, use `sql` on the views (Q18-Q19 below, and **le-bis-selection** example 3).
 
@@ -68,7 +68,7 @@ Knowledge pages (read the Summary section of each before you rely on it):
 
 ## Procedure
 
-Work through the phases in order. Write the intermediate results down; the proposal template needs them.
+Work through the phases in order. Write the intermediate results down; the proposal template needs them. Working notes may carry ids (you need them for the next query and for the Data citations table); everything that goes into the proposal outside that table is written with in-game names (see "Player-facing names").
 
 ```dot
 digraph flow {
@@ -115,7 +115,7 @@ digraph flow {
 Generate **at least 5** candidate archetypes. Ask each question below and log the query you ran and what came back. A candidate that no query supports does not count.
 
 9. **Skills carrying the boosted tags.** Run Q4 with the stat stick's tag mask, `(tags & mask) = mask`, restricted to player skills with a tree. If the enabler keys on a skill **flag** rather than a tag (channelling, transform, traversal, combo, instant cast), run Q4b instead. Channelling is the common case: Ignivar's Head's ignite-chance line carries the Channelling tag bit (262144) and its tooltip says "Cast Fire Aura every second while Channelling", but no player ability has that bit in `abilities.tags` (0 rows), so Q4 finds nothing; the channelled skills are found by the flag `abilities.channelled = 1` (10 player skills). Then run Q5 for who can use each skill (class, mastery and unlock level).
-10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree({"ability_id":"<id>"})`). Also run the global scan Q7 for nodes that mention the item's resource or trigger, and Q16 for every unique, affix and node that mentions the ability the item casts (for example "Fire Aura"). Record nodes as `<tree>:<node> Name`. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
+10. **Rule-changing nodes.** For every candidate skill, scan its tree for conversion, trigger, "no longer", "instead", "while out of" or "consume" nodes (Q6; `skill_tree({"ability_id":"<id>"})`). Also run the global scan Q7 for nodes that mention the item's resource or trigger, and Q16 for every unique, affix and node that mentions the ability the item casts (for example "Fire Aura"). Record each node by its name and skill ("Innate Conduit, Lightning Blast node"), keeping the `<tree>:<node>` key beside it in your notes for the Data citations table. Stat ids 5000 and up are skill-local (`docs/data-sources/enums.md`, section 3.3). Their real modifier type is in code, so treat their magnitude as **A** and their type as unknown.
 11. **Catalogue chains.** Pick the tags that describe the enabling effect, using the tag set in `knowledge/interactions/README.md`. Read every catalogue entry that carries them. Then chain each one: converter + engine, engine + payoff. Look explicitly for at least one pairing that no catalogue entry names together. That is the novelty candidate.
 12. **Stack partners.** Find other sources of the same property or PP index: `find_mods({"filters":{"property":<P>},"limit":50})`, or Q8 and Q9 for PP indices. Cover uniques, set bonuses, affixes, idol affixes (Q11) and blessings (Q12). Count how many rare uniques each candidate would need.
 13. **Passive reach.** For each class that owns a candidate skill, find the passives that feed the property (Q13 or `passive_tree({"class_id":"<class>"})`). Note the mastery gating (`mastery_requirement`).
@@ -168,20 +168,20 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
 16. **Class and mastery**, with the mastery's base bonuses (`knowledge/reference/classes-and-masteries.md`, "Masteries, mastery skills and base mastery bonuses").
 17. **Five skills**, each with:
     - role (main, mobility, buff, defense, utility or enabler);
-    - the key tree nodes by `<tree>:<node> Name` and points;
+    - the key tree nodes by in-game node name and points ("Innate Conduit 1/1", in the row of the Lightning Blast skill);
     - one line on why each node is there.
     The total must respect the per-skill point budget (20 natural levels plus +levels; see `knowledge/reference/skills-and-trees.md`).
-18. **Passive priorities**, by node name and tree id (`mg-1:14 Wisdom`), ordered and marked mastery-gated where they are. Respect the passive point budget (`knowledge/reference/classes-and-masteries.md`, "Passive points and tree structure").
+18. **Passive priorities**, by node name with its class or mastery tree ("Wisdom (Sorcerer passive, 8 pts)"; **le-data-query** "Player-facing names", query A), ordered and marked mastery-gated where they are. Respect the passive point budget (`knowledge/reference/classes-and-masteries.md`, "Passive points and tree structure").
 19. **Gear by slot:**
     - the item itself;
-    - every other unique, with its uid;
-    - for rare or exalted slots, the required affixes by name and id with a tier target (T5 craftable, T6-T7 drop, T8 primordial);
-    - the LP or legendary plan for the item (Q10);
+    - every other unique, by name and slot ("Mana Guide (unique amulet)");
+    - for rare or exalted slots, the required affixes as their in-game stat line with the tier target and the range on that base ("+50-60% increased Mana Regen (T7)"; T5 craftable, T6-T7 drop, T8 primordial; **le-data-query** query C);
+    - the LP or legendary plan for the item (Q10), with the slam targets written the same way;
     - which slot carries which resistance.
-20. **Idols:** shapes and affixes by name and id (Q11), class restrictions, and the one-of-each rule for unique idols. **Read idol sizes and values from the data, never from a community build:** the Minor Idol is 1x1, and every idol affix range is scaled by `(1 + idol AEM) / (1 + affix standard AEM)`: read it from `v_idol_affix_values` (idol size WxH, `scale_factor`, `stored_min/max` and scaled `value_min/max`; `v_build_items_named.affixes_text` already prints the scaled value with an `x<factor>` marker, but a hand-copied guide number is unscaled; the judge found both challenge proposals wrong on idol values). Use the idol queries in **le-build-audit** Step 1, check 1, and count the grid cells. The scaled values follow the decompiled formula and are unverified in game (label **D?**).
+20. **Idols:** idol name and size and the affixes as stat lines ("Ornate Idol (4x1): +12-40 Ward per Second"; Q11), class restrictions, and the one-of-each rule for unique idols. **Read idol sizes and values from the data, never from a community build:** the Minor Idol is 1x1, and every idol affix range is scaled by `(1 + idol AEM) / (1 + affix standard AEM)`: read it from `v_idol_affix_values` (idol size WxH, `scale_factor`, `stored_min/max` and scaled `value_min/max`; `v_build_items_named.affixes_text` already prints the scaled value with an `x<factor>` marker, but a hand-copied guide number is unscaled; the judge found both challenge proposals wrong on idol values). Use the idol queries in **le-build-audit** Step 1, check 1, and count the grid cells. The scaled values follow the decompiled formula and are unverified in game (label **D?**).
 20b. **Acquisition.** For every unique in the plan read `uniques.can_drop_randomly`. Each unique with 0 needs a source from [endgame-systems.md#uniques-that-do-not-drop-randomly] or an explicit "farm unknown (U)" flag in the gear table and on the Build card; a proposal never lists such an item as obtainable without one (Q3 returns the flag).
 21. **Blessings:** one per timeline (Q12), normal vs Grand, chosen to close the defense or mana gaps.
-22. **Damage path.** Apply **le-damage-reasoning**: the main skill's tags, added (x ADE) / increased / more per bucket, the crit or ailment path, penetration, and "vs dummy" vs "vs level-100 boss". Name every more-multiplier and its source id.
+22. **Damage path.** Apply **le-damage-reasoning**: the main skill's tags, added (x ADE) / increased / more per bucket, the crit or ailment path, penetration, and "vs dummy" vs "vs level-100 boss". Name every more-multiplier by its in-game source ("Winged Fire (Fireball node)", "Sorcerer mastery bonus"); its id goes in the Data citations table.
 23. **Defense plan.** Apply **le-defense-reasoning**:
     - all seven resistances to 75% and where each comes from;
     - the primary layer (armour, dodge, block or ward) with its target number;
@@ -217,7 +217,7 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
 
 ### Phase G: Write the proposal (step 31)
 
-31. Fill `templates/proposal.md` exactly: every section, in order, with the Build card on top and the Data citations table at the bottom. Then run **le-build-audit** on the skeleton if it is available, and fix what it finds.
+31. Fill `templates/proposal.md` exactly: every section, in order, with the Build card on top and the Data citations table at the bottom. Before presenting, sweep the text above the Data citations table for ids (`tree:node` keys, uids, affix ids, `SP`/`PP`/`AP` codes, tag masks, ability ids, slugs) and replace each with its in-game name. Then run **le-build-audit** on the skeleton if it is available, and fix what it finds.
 
 **Minimum viable proposal.** For a casual question ("what can I do with this?", "is it worth anything?"), you may stop at a short form: Phases A-B in full (item resolved, enabling effect, rate equation, benchmark), Phase C with at least 5 candidates as one line each plus the query that backs it, the Phase D scoring table, one skeleton outline (as above) and the 3 riskiest in-game tests. Label it "outline, not a full proposal" and offer the full template. The honesty rules still apply in full.
 
@@ -477,9 +477,29 @@ WHERE mastery_name = ? OR main_skill = ?
 ORDER BY (mastery_name = ?) DESC, slug;
 ```
 
+## Player-facing names
+
+**Never show internal ids in player-facing text; use the in-game name as the game UI shows it.** The proposal is read by a player, who only sees names in the game. Outside the Data citations table write:
+
+| Thing | Write | Never |
+|---|---|---|
+| Skill node | Innate Conduit (Lightning Blast node, 1/1 pt) | `lb23il:28` |
+| Passive | Circle of Elements (Runemaster passive, 10 pts) | `mg-1:88` |
+| Unique | Crest of Unity (unique helmet) | "Crest of Unity (uid 307)" |
+| Rare affix / slam / LP target | Body armour: +174-210% Chance to Shock on Lightning Hit (T7) | "Body: 392 + 391" |
+| Idol | Ornate Idol (4x1): +12-40 Ward per Second | "idol affix 178" |
+| Coded effect | "Spells deal 1% more damage per 2 mana cost, up to 50% more" (Sorcerer mastery bonus) | `PP464` |
+| Skill / cast ability | Lightning Blast; Fire Aura (cast by Ignivar's Head) | `lb23il`, `ability_gen98`, "AP162" |
+| Stat and tags | Mana Regen; Lightning Spell | `SP 18`; 258 |
+| Blessing | Grand Bastion of Divinity (Ending the Storm blessing) | blessing 73 |
+| Community guide | the Maxroll "Sorcerer Static Orb" guide (Endgame tab) | its slug |
+
+How to read each name from the data (queries A-D): **le-data-query**, "Player-facing names". The ids stay in the working notes and appear only in the Data citations table (section 14), each next to its name. Tool calls and SQL in this skill use ids; that is agent-facing.
+
 ## Honesty rules
 
-- Every number carries a label: D, A, G, X or U. A computed number takes the weakest label among its inputs. No unlabelled numbers in the proposal. Ids and indices (uid 33, PP 664, `lb23il:28`, affix 330) are identifiers, not quantities, and need no label.
+- Every number carries a label: D, A, G, X or U. A computed number takes the weakest label among its inputs. No unlabelled numbers in the proposal. Ids and indices (uid 33, PP 664, `lb23il:28`, affix 330) are identifiers, not quantities, and need no label; they appear only in the Data citations table.
+- Never show internal ids in player-facing text; use the in-game name as the game UI shows it (section above).
 - Write "vs dummy" or "vs level-N monster" next to any damage figure. Level damage reduction alone is x0.13 at level 100 (`knowledge/mechanics/damage-pipeline.md`).
 - Skill-tree mutators (stat ids 5000 and up, `skill_parameter` lines, `label_mismatch` lines) are coded per skill. Name each one you rely on with its category (`property_hint`) and `code_ref`; a `structured` kind is **D**, an `inferred` or `unknown` kind is "type unknown (A magnitude)" or **U**.
 - Never write "meta", "best", "proven", "top-tier" or "S-tier". Write "plausible", "to test", "should".
@@ -501,6 +521,7 @@ ORDER BY (mastery_name = ?) DESC, slug;
 | "Defense: just get resistances." | Name the layer, the number and the pool it protects (step 23). |
 | "Numbers are approximate anyway, no labels needed." | Unlabelled numbers are the main failure. Label everything (step 27). |
 | "The db is empty, so I will go from memory." | Use the vendored JSON fallback and cite it. |
+| "`mg-1:88` / uid 307 / affix 392 is precise, the player can look it up." | The game UI shows no ids. Write "Circle of Elements (Runemaster passive)", "Crest of Unity (unique helmet)", "+116-140% Chance to Shock on Lightning Hit (T7)"; ids only in Data citations. |
 
 ## Common mistakes
 
@@ -510,6 +531,7 @@ ORDER BY (mastery_name = ?) DESC, slug;
 - Forgetting that the item's slot removes options: a 2H weapon means no shield, and a 1H sceptre leaves the off-hand free.
 - Building on a D? effect without making it test #1.
 - Using a corrupted copy of the item in the legendary plan.
+- Writing tree-node keys, uids, affix ids, `PP`/`AP`/`SP` codes or tag masks in the Build card, skill / passive / gear / idol tables or the test list. Use in-game names; ids go only in the Data citations table, paired with the name.
 
 ## Final checklist (tick every item before presenting)
 
@@ -523,7 +545,8 @@ ORDER BY (mastery_name = ?) DESC, slug;
 - [ ] Idol sizes and values read from data (Minor Idol 1x1; values scaled by idol AEM), every unique with `can_drop_randomly` 0 has a source or "farm unknown", nearest build checked over all guides including leveling ones, riskiest assumption = weakest-labelled link
 - [ ] Phase C2 done: `item_usage` for the item and partners, `builds` for each leading candidate (difference stated), `slot_meta` for every remaining slot; counts recorded as N of 74
 - [ ] Scoring table with all 5 axes; gate applied; Gear and Novelty cite community counts
-- [ ] 1-2 skeletons with class/mastery, 5 skills with `<tree>:<node>` nodes, passives by node, gear by slot with affix ids and tier targets, idols, blessings
+- [ ] 1-2 skeletons with class/mastery, 5 skills with nodes by in-game name and points, passives by name and class / mastery tree, gear by slot with affixes as stat lines and tier targets, idols (name, size, stat lines), blessings (name, timeline)
+- [ ] No ids outside the Data citations table: no `tree:node` keys, uids, affix ids, `SP`/`PP`/`AP` codes, tag masks, ability ids or slugs in player-facing text; every citation row pairs the id with the in-game name
 - [ ] Damage path done with le-damage-reasoning ("vs dummy" / "vs level-N" stated)
 - [ ] Defense plan done with le-defense-reasoning: 7 resistances sourced, layer targets, endurance, stun, DoT, sustain
 - [ ] Mana plan, including the enabling effect's effect on mana

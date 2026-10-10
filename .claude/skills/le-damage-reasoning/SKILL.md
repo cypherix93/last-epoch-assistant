@@ -9,7 +9,7 @@ description: Use when estimating, comparing or sanity-checking damage or DPS of 
 
 Damage is computed **per damage type**, then summed. The knowledge base gives the formulas (`knowledge/mechanics/damage-pipeline.md`); the database gives the inputs (ability components, mods, ailments). This skill is the procedure that joins them, and the places where you must stop and say "cannot be determined from data".
 
-Core principle: build a table of buckets (type x {base, added, increased, more}), show every modifier you counted with its source id, and label the result with an enemy context ("vs dummy" or "vs level-N monster"). Prerequisites: `le-data-query` (finding records), `le-mechanics-reference` (labels and pages).
+Core principle: build a table of buckets (type x {base, added, increased, more}), show every modifier you counted with its source (named as in the game: "Winged Fire (Fireball node)", "Calamity (unique ...)", "+% Fire Damage affix on the gloves (T6)"; the id goes in the Sources line), and label the result with an enemy context ("vs dummy" or "vs level-N monster"). Prerequisites: `le-data-query` (finding records), `le-mechanics-reference` (labels and pages).
 
 ## Procedure
 
@@ -294,10 +294,12 @@ Rules:
 
 ## Report template
 
+Player-facing: **never show internal ids in player-facing text; use the in-game name as the game UI shows it** (skill and node names, items with their slot, affixes as stat lines, tags as words: "Fire Spell Hit", not 8388872). Ids, masks and keys go only in the Sources line, each next to its name (**le-data-query**, "Player-facing names").
+
 ```
-Skill: <name> (<ability_id>)  src mask: <value> (<tags>)  enemy: <dummy | level N, area A, corruption C>
+Skill: <name>  tags: <tag words>  enemy: <dummy | level N, area A, corruption C>
 Inputs read as: <totals | additions | both> ; passives counted: <yes | not counted>
-Buckets: type | base | ADE x added | increased (sum, list) | more (list) | hit
+Buckets: type | base | ADE x added | increased (sum, list of sources by name) | more (list by name) | hit
 Crit: cc, cm, E_crit      Rate: uses/s, source of speed (or "speed missing: per-hit only / U")
 Enemy: res, shred, pen, DT, level DR, armour
 Avg hit (vs dummy | vs level N): ...
@@ -305,7 +307,7 @@ Boss DPS: (a) own-debuff-free ... | (b) with own debuffs ... (compare builds on 
 Hit DPS: ...   Ailment DPS: ...   Total: ...   (labels: formulas D/G, inputs A from ids, assumptions U)
 Bounds / interpretation spread: <low>-<high> and what drives it
 Not modelled / undetermined: <list>
-Sources: <table + id for every modifier>, <page#section for every formula>
+Sources: <in-game name: table + id, for every modifier>, <page#section for every formula>
 ```
 
 ## When to say "cannot be determined from data"
@@ -330,3 +332,4 @@ Say it plainly: "Cannot be determined from the data: <what>. Bounds: <low>-<high
 | Reporting dummy DPS as monolith DPS | multiply by (1 - DR) and resistances |
 | Reading skill-tree "increased" text as increased | classify as more unless data says otherwise, and flag |
 | Using Minion-tagged mods on the player | tag subset rule excludes them |
+| Listing sources as `fi9:6`, "affix 63", tag mask 264 | name them as in game ("Winged Fire (Fireball node)", "+X Melee Physical Damage (T7)", "Fire Spell"); ids only in Sources |

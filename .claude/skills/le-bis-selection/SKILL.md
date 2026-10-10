@@ -94,7 +94,7 @@ WHERE u.unique_id = 365 AND v.affix_name = 'Melee Void Damage' AND v.tier = 7 AN
 
 For each slot decide between the community-standard pick (Step 1), a wishlist unique (Step 2) and a rare plan (Step 3). Choose the primary by: closes a stated gap, supported by two of the three searches, level and class requirements met. Keep one alternative of a different kind (a unique primary with a rare alternative, or the reverse). Output:
 
-| Slot | Primary pick | Why (stat or effect, with SP id and label) | Community usage | Alternative | Notes (LP / slam, tier target, risk) |
+| Slot | Primary pick (unique name, or rare base with its affixes as stat lines and tier) | Why (stat or effect in in-game wording, with label) | Community usage | Alternative | Notes (LP / slam as stat lines, tier target, risk) |
 |---|---|---|---|---|---|
 | Helmet | | | N of M builds (X) | | |
 | Body | | | | | |
@@ -111,6 +111,8 @@ For each slot decide between the community-standard pick (Step 1), a wishlist un
 | Blessings | | | | | |
 
 "Community usage" is the `count` out of `matched_builds` from `slot_meta` (or the `builds` column of the SQL), or "0 of M: no guide uses it" with the risk stated. Add the resistance and endurance totals of the chosen set to show the defensive wishlist is closed (**le-defense-reasoning**), and a label D / A / G / X / U on every number.
+
+The table is player-facing: in-game names only ("Mask of Indifference (unique helmet)", "+116-140% Chance to Shock on Lightning Hit (T7)", "Grand Bastion of Divinity (Ending the Storm blessing)"), never uids, affix ids, SP ids or slugs. The SP-id wishlist is your working note; list the ids, each next to its name, in a closing Sources list (**le-data-query**, "Player-facing names").
 
 ## Executable examples
 
@@ -205,6 +207,7 @@ LIMIT 10;
 - Tier targets: T5 craftable, T6-T7 drop, T8 primordial; quote the tier with every range. Percent values are fractions in the data.
 - Never write "meta", "best", "proven", "S-tier". Write "community-standard (N of M guides)", "plausible", "to test".
 - `lp_eligible` is derived, not stored per unique: label LP plans **U**.
+- Never show internal ids in player-facing text; use the in-game name as the game UI shows it. Ids go only in the closing Sources list, paired with the name.
 
 ## Red flags: stop and go back
 
@@ -216,6 +219,7 @@ LIMIT 10;
 | "Rings are one slot." | Two ring slots (`finger1`, `finger2`); count both. |
 | "T8 is the target." | T8 is primordial; plan with T5 (craft) or T7 (drop). |
 | "A two-handed weapon plus a shield." | Two-handed bases leave the off-hand empty. |
+| "Helmet: uid 434; rings: affix 330 T7." | The player sees names, not ids: "Mask of Indifference (unique helmet)", "+50-60% increased Mana Regen (T7)". Ids only in Sources. |
 
 ## Final checklist
 
@@ -228,3 +232,4 @@ LIMIT 10;
 - [ ] Output table complete: primary, why, community usage, alternative
 - [ ] Resistance, endurance and stun answers verified across the chosen set
 - [ ] Every number labelled; no "meta" / "best" wording
+- [ ] No ids in the table or prose (uniques by name and slot, affixes as stat lines with tier, blessings with timeline); ids only in Sources, next to their names

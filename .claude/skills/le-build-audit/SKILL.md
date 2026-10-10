@@ -11,6 +11,8 @@ An audit turns a build description into a structured, sourced report: offense, d
 
 Core principle: every claim is a table row or a knowledge page. Every number carries a label. Anything the data cannot model is listed under "not determined", never silently dropped.
 
+**Never show internal ids in player-facing text; use the in-game name as the game UI shows it.** The ledger is resolved to ids (Step 1), but the report the player reads names everything as the game does: "Circle of Elements (Runemaster passive, 10 pts)", "Melting Nova (Elemental Nova node)", "Crest of Unity (unique helmet)", "Body armour: +174-210% Chance to Shock on Lightning Hit (T7)", never `mg-1:88`, `en6:27`, "uid 307" or "Body: 392 + 391". Ids appear only in the closing **Sources** section, each paired with its name. How to read the names: **le-data-query**, "Player-facing names" (queries A-D) and `.claude/skills/README.md`.
+
 REQUIRED BACKGROUND: `le-data-query` (finding records), `le-damage-reasoning`, `le-defense-reasoning`, `le-mechanics-reference` (labels, constants). If the user wants a build designed around a dropped item, use `le-build-around-item` instead.
 
 ## Procedure
@@ -153,7 +155,7 @@ State the nearest build (any mastery, leveling guides included) and how the prop
 
 For the main skill (and one secondary): run `le-damage-reasoning` Steps 0-11 (Step 12 as well for a minion skill). Report:
 - skill, tags, damage types, ADE, crit chance/multiplier, uses per second, hit damage, ailment DPS, DPS vs dummy and vs a level-100 monster (state both; level DR alone is x0.13);
-- the **bucket table**: for each damage type the added/increased/more lines counted, with source ids;
+- the **bucket table**: for each damage type the added/increased/more lines counted, each with its source by in-game name (item + slot, node + skill, passive + tree; ids go to Sources);
 - scaling vector: which multipliers exist (added, generic increased, type increased, crit, speed, penetration, conditional, per-stack, area/projectiles) and which are missing (a build with no more-multiplier beyond tree nodes, no penetration against high-resistance content, no crit when the skill benefits from it);
 - how much of the damage is ailment DoT vs hit, and whether the build's modifiers address that part (tag check).
 
@@ -261,13 +263,15 @@ Rank by (expected gain x confidence) / cost, in this order of urgency unless the
 5. Mana/mobility fixes.
 6. Upgrades (tier increases, crafting: `knowledge/reference/crafting.md#forging-potential-fp`, uniques that enable the build).
 
-Each suggestion lists: change, where (slot/node/idol), data id, estimated effect with label and formula, trade-off, confidence. Do not present an estimate as a measured DPS.
+Each suggestion lists: change, where (slot, node or idol, by in-game name: "craft +116-140% Chance to Shock on Lightning Hit (T7) into the helmet's open prefix", "move 3 points into Melting Nova (Elemental Nova node)"), estimated effect with label and formula, trade-off, confidence. The data ids of a suggestion go in Sources. Do not present an estimate as a measured DPS.
 
 ## Output template
 
+Everything above "Sources" is player-facing: in-game names only (skill nodes with their skill, passives with their class or mastery, uniques with their slot, affixes as stat lines with tier, idols with name and size, blessings with their timeline). "Sources" is the only section with ids, each next to its name.
+
 ```
 # Build audit: <class>/<mastery>, level <L>, game <version>
-Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | idols ... | blessings ...
+Ledger (in-game names + status resolved/substituted/invalid): skills ... | items ... | idols ... | blessings ...
 ## Ledger problems (unresolved names and the substitutes offered, class or level locks, affixes that do not roll on that slot or idol size, idol size or value read from a guide instead of the data, uniques with `can_drop_randomly` 0 and their `drop_source` or "not in data: farm unknown"; idol lines without WxH and scale factor)
 ## Verdict (3 lines): strongest point / weakest point / first fix  (or "partial audit: <sections skipped>")
 ## Offense   skill, DPS vs dummy, DPS vs L100 monster, bucket table, scaling gaps, dead stats    [labels]
@@ -278,11 +282,11 @@ Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | ido
 ## Bottlenecks (ranked, marginal-value table)
 ## Missing resistances (type: gap, source slot)
 ## Anti-synergies and traps (catalogue entries by name, with confidence)
-## Ranked suggestions (rank, change, gain estimate + label, cost/trade-off, ids)
+## Ranked suggestions (rank, change by in-game name, gain estimate + label, cost/trade-off)
 ## Not determined from data (special effects, 5000+ node properties, inputs assumed U)
 ## Riskiest assumption (the link with the weakest label, with its in-game test; never a per-point tree value) and nearest community build (any guide with the skill's tree points, leveling guides included)
 ## Needed to continue (exact missing inputs per skipped section)
-## Sources (table+id, page#section)
+## Sources (the only place for ids: in-game name | table + id, page#section)
 ```
 
 ## Common mistakes
@@ -295,3 +299,4 @@ Ledger (ids + status resolved/substituted/invalid): skills ... | items ... | ido
 | Calling a gap "minor" without a number | Quote the multiplier (for example x1.75 vs x1.00 at area 75+) |
 | Mixing labels | Keep D/A/G/X/U on each figure; inputs assumed by you are U |
 | Suggesting items without checking class and level requirement | `item_subtypes.class_requirement_names`, `level_requirement`; affix `class_names` |
+| Writing `mg-1:88`, `en6:27`, "uid 307", "Body: 392 + 391", `SP`/`PP`/`AP` codes or tag masks in the report | The game UI shows no ids. Write "Circle of Elements (Runemaster passive)", "Melting Nova (Elemental Nova node)", "Crest of Unity (unique helmet)", the affix's stat line with tier; ids only in Sources, next to the name |

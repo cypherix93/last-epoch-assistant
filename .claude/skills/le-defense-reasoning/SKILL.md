@@ -278,6 +278,8 @@ ORDER BY property, source_id LIMIT 60;
 
 ## Report template
 
+Player-facing: **never show internal ids in player-facing text; use the in-game name as the game UI shows it** ("Mask of Indifference (unique helmet)", "+61-75% Fire Resistance (T7) on the ring", "Grand Bastion of Divinity (Ending the Storm blessing)", a passive with its class or mastery). Ids go only in the Sources line, each next to its name (**le-data-query**, "Player-facing names").
+
 ```
 Context: area <a>, corruption <c>, attacker <type>
 Resistances: F/C/L/Phys/Void/Necro/Poison = ... (shown, uncapped), gaps: ...
@@ -287,11 +289,11 @@ Mitigation: armour <x> -> <DR>%, dodge <x> -> <p>%, block ..., glance ..., endur
 Pool: health ..., ward steady-state ..., mana-before-health ... ; pool_post ...
 Reference hits: <hit> raw -> post ; hits to die ; EHP (avg) ; labels
 Sustain: regen, leech, ward/s, potions
-Crowd control: freeze answer | stun answer | slow/chill answer (source + id, or "none")
+Crowd control: freeze answer | stun answer | slow/chill answer (source by in-game name, or "none")
 Red flags: ranked
-Fixes:       rank | change | where (slot / blessing / idol / node) | data id | effect (label) | trade-off
+Fixes:       rank | change | where (slot / blessing / idol / node, by in-game name) | effect (label) | trade-off
 Not determinable: <special effects, boss ability numbers>
-Sources: table+id per stat, page#section per formula
+Sources: in-game name: table+id per stat, page#section per formula (the only place for ids)
 ```
 
 ## Common mistakes
@@ -305,3 +307,4 @@ Sources: table+id per stat, page#section per formula
 | Counting ward under endurance or mana-before-health protecting ward | neither applies to ward |
 | Using Maxroll "10 HP per Vitality" or "4% ward retention per Int" | data: 6 HP, 2% |
 | Taking a 776 sample hit as every monolith hit | it is a trimmed-mean sample (**D?**); say so |
+| Naming fixes by id ("affix 13", "uid 434", `mg-1:8`) | the game shows names: "+61-75% Fire Resistance (T7)", "Mask of Indifference (unique helmet)", "Warden (Mage passive)"; ids only in Sources |

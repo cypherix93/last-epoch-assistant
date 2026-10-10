@@ -160,7 +160,7 @@ Every row: value, label, page.
 2. Fetch the data records with `le-data-query` (ids and tags).
 3. Compute with the page's formula; keep the label on every intermediate number.
 4. Check "Common misconceptions / pitfalls" and "Open questions" at the page end.
-5. Report: answer, formula used, label, page#section, data ids, what stayed unverified.
+5. Report: answer, formula used, label, page#section, what stayed unverified, and the data records in a closing sources list (in-game name next to each id). **Never show internal ids in player-facing text; use the in-game name as the game UI shows it** (`.claude/skills/README.md`, "Player-facing names").
 
 ## Common mistakes
 
@@ -171,3 +171,4 @@ Every row: value, label, page.
 | Using a worked-example number as game data | It is **U** unless it comes from a table row |
 | Reading only the user's tooltip numbers | Tooltips ignore level DR, resistances and uptime (`damage-pipeline.md#13-variance-and-tooltips`) |
 | Applying a generic sum to a unique's special effect | Look up the effect model; if absent, say it cannot be determined |
+| Answering with `mg-1:14`, "uid 33", "SP 18" | Name it as the game does ("Wisdom (Sorcerer passive)", "Culnivar's Claim (unique sceptre)", "Mana Regen"); ids only in the sources list |
