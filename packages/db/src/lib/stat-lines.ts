@@ -43,16 +43,25 @@ export type ModifierType = 0 | 1 | 2;
 export const MODIFIER_NAMES: Record<ModifierType, string> = { 0: "added", 1: "increased", 2: "more" };
 
 /** Stat property ids whose `tags` is an index into a secondary list, not an AT mask. */
-export const INDIRECT_PROPERTIES = { abilityProperty: 58, levelOfSkills: 88, playerProperty: 98, idolAltarProperty: 130 } as const;
+export const INDIRECT_PROPERTIES = {
+  abilityProperty: 58,
+  levelOfSkills: 88,
+  playerProperty: 98,
+  increasedDropRate: 104,
+  increasedExperience: 105,
+  idolAltarProperty: 130,
+} as const;
 
 /**
  * True when `tags` of a line is an index rather than an AT bitmask:
  * 58 AbilityProperty (ability index), 98 PlayerProperty (playerPropertyList index),
- * 130 IdolAltarProperty (idolAltarPropertyList index), and 88 LevelOfSkills with specialTag 1
+ * 130 IdolAltarProperty (idolAltarPropertyList index), 104 IncreasedDropRate and 105 IncreasedExperience (drop category:
+ * with specialTag 0 `tags` is an item BASE TYPE id, e.g. 1 = Body Armor, 33 = Adorned Idol; specialTags 1-4 select other
+ * drop categories whose tags values are not decoded; never an AT mask), and 88 LevelOfSkills with specialTag 1
  * (single-skill level: tags = ability index; with specialTag 0 tags is an AT mask, e.g. 32 = Necrotic skills).
  */
 export function isIndirectTags(property: number | null | undefined, specialTag = 0): boolean {
-  if (property === 58 || property === 98 || property === 130) return true;
+  if (property === 58 || property === 98 || property === 104 || property === 105 || property === 130) return true;
   return property === 88 && specialTag === 1;
 }
 
@@ -221,6 +230,18 @@ export interface ModInput {
   setRequirement?: number | null;
   hidden?: boolean | number | null;
   isDownside?: boolean | number | null;
+  /** Tree node stats only: stats[].noScaling (true = not per point). Leave undefined for every other source. */
+  noScaling?: boolean | number | null;
+  /** Tree node stats only: 'stat' | 'tooltip_category' | 'ailment' | 'display_only' (what `property` is). */
+  propertyKind?: string | null;
+  /** Tree node stats only: added | increased | more | skill_parameter | conversion | unknown. */
+  statKind?: string | null;
+  /** Tree node stats only: 'structured' | 'inferred' (where modifierType comes from). */
+  modifierSource?: string | null;
+  /** Tree node stats only: the property is an SP id but the line is not a plain stat of it. */
+  labelMismatch?: boolean | number | null;
+  /** Tree node stats only: the matched decompiled code effect. */
+  codeRef?: string | null;
   /** Override the resolved property name (default: StatNamer.lineName). */
   propertyName?: string | null;
   /** The source stat line object (stored as raw_json). Required. */
@@ -257,15 +278,20 @@ export function validateMod(m: ModInput): void {
   if ((m.value ?? null) !== null && ((m.valueMin ?? null) !== null || (m.valueMax ?? null) !== null)) {
     fail("give either value or valueMin/valueMax, not both");
   }
+  if (m.modifierSource !== undefined && m.modifierSource !== null && m.modifierSource !== "structured" && m.modifierSource !== "inferred") {
+    fail(`modifier_source must be 'structured', 'inferred' or null, got ${String(m.modifierSource)}`);
+  }
   if (m.raw === undefined) fail("raw (the source line) is required");
 }
 
 const insertSql = `INSERT INTO mods (source_kind, source_id, source_ord, sub_ord, tier, property, property_name,
   special_tag, tags, tag_names, extra_tag, modifier_type, value_min, value_max, display, label, label_key,
-  context, set_requirement, hidden, is_downside, raw_json)
+  context, set_requirement, hidden, is_downside, no_scaling, property_kind, stat_kind, modifier_source, label_mismatch,
+  code_ref, raw_json)
   VALUES (@source_kind, @source_id, @source_ord, @sub_ord, @tier, @property, @property_name,
   @special_tag, @tags, @tag_names, @extra_tag, @modifier_type, @value_min, @value_max, @display, @label, @label_key,
-  @context, @set_requirement, @hidden, @is_downside, @raw_json)`;
+  @context, @set_requirement, @hidden, @is_downside, @no_scaling, @property_kind, @stat_kind, @modifier_source, @label_mismatch,
+  @code_ref, @raw_json)`;
 const stmts = new WeakMap<DB, Database.Statement>();
 
 const flag = (v: boolean | number | null | undefined) => (v ? 1 : 0);
@@ -309,6 +335,12 @@ export function insertMod(db: DB, m: ModInput, namer: StatNamer): number {
     set_requirement: m.setRequirement ?? null,
     hidden: flag(m.hidden),
     is_downside: flag(m.isDownside),
+    no_scaling: m.noScaling === null || m.noScaling === undefined ? null : flag(m.noScaling),
+    property_kind: m.propertyKind ?? null,
+    stat_kind: m.statKind ?? null,
+    modifier_source: m.modifierSource ?? null,
+    label_mismatch: m.labelMismatch === null || m.labelMismatch === undefined ? null : flag(m.labelMismatch),
+    code_ref: m.codeRef ?? null,
     raw_json: JSON.stringify(m.raw ?? null),
   });
   return Number(info.lastInsertRowid);

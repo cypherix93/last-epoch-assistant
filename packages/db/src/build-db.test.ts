@@ -25,8 +25,8 @@ describe("parseArgs", () => {
     expect(() => parseArgs(["--only", "bogus"])).toThrow(/unknown step/);
     expect(() => parseArgs(["--frobnicate"])).toThrow(/unknown argument/);
   });
-  it("orders steps world -> items -> skills -> search -> crosscheck", () => {
-    expect(STEPS).toEqual(["world", "items", "skills", "search", "crosscheck"]);
+  it("orders steps world -> items -> skills -> community -> search -> crosscheck", () => {
+    expect(STEPS).toEqual(["world", "items", "skills", "community", "search", "crosscheck"]);
   });
 });
 
@@ -50,7 +50,8 @@ describe.skipIf(!hasRawData())("buildDatabase (real raw data)", () => {
     expect(meta["letools_sha256:i18n/en.json"]).toBe(l.letools.i18n.sha256);
     for (const f of l.letools.files) expect(meta[`letools_sha256:${f.section}/${f.url.split("/").pop()}`]).toBe(f.sha256);
     expect(meta.loaded_steps).toBe("none");
-    expect(Object.values(report.loaders)).toEqual(["skipped", "skipped", "skipped", "skipped", "skipped"]);
+    expect(Object.values(report.loaders)).toEqual(["skipped", "skipped", "skipped", "skipped", "skipped", "skipped"]);
+    expect(report.community).toBeNull();
     expect(report.tables.meta).toBe(Object.keys(meta).length);
     expect(report.empty_tables).toContain("mods");
     db!.close();
@@ -96,6 +97,23 @@ describe.skipIf(!hasRawData())("buildDatabase (real raw data)", () => {
       ["world: wrong", false],
     ]);
     expect(ok).toBe(false);
+    db!.close();
+  });
+
+  it("evaluates function-valued expected counts after the step and reports the community result", () => {
+    const fake = { present: true, guides: 1, builds: 1, profiles_loaded: 1, profiles_missing: 0, tabs: 1, items: 0, affixes: 0,
+      resolution: "ok", unresolved_total: 0, unresolved: {}, inline_items: 0, warnings_total: 0, warnings: {}, unnamed_properties: [] };
+    const community = {
+      run: (ctx: { db: Database.Database }) => {
+        insertRow(ctx.db, "community_builds", { build_id: 1, source: "maxroll", slug: "x", is_primary: 1, profile_status: "none", raw_json: "{}" });
+        return fake;
+      },
+      expected: () => [count("community_builds", 1)],
+    };
+    const { db, report, ok } = buildDatabase({ ...quiet, only: ["community"], out: ":memory:", runners: { community } });
+    expect(report.expected.results.map((r) => [r.name, r.ok])).toEqual([["community: community_builds", true]]);
+    expect(report.community).toEqual(fake);
+    expect(ok).toBe(true);
     db!.close();
   });
 

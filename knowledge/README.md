@@ -36,8 +36,8 @@ Every `vendor/corpus/<file>` citation resolves to a plain-text capture committed
 
 | Page | What it covers |
 |---|---|
-| [mechanics/damage-pipeline.md](mechanics/damage-pipeline.md) | Hit damage from base to final: ADE, added/increased/more, tag matching, crit, penetration and resistance, conversion, level DR, rounding, worked Fireball example. |
-| [mechanics/defenses.md](mechanics/defenses.md) | Incoming-damage layer order, resistances and area-level penetration, armour/dodge/block formulas and tables, endurance, glancing, parry, crit avoidance, damage-taken conversions, EHP with a level-100 monolith example. |
+| [mechanics/damage-pipeline.md](mechanics/damage-pipeline.md) | Hit damage from base to final: ADE, added/increased/more, tag matching, crit, penetration and resistance, conversion, level DR, rounding, worked Fireball example, calibration convention (boss DPS with and without own debuffs), ailment ramp, penetration cap question. |
+| [mechanics/defenses.md](mechanics/defenses.md) | Incoming-damage layer order, resistances and area-level penetration, armour/dodge/block formulas and tables, endurance, glancing, parry, crit avoidance, damage-taken conversions, EHP with a level-100 monolith example, table of every freeze, stun, slow and chill answer in the data. |
 | [mechanics/ailments.md](mechanics/ailments.md) | Ailment application, stack damage, stacking and refresh, full ailment table from data, debuff caps and boss penalties, stun and freeze formulas, worked ignite example. |
 | [mechanics/ward-health-sustain.md](mechanics/ward-health-sustain.md) | Health and mana per level, regeneration, ward decay (1.1 quadratic formula) and steady state, ward sources, leech formula and scale, on-hit gains, potions. |
 | [mechanics/speed-cooldowns-mana.md](mechanics/speed-cooldowns-mana.md) | Use rate from `useDuration`/`speedMultiplier`/`speedScaler`, weapon attack rates, cooldowns and charges, channelling, mana costs, trigger frequency, movement speed. |
@@ -45,11 +45,11 @@ Every `vendor/corpus/<file>` citation resolves to a plain-text capture committed
 | [mechanics/enemies-and-corruption.md](mechanics/enemies-and-corruption.md) | ActorScaler level tables, monster health and damage formulas, rarity multipliers, corruption scaling, timeline levels, monster mods, average monster damage, boss ward. |
 | [mechanics/stat-model.md](mechanics/stat-model.md) | The `Stat` record, every AT tag bit and SP id, enums, rounding grid, how affixes, uniques, sets, idols, blessings, passive and skill nodes reduce to stats, and how to sum a build. |
 
-Reference pages (game systems, mostly generated from data by `reference/_gen/`): [classes-and-masteries](reference/classes-and-masteries.md), [item-system](reference/item-system.md), [uniques-sets-legendary](reference/uniques-sets-legendary.md), [idols-and-blessings](reference/idols-and-blessings.md), [crafting](reference/crafting.md), [skills-and-trees](reference/skills-and-trees.md), [endgame-systems](reference/endgame-systems.md), [glossary](reference/glossary.md).
+Reference pages (game systems, mostly generated from data by `reference/_gen/`): [classes-and-masteries](reference/classes-and-masteries.md), [item-system](reference/item-system.md), [uniques-sets-legendary](reference/uniques-sets-legendary.md), [idols-and-blessings](reference/idols-and-blessings.md), [crafting](reference/crafting.md), [skills-and-trees](reference/skills-and-trees.md), [endgame-systems](reference/endgame-systems.md), [glossary](reference/glossary.md), [community-builds](reference/community-builds.md) (the 74 Maxroll guides in the database: counts, how to query, table of builds; guide data for 1.5.2, label X, not game truth).
 
-Interactions: [interactions/README.md](interactions/README.md) (how to use them), [catalogue.md](interactions/catalogue.md) (117 tagged, sourced interactions and anti-synergies), [unique-effects-index.md](interactions/unique-effects-index.md) (one row per unique with its special effect and model).
+Interactions: [interactions/README.md](interactions/README.md) (how to use them), [catalogue.md](interactions/catalogue.md) (122 tagged, sourced interactions and anti-synergies), [unique-effects-index.md](interactions/unique-effects-index.md) (one row per unique with its special effect and model).
 
-Skills that use this knowledge: the six `le-*` skills in [`.claude/skills/`](../.claude/skills/README.md) (start with `le-mechanics-reference`, which maps questions to pages and sections).
+Skills that use this knowledge: the seven `le-*` skills in [`.claude/skills/`](../.claude/skills/README.md) (start with `le-mechanics-reference`, which maps questions to pages and sections).
 
 ## How agents should use this
 

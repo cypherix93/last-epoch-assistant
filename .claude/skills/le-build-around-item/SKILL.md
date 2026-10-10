@@ -41,26 +41,30 @@ MCP server `le-data` (arguments are JSON objects; full shapes in **le-data-query
 - `lookup({"name","kinds"?,"limit"?})`: resolves names (player abilities rank first). `search({"query","kinds"?,"limit"?})`: fuzzy text discovery only.
 - `get({"kind","id","include_raw"?})`: main record plus children as separate top-level keys.
 - `find_mods({"filters":{"property"?,"property_name"?,"tags_any"?,"tags_all"?,"include_untagged"?,"include_indirect"?,"modifier_type"?,"source_kinds"?,"source_id"?,"min_value"?,"special_tag"?},"limit"?})`: filters are **nested**; never flat. Tag filters skip SP 58/98/130 rows unless `include_indirect:true`.
-- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops descriptions and x/y; `requires` is `[{node_id, node_name, points}]`. Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
+- `skill_tree({"ability_id": "<id>", "filter"?, "compact"?})`, `passive_tree({"class_id": "<class>", "filter"?, "compact"?})`: `filter` keeps nodes whose text contains the string, `compact` drops x/y and the UI fields but keeps descriptions truncated at 400 chars (`keep_descriptions:false` drops them); every node stat line carries `stat_kind` / `modifier_type`, `modifier_source` (`structured` = decompiled node code, `inferred` = label), `code_ref`, `property_hint` (the tooltip category of a 5000+ id, named in the global `node_tooltip_properties` list) and a `warning` when `label_mismatch` is 1 (not a plain stat: read the label); `unlocked_by` is `[{node_id, node_name, points}]` (ANY ONE of them unlocks the node; `requires` is a deprecated alias). Nodes come back with `id` (the node number); cite them as `<tree_id>:<id>` (`lb23il:28`), the form Q6 and Q13 build.
 - `sql({"query","params"?,"limit"?})`: read-only SELECT/WITH, plus `PRAGMA table_info(<table>)`, `PRAGMA table_list`, `PRAGMA index_list(<table>)` to discover columns.
+- Community builds (Maxroll guides, 1.5.2, label **X**; shapes and caveats in **le-data-query**, "Community builds"): `builds({class?, mastery?, ability?, any_skill?, item?, affix?, tier?, tier_list?, playstyle?, season?, limit?})`, `build({id? | slug?, tab?, sections?})`, `item_usage({name? | unique_id? | affix?, slot?, tab?, class?, mastery?})`, `slot_meta({slot, class?, mastery?, ability?, tab?, kind?})`. Used in Phase C2. If the tools are missing on your checkout, use `sql` on the views (Q18-Q19 below, and **le-bis-selection** example 3).
 
 Without MCP, run `yarn mcp:call <tool> [args]` from the repo root, for example `yarn mcp:call lookup '{"name":"Culnivar","kinds":["unique"]}'` or `yarn mcp:call find_mods '{"filters":{"property":18},"limit":10}'`. The Q-recipes below contain single quotes, `<`, `>`, `%` or `|`: write the args JSON to a file and pass `@file.json` (or raw SQL with `--query-file`), or pipe it on stdin; inline they can break or be silently corrupted, and item names with apostrophes ("Ignivar's Head") break inline quoting outright (see **le-data-query**). If a call rejects its arguments, read **le-data-query**; do not guess.
 
+**Scratch isolation.** When several agents or runs share a scratch folder, write only under your own subfolder (`<scratch>/<your-name>/`, with your own SQL files and call log); never write to the shared root or to another agent's files, so every cited query can be re-run from your own folder.
+
 **Empty or stub database.** A db built with `LE_DB_ALLOW_STUBS=1` has empty tables, but `meta` is still filled. Read `game_version` and `data_version` from `meta` anyway.
 
-If `SELECT count(*) FROM uniques` returns 0, fall back to the vendored JSON in `vendor/lastepochbuilder/research/data/game/`: `uniques.json`, `unique_effects.json`, `abilities.json`, `affixes.json`, `trees.json`, `tree_node_stats.json`, `items.json` and `blessings.json`.
+If `SELECT count(*) FROM uniques` returns 0, fall back to the vendored JSON in `vendor/lastepochbuilder/research/data/game/` (only where you are allowed to read `vendor/`; evaluation agents are not: then say the database is empty and stop): `uniques.json`, `unique_effects.json`, `abilities.json`, `affixes.json`, `trees.json`, `tree_node_stats.json`, `items.json` and `blessings.json`.
 
 - A JSON read counts as a "logged query" when you record it as `file` + record id + field (for example `uniques.json uniqueID 33 mods[2]`).
 - Field names differ from the db: `uniqueID`, `modType`, `affixId`, `canRollOn`, `tiers[].rolls`, `masteryRequirement`, `abilityName`, `playerAbilityID`.
 - Say in the proposal which source you used.
 
 Knowledge pages (read the Summary section of each before you rely on it):
-- `knowledge/interactions/catalogue.md`: 117 tagged interactions, the creative fuel. Usage rules are in `knowledge/interactions/README.md`.
+- `knowledge/interactions/catalogue.md`: 122 tagged interactions, the creative fuel. Usage rules are in `knowledge/interactions/README.md`.
 - `knowledge/interactions/unique-effects-index.md`: one row per unique, with tooltip and model column.
+- `knowledge/reference/community-builds.md`: the 74 Maxroll guides in the database (mastery, main skill, tiers) and how to query them.
 - `knowledge/mechanics/stat-model.md`: how every source reduces to `Stat` records.
 - `knowledge/mechanics/` pages: damage, defenses, ailments, ward/sustain, speed/mana, minions, enemies.
 - `knowledge/reference/` pages: classes and masteries, items, uniques/sets/legendary, idols and blessings, skills and trees, endgame systems.
-- `docs/schema.md`: tables, views and example queries. `docs/data-sources/enums.md`: tag bits, SP ids, 5000+ node properties.
+- `docs/schema.md`: tables, views and example queries. `docs/data-sources/enums.md`: tag bits, SP ids; the 5000+ node tooltip categories are named in the `node_tooltip_properties` table (global list, also returned as `property_hint`).
 
 ## Procedure
 
@@ -68,7 +72,7 @@ Work through the phases in order. Write the intermediate results down; the propo
 
 ```dot
 digraph flow {
-  "A. Intake" -> "B. Enabling-effect model" -> "C. Divergent: >=5 candidates" -> "D. Score" -> "E. Converge: 1-2 skeletons" -> "F. Honesty pass" -> "G. Write proposal" -> "Checklist all ticked?";
+  "A. Intake" -> "B. Enabling-effect model" -> "C. Divergent: >=5 candidates" -> "C2. Meta check" -> "D. Score" -> "E. Converge: 1-2 skeletons" -> "F. Honesty pass" -> "G. Write proposal" -> "Checklist all ticked?";
   "Checklist all ticked?" -> "Present" [label="yes"];
   "Checklist all ticked?" -> "C. Divergent: >=5 candidates" [label="no: missing candidates/scores"];
   "Checklist all ticked?" -> "E. Converge: 1-2 skeletons" [label="no: missing plan section"];
@@ -84,7 +88,7 @@ digraph flow {
    - A screenshot description: as for a pasted tooltip. Ask for any missing affix values only if they change the build; otherwise mark them as assumptions.
    - A rare or exalted item (not a unique): resolve each affix line to an `affix_id` with `search({"query":"<affix line>","kinds":["affix"]})`, then tier it against `mods` rows (`source_kind = 'affix_tier'`). Its "enabling effect" is then the best-in-slot combination, and the rest of the procedure still applies.
 3. **Resolve the item and pull its mods.** Run `get({"kind":"unique","id":<uid>})` (returns `unique`, `mods`, `tooltips`, `subtypes`, `set`), or queries Q1-Q2 below. Record every mod with its property, tags, modifier type and roll range, and every tooltip line. Indirect lines (SP 98 PlayerProperty, SP 58 AbilityProperty) are pointers to coded effects. Record the PP or AP index (`tags`) and do not sum them as stats (`knowledge/mechanics/stat-model.md`, "Special properties"). For SP 58 (and SP 88 "Level of X", and any "AP162" reference) `tags` is an **ability index**, not an ability id: the interesting rule often lives on another ability. Resolve it with `SELECT ability_id, name, is_player_ability FROM abilities WHERE ability_index = ?` (Ignivar's Head: SP 58 `tags` 162 -> `ability_gen98` Fire Aura, not a player skill) and read that ability's properties with Q9b; then `get({"kind":"ability","id":"ability_gen98"})` for its components.
-4. **Read its model.** Find the row in `knowledge/interactions/unique-effects-index.md` (model column: PP/AP/C kinds; grep the file for the name or uid, it is 118 KB). Read its `unique_effects.json` entry (`vendor/lastepochbuilder/research/data/game/unique_effects.json`, 84,583 lines, 550 entries of about 150 lines each): `grep -n '"uniqueID": 74,' vendor/lastepochbuilder/research/data/game/unique_effects.json` gives the start line, then read the next ~150 lines for the `effects[].formula`, `condition`, `trigger` and `confidence` fields. Then search `catalogue.md` for its uid and name. The code formula wins over the tooltip; record any D? flag.
+4. **Read its model.** Find the unique's row in `knowledge/interactions/unique-effects-index.md` (grep the file for the name or uid; it is 118 KB): the tooltip column lists the effect text, the `model` column gives the kind of each coded effect (`PP<n>` PlayerProperty, `AP<ability>:<prop>` AbilityProperty, `C<uid>:<i>:<kind>` component: stat, flag, trigger, resource, conversion, cooldown, ...) and `notes` the effect's class name. Then call `get({"kind":"unique","id":<uid>})` (mods, tooltips, subtypes, set) and `Q15` (relations), search `knowledge/interactions/catalogue.md` for its uid and name, and read the `knowledge/mechanics/` row that covers the effect (for example `ward-health-sustain.md` section 3.3 for ward converters), with its label. The coded formula, condition and trigger are not in the database: **do not read `vendor/`** (evaluation agents are forbidden to; the knowledge pages already carry what was extracted there, labelled D). Where no page states the rule, write "coded detail not read (U)", quote the tooltip (A) and make the exact trigger and condition test #1. The code formula wins over the tooltip only when a knowledge page states it; record any D? flag.
 5. **Split the value.**
    - *Enabling effect*: the line that changes a rule (a conversion, trigger, resource loop, cap change or skill rewrite).
    - *Stat stick*: the plain mods. Note which tag combination the stat stick wants. For example, Lightning|Spell (258) only helps skills that carry both tags.
@@ -94,7 +98,7 @@ digraph flow {
    - level requirement of the unique and of the base (they can differ: quote both);
    - class requirement (`item_subtypes.class_requirement_names`);
    - primordial, set or WW status;
-   - LP: whether it can become legendary, and which affixes roll on that base (Q10);
+   - LP: `lp_eligible` (derived: not a set item and `legendary_type` 0; the game data has no per-unique LP flag, `legendary_type` 1 = Weaver Will item), and which affixes roll on that base (Q10);
    - corruption: a corrupted item cannot become legendary (`knowledge/reference/uniques-sets-legendary.md`).
    Note what the slot forbids, for example a 2H weapon rules out shields and many uniques.
 
@@ -126,6 +130,16 @@ Archetype prompts, so you do not stop at the obvious one:
 - off-class via conversion or re-tagging;
 - defensive-engine build, where the item is the defense and the damage comes from elsewhere.
 
+### Phase C2: meta check (steps 14b-14d)
+
+Run after the divergent phase and before scoring, for the item and for the one or two leading candidates. The community data is Maxroll guide data for 1.5.2 (label **X**), skewed to popular skills: it tells you what exists, never what is optimal. Record every count as "N of 74 guides" (`community_builds` holds 74 builds) and carry the numbers into the scores (step 15) and the proposal's "Community baseline" section.
+
+14b. **Is the item used?** `item_usage({"unique_id": <uid>})` (or `{"name": "<name>"}`; for a rare, `{"affix": <affix_id>}`). Record `total_builds`, `by_slot`, `by_mastery` and, for the builds that use it, the `extra_affixes` (what guides slam or legendary-roll on it). `total_builds` 0 means no guide uses it; say so, do not read it as "bad". Also run it for each required partner unique. SQL form: Q18.
+14c. **Does a community build already exist?** `builds({"mastery": "<mastery>", "ability": "<main skill>"})` for each leading candidate (also `{"any_skill": "<skill>"}` and `{"item": "<name>"}`). If a build exists, read it with `build({"slug": "<slug>"})` and the proposal **must say how it differs** (mastery, skill nodes, defense layer, the item's role, gear). If none exists, name the nearest (same mastery, or same main skill) so the reader knows what the baseline is. SQL form: Q19. **The nearest-build check covers every guide, not only `is_specialized` ones:** leveling guides and any profile whose skill has tree points count (a profile can allocate a skill's nodes while `is_specialized` is 0, and a guide's `mastery_name` can differ from its filing); use the skill-row and node query in **le-build-audit** Step 1, check 3, and name the closest guide with its profile.
+14d. **Community-standard picks for every remaining slot.** `slot_meta({"slot": "<slot>", "mastery": "<mastery>", "ability": "<main skill>"})` for helmet, body, gloves, belt, boots, weapon / off-hand, amulet, ring (both) and relic, and for idols; list the top items and affixes with `count` out of `matched_builds` **before** choosing gear in Phase E (step 19). Widen to the class when `matched_builds` is 0 or 1 and say the sample is thin. Take the final per-slot choice with **le-bis-selection** (its example 3 is the SQL form).
+
+Output of Phase C2: a short table (item usage; existing builds and the difference; per-slot community-standard picks with counts). Never write "meta" for a result.
+
 ### Phase D: Score (step 15)
 
 15. **Score every candidate 1-5 on each axis** and show the table in the proposal.
@@ -137,6 +151,11 @@ Archetype prompts, so you do not stop at the obvious one:
 | Sustain | no recovery outside potions | one recovery source | recovery scales with the build's main stat |
 | Gear accessibility | 3+ other chase uniques or a primordial needed | 1-2 other uniques | the item plus rares or exalted items only |
 | Novelty | standard archetype that only incidentally uses the item | known catalogue chain applied | pairing not named together in any catalogue entry or skill text |
+
+**Community citations are required for two axes.**
+- *Gear accessibility* cites the community usage counts from Phase C2: the item's `total_builds` (of 74) and, for each other required unique, how many guides of that mastery wear it in that slot (`slot_meta` count out of `matched_builds`). A score of 4-5 needs the other required items to be either unused chase items you can replace by rares (count 0 and a rare plan) or common community picks; a unique that guides use in 0 of M builds and that you still require counts as a chase item with unknown availability.
+- *Novelty* cites how many guides already pair the item (or its enabler) with the candidate's mastery and main skill (`item_usage.by_mastery`, `builds` for the mastery and skill). 0 existing guides is required for 4-5; 1 or more existing guides with the same mastery and main skill caps Novelty at 2 (the item's own tooltip suggests the build) unless the proposal states a concrete difference; a catalogue chain with 0 community builds is 3-4.
+Write the numbers in the justification clause of the score (for example "Nov 4: 0 of 74 guides use the item; 0 Sorcerer + Lightning Blast guides").
 
 Anchors for the in-between scores: 2 = the 1-column description with one mitigating fact (Damage 2: one more-multiplier but the stat stick is wasted; Novelty 2: the item's own tooltip suggests the build); 4 = the 5-column description minus one element (Defense 4: capped resistances and two layers but no stun answer; Novelty 4: a catalogue entry names one half of the pairing, the other half comes from a skill node or a second item). Write one clause of justification per score.
 
@@ -159,7 +178,8 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
     - for rare or exalted slots, the required affixes by name and id with a tier target (T5 craftable, T6-T7 drop, T8 primordial);
     - the LP or legendary plan for the item (Q10);
     - which slot carries which resistance.
-20. **Idols:** shapes and affixes by name and id (Q11), class restrictions, and the one-of-each rule for unique idols.
+20. **Idols:** shapes and affixes by name and id (Q11), class restrictions, and the one-of-each rule for unique idols. **Read idol sizes and values from the data, never from a community build:** the Minor Idol is 1x1, and every idol affix range is scaled by `(1 + idol AEM) / (1 + affix standard AEM)`: read it from `v_idol_affix_values` (idol size WxH, `scale_factor`, `stored_min/max` and scaled `value_min/max`; `v_build_items_named.affixes_text` already prints the scaled value with an `x<factor>` marker, but a hand-copied guide number is unscaled; the judge found both challenge proposals wrong on idol values). Use the idol queries in **le-build-audit** Step 1, check 1, and count the grid cells. The scaled values follow the decompiled formula and are unverified in game (label **D?**).
+20b. **Acquisition.** For every unique in the plan read `uniques.can_drop_randomly`. Each unique with 0 needs a source from [endgame-systems.md#uniques-that-do-not-drop-randomly] or an explicit "farm unknown (U)" flag in the gear table and on the Build card; a proposal never lists such an item as obtainable without one (Q3 returns the flag).
 21. **Blessings:** one per timeline (Q12), normal vs Grand, chosen to close the defense or mana gaps.
 22. **Damage path.** Apply **le-damage-reasoning**: the main skill's tags, added (x ADE) / increased / more per bucket, the crit or ailment path, penetration, and "vs dummy" vs "vs level-100 boss". Name every more-multiplier and its source id.
 23. **Defense plan.** Apply **le-defense-reasoning**:
@@ -176,13 +196,13 @@ Pick the top 1-2 candidates. Fill in the full skeleton for the first; the second
     - when to switch;
     - which uniques are campaign-reachable and which are endgame chase;
     - which timeline or dungeon unlocks matter (`knowledge/reference/endgame-systems.md`).
-26. **What to test first.** Write 5-8 checks. Each must be observable in game (character sheet value, combat log, ward bar, dummy DPS, buff icon) and must state the expected result and what failure means. Order them so the cheapest test of the riskiest assumption comes first.
+26. **What to test first.** Write 5-8 checks. Each must be observable in game (character sheet value, combat log, ward bar, dummy DPS, buff icon) and must state the expected result and what failure means. Order them so the cheapest test of the riskiest assumption comes first. **The riskiest assumption is the chain link with the weakest label** (U, then D?, then A/D/G), not the most interesting or best-supported link; per-point tree values read from `skill_tree` are never the riskiest, an engine-scope question (does a bonus copy the weapon implicit, does a node apply to ailment chance, is a trigger gated by a tag swap) is.
 
 ### Phase F: Honesty pass (steps 27-30)
 
 27. **Label every number** D / A / G / X / U, from the source it came from (`knowledge/README.md`, "Confidence legend"). Values you computed yourself inherit the weakest input label. Illustrative inputs are **U**.
 28. **Flag the uncertainty.**
-    - Every skill-tree node whose stat property is 5000+ or display-only (`modifier_type` NULL) makes the damage uncertain, because its type comes from code, not the tooltip. List these nodes.
+    - Every skill-tree node line that is `modifier_source = 'inferred'` (kind guessed from the label, **U**), has `stat_kind = 'unknown'` / `modifier_type` NULL, is a `skill_parameter`, or has `label_mismatch = 1` makes the damage uncertain: a 5000+ id has a named category (`property_hint`, from `node_tooltip_properties`) but the effect comes from `code_ref` and the label, not the category. List these nodes with their `stat_kind` and `modifier_source`.
     - Every D? effect.
     - Every "directly" clause on a triggered path.
 29. **Anti-synergy sweep.** Read every catalogue entry tagged `anti-synergy` whose other tags overlap the plan. Run Q14 over the planned uniques for "cannot", "no ward", "do not" and "less" clauses. Check:
@@ -233,7 +253,7 @@ ORDER BY source_ord, sub_ord;
 Q3. Slot, base, restrictions and legendary fields:
 <!-- params: [33] -->
 ```sql
-SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.is_legendary_capable,
+SELECT u.unique_id, u.name, u.level_requirement, u.is_primordial, u.is_set_item, u.legendary_type, u.lp_eligible,
        u.effective_level_for_lp, u.can_drop_randomly, bt.name AS slot, bt.category,
        st.name AS base_item, st.level_requirement AS base_level, st.class_requirement_names
 FROM uniques u
@@ -273,7 +293,7 @@ WHERE ca.ability_id = ?;
 Q6. Rule-changing nodes in one skill tree:
 <!-- params: ["lb23il"] -->
 ```sql
-SELECT tree_id || ':' || node_id AS node, name, max_points, requires, description, stats_text
+SELECT tree_id || ':' || node_id AS node, name, max_points, unlocked_by, description, stats_text
 FROM v_skill_node_summary
 WHERE tree_kind = 'skill' AND ability_id = ?
   AND (description LIKE '%convert%' OR description LIKE '%instead%' OR description LIKE '%no longer%'
@@ -429,21 +449,51 @@ WHERE a.ability_index = ?
 ORDER BY c.ord;
 ```
 
+Q18. Community usage of one unique, always one row (`builds_using` 0 = no guide wears it; the `community_builds` total is the denominator). Culnivar's Claim, uid 33, returns 0 of 74:
+<!-- params: [33] -->
+```sql
+SELECT u.unique_id, u.name,
+       (SELECT count(DISTINCT i.build_id) FROM v_build_items_named i WHERE i.unique_id = u.unique_id) AS builds_using,
+       (SELECT count(*) FROM community_builds) AS total_builds
+FROM uniques u WHERE u.unique_id = ?;
+```
+
+Q18b. Where the guides that use a unique wear it, by slot, mastery and main skill (Mana Guide, uid 368, the Culnivar stack partner some guide uses; it returns no rows for an unused unique, so check Q18 first):
+<!-- params: [368] -->
+```sql
+SELECT i.slot, b.mastery_name, b.main_skill, count(DISTINCT i.build_id) AS builds
+FROM v_build_items_named i JOIN v_build_summary b ON b.build_id = i.build_id
+WHERE i.unique_id = ?
+GROUP BY i.slot, b.mastery_name, b.main_skill
+ORDER BY builds DESC;
+```
+
+Q19. Community builds of a mastery or of a main skill (the "does a build already exist" check; the example is the Sorcerer / Lightning Blast candidate of the worked example):
+<!-- params: ["Sorcerer", "Lightning Blast", "Sorcerer"] -->
+```sql
+SELECT slug, title, class_name, mastery_name, main_skill, tier_corruption, tier_speed, tier_bossing
+FROM v_build_summary
+WHERE mastery_name = ? OR main_skill = ?
+ORDER BY (mastery_name = ?) DESC, slug;
+```
+
 ## Honesty rules
 
 - Every number carries a label: D, A, G, X or U. A computed number takes the weakest label among its inputs. No unlabelled numbers in the proposal. Ids and indices (uid 33, PP 664, `lb23il:28`, affix 330) are identifiers, not quantities, and need no label.
 - Write "vs dummy" or "vs level-N monster" next to any damage figure. Level damage reduction alone is x0.13 at level 100 (`knowledge/mechanics/damage-pipeline.md`).
-- Skill-tree mutators (stat ids 5000 and up, display-only node stats) are coded per skill. Name each one you rely on and mark its contribution "type unknown (A magnitude)".
+- Skill-tree mutators (stat ids 5000 and up, `skill_parameter` lines, `label_mismatch` lines) are coded per skill. Name each one you rely on with its category (`property_hint`) and `code_ref`; a `structured` kind is **D**, an `inferred` or `unknown` kind is "type unknown (A magnitude)" or **U**.
 - Never write "meta", "best", "proven", "top-tier" or "S-tier". Write "plausible", "to test", "should".
 - Compare the plan against every overlapping catalogue entry, anti-synergies first. List the entries checked by heading.
 - List assumptions and failure modes explicitly, even when they feel obvious.
 - If the enabling effect loses to a plain affix (Phase B), say so on the Build card.
+- Community data is Maxroll guide data for 1.5.2 (**X**), not game truth: report counts as "N of 74 guides", say how the proposal differs from an existing guide, and never call a guide pick or an unused item "best" or "bad".
 
 ## Red flags: stop and go back
 
 | Thought | Reality |
 |---|---|
-| "I know what this item does." | Tooltips lie or round. Read `unique_effects.json` `formula` and `condition` (step 4). |
+| "I know what this item does." | Tooltips lie or round. Read the index row, `get`, the catalogue and the knowledge page rule (step 4); do not open `vendor/`. |
+| "Nobody has built this, so it is novel." | Prove it: `item_usage` and `builds` (Phase C2). Say how a community build differs if one exists. |
 | "One build is obvious, skip the other four." | The obvious build is usually the common one. Five candidates is the minimum (step 9). |
 | "The stat stick applies to my minions or totems." | Only Minion- or Totem-tagged stats transfer (`knowledge/mechanics/minions.md`). |
 | "The trigger will feed this 'when you directly cast' effect." | It will not: triggered casts are not direct (catalogue). |
@@ -465,12 +515,14 @@ ORDER BY c.ord;
 
 - [ ] `game_version` / `data_version` recorded; data source (db or vendored JSON) stated
 - [ ] Item resolved by id; all mods listed with property, tags, type, range; tooltip lines quoted
-- [ ] Coded effect read (`unique_effects.json` formula/condition/confidence) and catalogue searched by uid and name
+- [ ] Effect model read (index row, `get`, relations, knowledge-page rule with label; `vendor/` not opened) and catalogue searched by uid and name
 - [ ] Enabling effect vs stat stick split stated; stat-stick tag mask named
 - [ ] Slot, base, both level requirements, class requirement, LP/WW/primordial/set status recorded
 - [ ] Rate equation written and benchmarked against a plain affix or unique
 - [ ] At least 5 candidates, each backed by a logged query; at least 1 marked as the novelty pairing
-- [ ] Scoring table with all 5 axes; gate applied
+- [ ] Idol sizes and values read from data (Minor Idol 1x1; values scaled by idol AEM), every unique with `can_drop_randomly` 0 has a source or "farm unknown", nearest build checked over all guides including leveling ones, riskiest assumption = weakest-labelled link
+- [ ] Phase C2 done: `item_usage` for the item and partners, `builds` for each leading candidate (difference stated), `slot_meta` for every remaining slot; counts recorded as N of 74
+- [ ] Scoring table with all 5 axes; gate applied; Gear and Novelty cite community counts
 - [ ] 1-2 skeletons with class/mastery, 5 skills with `<tree>:<node>` nodes, passives by node, gear by slot with affix ids and tier targets, idols, blessings
 - [ ] Damage path done with le-damage-reasoning ("vs dummy" / "vs level-N" stated)
 - [ ] Defense plan done with le-defense-reasoning: 7 resistances sourced, layer targets, endurance, stun, DoT, sustain
@@ -481,4 +533,4 @@ ORDER BY c.ord;
 - [ ] Anti-synergy sweep done (catalogue headings listed, Q14 run)
 - [ ] Assumptions and failure modes listed
 - [ ] No "meta"/"proven" language
-- [ ] Proposal follows `templates/proposal.md`, with the Build card at the top and Data citations at the bottom
+- [ ] Proposal follows `templates/proposal.md`, with the Build card at the top, the Community baseline section and Data citations at the bottom

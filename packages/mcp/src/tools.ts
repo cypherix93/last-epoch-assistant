@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
-import { classIdOf, decorateMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { applyNodeScaling, classIdOf, decorateMod, decorateNodeMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
 
 export { getTool };
 
@@ -125,8 +125,12 @@ export function ftsQuery(input: string): string {
   return parts.join(" ");
 }
 
-export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): Row {
-  const q = ftsQuery(query);
+/**
+ * FTS5 search. Default: the text is safe-quoted (ftsQuery). raw=true passes the MATCH expression through unchanged
+ * (OR, AND, NOT, NEAR(...), prefix*, column: filters, parentheses); an FTS5 syntax error comes back as a tool error.
+ */
+export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20, raw = false): Row {
+  const q = raw ? query.trim() : ftsQuery(query);
   if (!q) throw new ToolError("Empty search query");
   const params: unknown[] = [q];
   let kindSql = "";
@@ -136,12 +140,17 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): R
   }
   const lim = Math.max(1, Math.min(limit, 200));
   params.push(lim * 6);
-  const cand = all(
-    ctx,
-    `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
+  let cand: Row[];
+  try {
+    cand = all(
+      ctx,
+      `SELECT kind, id, name, snippet(search, 3, '<b>', '</b>', '...', 14) AS snippet, highlight(search, 2, '<b>', '</b>') AS name_hl, bm25(search, 0, 0, 8, 1) AS rank
        FROM search WHERE search MATCH ?${kindSql} ORDER BY rank LIMIT ?`,
-    ...params,
-  );
+      ...params,
+    );
+  } catch (e) {
+    throw new ToolError(`FTS5 error for MATCH ${JSON.stringify(q)}: ${(e as Error).message}`);
+  }
   // bm25 is nearly flat for short names; boost exact / prefix name matches and player abilities (lower rank = better).
   const plain = query.trim().toLowerCase();
   const player = new Set(
@@ -175,6 +184,17 @@ export function search(ctx: Ctx, query: string, kinds?: string[], limit = 20): R
 }
 
 // ---------------------------------------------------------------- lookup
+/** Lookup rows for community builds, matching on `nameExpr` (title or slug), shown with the title. */
+function buildLookupSql(nameExpr: string): string {
+  return `SELECT CAST(b.build_id AS TEXT) AS id, ${nameExpr} AS name, coalesce(b.title, b.slug) AS label,
+    'Maxroll guide ' || b.slug || ': ' || coalesce(c.name, '?') || ' / ' || coalesce(m.name, '?') || coalesce(', ' || ab.name, '') || CASE WHEN b.is_primary = 1 THEN '' ELSE ' (secondary profile)' END AS hint,
+    b.is_primary AS pri
+    FROM community_builds b
+    LEFT JOIN classes c ON c.class_id = b.class_id
+    LEFT JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+    LEFT JOIN abilities ab ON ab.ability_id = b.main_ability_id`;
+}
+
 interface LookupSource {
   kind: string;
   /** SELECT id, name, hint FROM ... (no WHERE) */
@@ -187,7 +207,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
   {
     kind: "ability",
     boost: 3,
-    sql: `SELECT ability_id AS id, name, (CASE WHEN is_player_ability = 1 THEN 'player' ELSE 'minion/monster' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri FROM abilities`,
+    sql: `SELECT ability_id AS id, name, (CASE kind WHEN 'player' THEN 'player' WHEN 'player_sub' THEN 'player sub-ability of ' || coalesce(parent_ability_id, '?') WHEN 'minion' THEN 'minion' ELSE 'other (ailment/item/node/proc or monster)' END || CASE WHEN has_skill_tree = 1 THEN ', has tree' ELSE '' END) AS hint, is_player_ability AS pri, kind AS ability_kind FROM abilities`,
   },
   {
     kind: "unique",
@@ -230,6 +250,7 @@ const LOOKUP_SOURCES: LookupSource[] = [
     sql: `SELECT n.tree_id || ':' || n.node_id AS id, n.name, 'Weaver tree' AS hint, 0 AS pri FROM tree_nodes n WHERE n.tree_kind = 'weaver'`,
   },
   { kind: "ailment", sql: `SELECT CAST(ailment_id AS TEXT) AS id, name, CASE WHEN positive = 1 THEN 'buff' ELSE 'debuff' END AS hint, 0 AS pri FROM ailments` },
+  { kind: "buff", sql: `SELECT CAST(buff_id AS TEXT) AS id, name, 'buff bar entry (ui_buffs)' || coalesce(', ' || enum_name, '') AS hint, 0 AS pri FROM ui_buffs WHERE name IS NOT NULL` },
   { kind: "property", sql: `SELECT CAST(property AS TEXT) AS id, name, enum_name AS hint, 0 AS pri FROM stat_properties` },
   { kind: "player_property", sql: `SELECT CAST(idx AS TEXT) AS id, name, '' AS hint, 0 AS pri FROM player_properties` },
   { kind: "class", sql: `SELECT CAST(class_id AS TEXT) AS id, name, 'tree ' || tree_id AS hint, 0 AS pri FROM classes` },
@@ -237,6 +258,9 @@ const LOOKUP_SOURCES: LookupSource[] = [
   { kind: "monster_mod", sql: `SELECT CAST(mod_id AS TEXT) AS id, title AS name, COALESCE(mod_type, '') AS hint, 0 AS pri FROM monster_mods WHERE title IS NOT NULL` },
   { kind: "timeline", sql: `SELECT CAST(timeline_id AS TEXT) AS id, name, COALESCE(boss_name, '') AS hint, 0 AS pri FROM timelines` },
   { kind: "dungeon", sql: `SELECT CAST(dungeon_id AS TEXT) AS id, name, COALESCE(boss_name, '') AS hint, 0 AS pri FROM dungeons` },
+  // community builds (Maxroll guides): matched by title and by slug; `label` is the name shown
+  { kind: "build", sql: buildLookupSql("b.title") },
+  { kind: "build", sql: buildLookupSql("b.slug") },
 ];
 
 const FTS_KIND_MAP: Record<string, string> = { item_subtype: "subtype", stat_property: "property" };
@@ -248,29 +272,29 @@ function likeEscape(s: string): string {
 export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Row {
   const q = name.trim();
   if (!q) throw new ToolError("Empty name");
-  const valid = LOOKUP_SOURCES.map((s) => s.kind);
+  const valid = [...new Set(LOOKUP_SOURCES.map((s) => s.kind))];
   if (kinds?.length) {
     const bad = kinds.filter((k) => !valid.includes(k));
     if (bad.length) throw new ToolError(`Unknown kind(s) ${bad.join(", ")}. Valid kinds: ${valid.join(", ")}`);
   }
   const sources = LOOKUP_SOURCES.filter((s) => !kinds?.length || kinds.includes(s.kind));
   const hits = new Map<string, Row>();
-  const add = (kind: string, id: string, nm: string, hint: string | null, score: number) => {
+  const add = (kind: string, id: string, nm: string, hint: string | null, score: number, abilityKind?: string) => {
     const key = `${kind}\u0000${id}`;
     const prev = hits.get(key);
-    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined });
+    if (!prev || (prev.score as number) < score) hits.set(key, { kind, id, name: nm, score, hint: hint || undefined, ...(abilityKind ? { ability_kind: abilityKind } : {}) });
   };
   for (const s of sources) {
     const base = s.boost ?? 0;
-    for (const r of all(ctx, `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 100 + base + (r.pri ? 5 : 0));
+    for (const r of all(ctx, `SELECT * FROM (${s.sql}) WHERE lower(name) = lower(?) LIMIT 50`, q)) {
+      add(s.kind, r.id as string, (r.label ?? r.name) as string, r.hint as string, 100 + base + (r.pri ? 5 : 0), r.ability_kind as string | undefined);
     }
     for (const r of all(
       ctx,
-      `SELECT id, name, hint, pri FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
+      `SELECT * FROM (${s.sql}) WHERE lower(name) LIKE lower(?) ESCAPE '\\' ORDER BY length(name) LIMIT 50`,
       likeEscape(q) + "%",
     )) {
-      add(s.kind, r.id as string, r.name as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2));
+      add(s.kind, r.id as string, (r.label ?? r.name) as string, r.hint as string, 60 + base + (r.pri ? 5 : 0) - Math.min(20, Math.max(0, (r.name as string).length - q.length) / 2), r.ability_kind as string | undefined);
     }
   }
   // FTS fallback only when the name-based passes did not fill the limit.
@@ -304,11 +328,11 @@ export interface ModFilters {
   min_value?: number;
   special_tag?: number;
   include_untagged?: boolean;
-  /** Rows of indirect properties (58, 98, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
+  /** Rows of indirect properties (58, 98, 104, 105, 130) keep an INDEX in `tags`, not an AT mask; excluded from tag filters unless true. */
   include_indirect?: boolean;
 }
 
-const INDIRECT_PROPS = "(58, 98, 130)";
+const INDIRECT_PROPS = "(58, 98, 104, 105, 130)";
 
 /**
  * The join logic of find_mods: every `mods` row plus a human source name.
@@ -329,7 +353,8 @@ export const MODS_SELECT_SQL = `
          COALESCE(mm.title, v.source_name) AS source_name,
          tr.name AS source_context,
          m.tier, m.property, m.property_name, m.special_tag, m.tags, m.tag_names,
-         m.modifier_type, m.value_min, m.value_max, m.display, m.label`;
+         m.modifier_type, m.value_min, m.value_max, m.display, m.label,
+         m.property_kind, m.stat_kind, m.modifier_source, m.label_mismatch, m.code_ref`;
 
 export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const where: string[] = [];
@@ -383,7 +408,7 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const total = (one(ctx, `SELECT count(*) n ${MODS_JOIN_SQL}${w}`, ...params) as Row).n as number;
   const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim)
     .map(dropNulls)
-    .map((m) => decorateMod(ctx, m));
+    .map((m) => decorateNodeMod(ctx, decorateMod(ctx, m)));
   return { total_matching: total, count: rows.length, truncated: total > rows.length, rows };
 }
 
@@ -391,8 +416,17 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
 export interface TreeOpts {
   /** keep only nodes whose name, description or any mod label/property_name contains this text (case-insensitive) */
   filter?: string;
-  /** drop description and x/y */
+  /** drop x/y and the UI fields; descriptions are kept (truncated) unless keep_descriptions is false */
   compact?: boolean;
+  /** compact mode only: keep description / alt_text (default true; they carry 'directly', 'on hit', 'for Rive' scope words) */
+  keep_descriptions?: boolean;
+}
+
+/** Description length kept in compact mode. */
+export const COMPACT_DESCRIPTION_MAX = 400;
+function truncate(v: unknown, max = COMPACT_DESCRIPTION_MAX): unknown {
+  if (typeof v !== "string" || v.length <= max) return v;
+  return v.slice(0, max - 3).trimEnd() + "...";
 }
 
 function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
@@ -400,7 +434,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   const nodeKind = tree.tree_kind === "skill" ? "skill_node" : tree.tree_kind === "class" ? "passive_node" : "weaver_node";
   const nodes = all(
     ctx,
-    `SELECT node_id AS id, name, description, alt_text, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
+    `SELECT node_id AS id, name, description, alt_text, point_bonus_description, max_points, mastery, mastery_requirement, no_scaling_type, no_scaling_point_threshold, lock_node, ui_x AS x, ui_y AS y, node_size FROM tree_nodes WHERE tree_id = ? ORDER BY node_id`,
     treeId,
   );
   const mods = all(
@@ -413,7 +447,8 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
   for (const m of mods) {
     const nid = Number((m.source_id as string).slice(treeId.length + 1));
     const { source_id: _s, ...rest } = m;
-    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateMod(ctx, dropNulls(rest)));
+    const node = nodes.find((x) => x.id === nid) ?? {};
+    (modsByNode.get(nid) ?? modsByNode.set(nid, []).get(nid)!).push(decorateNodeMod(ctx, applyNodeScaling(decorateMod(ctx, dropNulls(rest)), node)));
   }
   const nameById = new Map(nodes.map((n) => [n.id as number, n.name as string]));
   const reqByNode = new Map<number, Row[]>();
@@ -442,14 +477,23 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       const id = n.id as number;
       const req = reqByNode.get(id);
       if (opts.compact) {
-        delete n.description;
-        delete n.alt_text;
+        if (opts.keep_descriptions === false) {
+          delete n.description;
+          delete n.alt_text;
+        } else {
+          n.description = truncate(n.description);
+          n.alt_text = truncate(n.alt_text);
+        }
         delete n.x;
         delete n.y;
       }
       return dropNulls({
         ...n,
         mods: modsByNode.get(id) ?? [],
+        // Semantics (docs/schema.md, tree_node_requirements): the node can be taken when ANY ONE listed node has the given points.
+        unlocked_by: req,
+        unlocked_by_text: req?.map((r) => `${r.node_id}>=${r.points}`).join("|"),
+        // DEPRECATED aliases of unlocked_by / unlocked_by_text (kept for one release; the comma form suggested AND, which is wrong).
         requires: req,
         requires_text: req?.map((r) => `${r.node_id}>=${r.points}`).join(","),
       });
@@ -485,8 +529,50 @@ export function passiveTree(ctx: Ctx, classId: string | number, opts: TreeOpts =
 }
 
 // ---------------------------------------------------------------- sql
-function stripSqlComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+/**
+ * Tokenize SQL just enough to find statement separators: string literals ('..' with '' escapes), quoted
+ * identifiers (".." , `..`, [..]) and comments (-- line, block) are skipped. Returns the text with comments
+ * replaced by a space (literals and identifiers kept verbatim) and the offset of the first `;` outside all of those (-1: none).
+ */
+export function scanSql(sql: string): { text: string; semicolonAt: number } {
+  let out = "";
+  let semicolonAt = -1;
+  let i = 0;
+  const n = sql.length;
+  const quoted = (close: string) => {
+    const start = i;
+    i++;
+    while (i < n) {
+      if (sql[i] === close) {
+        if (sql[i + 1] === close && close !== "]") i += 2; // doubled quote = escaped quote
+        else {
+          i++;
+          break;
+        }
+      } else i++;
+    }
+    out += sql.slice(start, i);
+  };
+  while (i < n) {
+    const c = sql[i];
+    if (c === "'") quoted("'");
+    else if (c === '"') quoted('"');
+    else if (c === "`") quoted("`");
+    else if (c === "[") quoted("]");
+    else if (c === "-" && sql[i + 1] === "-") {
+      while (i < n && sql[i] !== "\n") i++;
+      out += " ";
+    } else if (c === "/" && sql[i + 1] === "*") {
+      const end = sql.indexOf("*/", i + 2);
+      i = end < 0 ? n : end + 2;
+      out += " ";
+    } else {
+      if (c === ";" && semicolonAt < 0) semicolonAt = out.length;
+      out += c;
+      i++;
+    }
+  }
+  return { text: out, semicolonAt };
 }
 
 const PRAGMA_ARG = /^pragma\s+(table_info|index_list)\s*\(\s*(?:'([A-Za-z_][A-Za-z0-9_]*)'|"([A-Za-z_][A-Za-z0-9_]*)"|([A-Za-z_][A-Za-z0-9_]*))\s*\)$/i;
@@ -513,9 +599,11 @@ function rewritePragma(text: string): { text: string; params: unknown[] } | unde
  * no time limit: keep queries selective (the row cap bounds output only).
  */
 export function sql(ctx: Ctx, query: string, params: unknown[] = [], limit = 500): Row {
-  let text = stripSqlComments(query).trim().replace(/;\s*$/, "").trim();
+  let text = scanSql(query).text.trim();
+  // A trailing ';' (plus whitespace/comments after it) is tolerated; any other ';' outside literals/comments is not.
+  text = text.replace(/(?:\s*;)+\s*$/, "").trim();
   if (!text) throw new ToolError("Empty query");
-  if (text.includes(";")) throw new ToolError("Only a single statement is allowed (found ';')");
+  if (scanSql(text).semicolonAt >= 0) throw new ToolError("Only a single statement is allowed (found ';')");
   const pragma = rewritePragma(text);
   if (pragma) ({ text, params } = pragma);
   if (!/^(select|with)\b/i.test(text)) {

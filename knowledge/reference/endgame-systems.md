@@ -196,6 +196,173 @@ Sources: G (`RageOfMorditas_*`), X (`maxroll_rage-of-morditas.md` 2026-10-01, pa
 - **Woven Echoes and The Woven**: join via Masque in the Haven of Silk after a Cemetery of the Erased; ranks give Weaver points and Woven Echoes for Memory Amber; Tombs and Cemeteries of the Erased (procedural side zones) drop Memory Amber, Weaver idols, woven echoes; Silken Cocoons release a Soul of the Erased or an Incubated Silk; the Altar to the Weaver places Woven Echoes (G, X). Details in `skills-and-trees.md`.
 - **Nexus / Traveler's Rest** (S5): Nexus UI shows timelines, Corruption, blessings, factions, Morditas activity; Echo of the World renamed Traveler's Rest with a waypoint (X).
 
+## Uniques that do not drop randomly
+`canDropRandomly = false` (A, `uniques.json`) removes a unique from the random unique drop pool: it comes from a specific encounter, a dungeon or arena reward, a vendor or crafting route, or is not obtainable at all. The vendored `uniques.json` records no acquisition source, but the database does for most of them: `unique_drop_sources` (from `itemDB.monsterItemDrops[]`, `randomEncounterData.experimentalUniqueDropInfo[]` and `oneShotCaches[]`, A) summarised in `uniques.drop_source`; `get` kind `unique` returns it as `obtain`. The table lists every such unique with its slot and level requirement (the unique's own value, else its sub type's), the database drop source, and a second "Source" column filled **only** when a knowledge page already names where the unique comes from (the Timeline boss table, the Aberroth, Morditas and dungeon lists, the Weaver's Will note). Primordial and cocooned uniques have a `drop_source` that is only a note (no drop table in the data); a unique with `drop_source` NULL and no page source (four uniques; `uniques.drop_source IS NULL AND can_drop_randomly = 0`) has no known source: flag "farm unknown" (**U**). 159 records in `uniques.json` have the flag; the database holds 156 of them (ids 46, 69 and 248 are not loaded). A build that uses one of these must state its source or "farm unknown" ([le-build-audit](../../.claude/skills/le-build-audit/SKILL.md)).
+
+| uniqueID | Unique | Slot (base type) | Level requirement | Database drop source (`uniques.drop_source`) | Source named on a knowledge page (else "not in data") |
+|---|---|---|---|---|---|
+| 1 | Fractured Crown | Helmet | 56 (sub type) | none (NULL) | not in data |
+| 158 | Gaspar's Insight | Helmet | 80 | The Husk of Elder Gaspar (timeline boss, The Last Ruin) | endgame-systems.md, Timeline details: # 8 The Last Ruin, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 160 | Call of the Tundra | Helmet | 74 | Heorot (timeline boss, The Age of Winter) | endgame-systems.md, Timeline details: # 9 The Age of Winter, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 239 | Somnia | Helmet | 65 (sub type) | Chronomancer Julra (dungeon, Temporal Sanctum) | endgame-systems.md, Dungeons: Boss uniques, column "Temporal Sanctum" |
+| 256 | Peak of the Mountain | Helmet | 12 | The Mountain Beneath (dungeon, Lightless Arbor) | endgame-systems.md, Dungeons: Boss uniques, column "Lightless Arbor" |
+| 357 | Seed of Ekkidrasil | Helmet | 84 | Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...Shattered Road). Drops: Nihilis 14.29%, Seed of Ekkidrasil 38.1%, Null Portent 47.62%, Threshold o..." |
+| 401 | Cocooned Helmet | Helmet | 10 (sub type) | cocooned item: no drop source in the data | not in data |
+| 412 | Dominance of the Tundra | Helmet | 60 | Ignixiros (woven echo, Antipode Rift) | not in data |
+| 430 | Chorus of the Anurok | Helmet | 73 | primordial item: no drop source in the data (raw primordialFangCost 24, ancientBoneCost 20000) | not in data |
+| 434 | Mask of Indifference | Helmet | 60 | primordial item: no drop source in the data (raw primordialFeatherCost 25, primordialFangCost 25, ancientBoneCost 23500) | not in data |
+| 449 | The Butcher's Crown | Helmet | 72 | primordial item: no drop source in the data (raw primordialFangCost 20, ancientBoneCost 20000) | not in data |
+| 111 | Woven Flesh | Body Armor | 51 | Abomination (timeline boss, Fall of the Outcasts) | endgame-systems.md, Timeline details: # 1 Fall of the Outcasts, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 117 | Dark Shroud of Cinders | Body Armor | 66 | Rahyeh, The Black Sun (timeline boss, The Black Sun) | endgame-systems.md, Timeline details: # 3 The Black Sun, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 153 | Wings of Argentus | Body Armor | 82 | God Hunter Argentus (timeline boss, The Stolen Lance, empowered) | endgame-systems.md, Timeline details: # 2 The Stolen Lance, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 157 | Gaspar's Acuity | Body Armor | 72 | The Husk of Elder Gaspar (timeline boss, The Last Ruin) | endgame-systems.md, Timeline details: # 8 The Last Ruin, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 248 | Flesh of Stone | Body Armor | 71 | (not loaded in the database) | not in data |
+| 255 | Core of the Mountain | Body Armor | 80 | The Mountain Beneath (dungeon, Lightless Arbor) | endgame-systems.md, Dungeons: Boss uniques, column "Lightless Arbor" |
+| 354 | Wall of Nothing | Body Armor | 85 | Harbinger of Treason (harbinger, Fall of the Empire, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 6 Fall of the Empire, column "Harbinger (drop)" |
+| 358 | Null Portent | Body Armor | 81 | Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...hilis 14.29%, Seed of Ekkidrasil 38.1%, Null Portent 47.62%, Threshold of Eternity 100%; can..." |
+| 387 | Cocooned Cuirass | Body Armor | 15 (sub type) | cocooned item: no drop source in the data | not in data |
+| 426 | Thicket of Blinding Light | Body Armor | 35 (sub type) | primordial item: no drop source in the data (raw ancientBoneCost 14500) | not in data |
+| 436 | Wings of Discord | Body Armor | 64 | primordial item: no drop source in the data (raw primordialFeatherCost 26, ancientBoneCost 14500) | not in data |
+| 448 | Architects of Astral Blood | Body Armor | 72 | primordial item: no drop source in the data (raw ancientBoneCost 16000) | not in data |
+| 487 | Vestige of Imprisonment | Body Armor | 80 | Morditas (woven echo, Demigod's Ascendance) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...Morditas drops Morditas' Vengeance 20%, Vestige of Imprisonment 80%, Unsated Rage 50% (X)...." |
+| 112 | Strands of Souls | Belt | 82 | Abomination (timeline boss, Fall of the Outcasts, empowered) | endgame-systems.md, Timeline details: # 1 Fall of the Outcasts, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 180 | Shattered Chains | Belt | 70 | Shade of Orobyss (Shade of Orobyss, corruption 120+); Confluence of Oblivion (woven echo, corruption 120+) | endgame-systems.md, Timeline details: "...te at any Corruption; Apathy's Maw 50+, Shattered Chains 120+ (the Empowered guide says 150), Om..." |
+| 258 | Immolator's Oblation | Belt | 46 | Fire Lich Cremorus (dungeon, Soulfire Bastion) | endgame-systems.md, Dungeons: Boss uniques, column "Soulfire Bastion" |
+| 263 | Omen of Thunder | Belt | 48 | Alfrig Wolfmaw (arena); Champions' Colosseum (woven echo) | endgame-systems.md, Arena: "...-like; Physical, Cold, Lightning; drops Omen of Thunder), The Crimson Blade (Rogue; Physical, P..." |
+| 399 | Cocooned Belt | Belt | 19 (sub type) | cocooned item: no drop source in the data | not in data |
+| 404 | Orian's Descent | Belt | 40 | Seeker of the Shards (woven echo, The Seeker's Summit) | not in data |
+| 416 | Brewmaster's Buckle | Belt | 52 (sub type) | The Grand Brewery (woven echo) | not in data |
+| 446 | Fangs of the Berserker | Belt | 45 (sub type) | primordial item: no drop source in the data (raw primordialFangCost 26, ancientBoneCost 15000) | not in data |
+| 115 | Last Steps of the Living | Boots | 63 | Formosus the Undying (timeline boss, Blood, Frost, and Death) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 178 | Stymied Fate | Boots | 60 | Shade of Orobyss (Shade of Orobyss); Confluence of Oblivion (woven echo) | endgame-systems.md, Timeline details: "...). Shade of Orobyss: Siphon of Anguish, Stymied Fate at any Corruption; Apathy's Maw 50+, Sh..." |
+| 218 | Yulia's Path | Boots | 79 | Heorot (timeline boss, The Age of Winter) | endgame-systems.md, Timeline details: # 9 The Age of Winter, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 253 | Foot of the Mountain | Boots | 48 | The Mountain Beneath (dungeon, Lightless Arbor) | endgame-systems.md, Dungeons: Boss uniques, column "Lightless Arbor" |
+| 264 | Vaion's Chariot | Boots | 50 | Vaion the Arsenal (arena); Champions' Colosseum (woven echo) | endgame-systems.md, Arena: "...rsenal (Sentinel; Physical, Fire; drops Vaion's Chariot). Each can drop its unique at any tier,..." |
+| 347 | The Inevitable | Boots | 83 | Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity); Harbinger of Fear (harbinger, The Last Ruin, empowered) | endgame-systems.md, Timeline details: # 8 The Last Ruin, column "Harbinger (drop)" |
+| 400 | Cocooned Boots | Boots | 60 (sub type) | cocooned item: no drop source in the data | not in data |
+| 116 | Atrophy | Gloves | 64 | Rahyeh, The Black Sun (timeline boss, The Black Sun) | endgame-systems.md, Timeline details: # 3 The Black Sun, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 131 | Avarice | Gloves | 6 (sub type) | none (NULL) | not in data |
+| 213 | Frostbite Shackles | Gloves | 74 | Formosus the Undying (timeline boss, Blood, Frost, and Death) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 217 | Sacrificial Embrace | Gloves | 81 | The Husk of Elder Gaspar (timeline boss, The Last Ruin, empowered) | endgame-systems.md, Timeline details: # 8 The Last Ruin, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 240 | Julra's Obsession | Gloves | 75 | Chronomancer Julra (dungeon, Temporal Sanctum) | endgame-systems.md, Dungeons: Boss uniques, column "Temporal Sanctum" |
+| 260 | Lich's Envy | Gloves | 64 | Fire Lich Cremorus (dungeon, Soulfire Bastion) | endgame-systems.md, Dungeons: Boss uniques, column "Soulfire Bastion" |
+| 266 | Burning Avarice | Gloves | 46 | Grin the Soul Gambler (soul gambler, Soulfire Bastion) | not in data |
+| 398 | Cocooned Gloves | Gloves | 6 (sub type) | cocooned item: no drop source in the data | not in data |
+| 415 | Immortal Vise | Gloves | 86 (sub type) | Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...killed; heals to full at phase 5. Drops Immortal Vise 80%, Shattered Worlds 20% (X)...." |
+| 431 | Carrion of Creation | Gloves | 81 | primordial item: no drop source in the data (raw ancientBoneCost 50000) | uniques-sets-legendary.md, Primordial items: "...ial Materials; 3 only from Rift Beasts (Carrion of Creation, Blossom of Immortal Stone, Permanence..." |
+| 435 | Permanence of Primal Knowledge | Gloves | 50 | primordial item: no drop source in the data (raw ancientBoneCost 50000) | uniques-sets-legendary.md, Primordial items: "...of Creation, Blossom of Immortal Stone, Permanence of Primal Knowledge); Rift Beasts can drop all (X, `maxroll..." |
+| 479 | Withstand the Elements | Gloves | 25 (sub type) | Morditas (woven echo, Circle of Frozen Blood) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...born Solitude 80%, Heorot's Repose 20%, Withstand the Elements 50%, Demigod's Ascendance 100%; Pinnacl..." |
+| 151 | Eulogy of Blood | One-Handed Axe | 83 | Formosus the Undying (timeline boss, Blood, Frost, and Death, empowered) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 380 | Cocooned Cleaver | One-Handed Axe | 0 (sub type) | cocooned item: no drop source in the data | not in data |
+| 388 | Cocooned Dagger | Dagger | 61 (sub type) | cocooned item: no drop source in the data | not in data |
+| 442 | Velocyn's Jaw | Dagger | 75 | primordial item: no drop source in the data (raw primordialFangCost 25, ancientBoneCost 20000) | not in data |
+| 381 | Cocooned Club | One-Handed Mace | 18 (sub type) | cocooned item: no drop source in the data | not in data |
+| 438 | Whetstone Gavel | One-Handed Mace | 78 (sub type) | primordial item: no drop source in the data (raw primordialFangCost 21, ancientBoneCost 21500) | not in data |
+| 156 | Gaspar's Will | Sceptre | 75 (sub type) | The Husk of Elder Gaspar (timeline boss, The Last Ruin) | endgame-systems.md, Timeline details: # 8 The Last Ruin, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 355 | Aberroth's Command | Sceptre | 65 | Harbinger of Defilement (harbinger, Fall of the Outcasts, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 1 Fall of the Outcasts, column "Harbinger (drop)" |
+| 389 | Cocooned Sceptre | Sceptre | 0 (sub type) | cocooned item: no drop source in the data | not in data |
+| 109 | Shard of the Shattered Lance | One-Handed Sword | 68 | God Hunter Argentus (timeline boss, The Stolen Lance) | endgame-systems.md, Timeline details: # 2 The Stolen Lance, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 379 | Cocooned Short Sword | One-Handed Sword | 50 (sub type) | cocooned item: no drop source in the data | not in data |
+| 418 | Scissor of Atropos | One-Handed Sword | 60 | Fateweaver Atropos (woven echo, Lostwood Folly) | uniques-sets-legendary.md, Weaver's Will: "...re world drops (except Clotho's Needle, Scissor of Atropos, Blight of Lachesis, Inheritance of the..." |
+| 321 | Mad Alchemist's Ladle | Wand | 17 | Exiled Mage (rune prison); experimental unique roll (itemDB.randomEncounterData) | not in data |
+| 390 | Cocooned Wand | Wand | 77 (sub type) | cocooned item: no drop source in the data | not in data |
+| 432 | Horn of the Bone Wisp | Wand | 31 (sub type) | primordial item: no drop source in the data (raw primordialFeatherCost 17, ancientBoneCost 14500) | not in data |
+| 179 | Apathy's Maw | Two-Handed Axe | 65 | Shade of Orobyss (Shade of Orobyss, corruption 50+); Confluence of Oblivion (woven echo, corruption 50+) | endgame-systems.md, Timeline details: "...nguish, Stymied Fate at any Corruption; Apathy's Maw 50+, Shattered Chains 120+ (the Empower..." |
+| 259 | Pyre of Affliction | Two-Handed Axe | 76 (sub type) | Fire Lich Cremorus (dungeon, Soulfire Bastion) | endgame-systems.md, Dungeons: Boss uniques, column "Soulfire Bastion" |
+| 365 | World Splitter | Two-Handed Axe | 85 | Harbinger of Hatred (harbinger, The Black Sun, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 3 The Black Sun, column "Harbinger (drop)" |
+| 383 | Cocooned Great Axe | Two-Handed Axe | 21 (sub type) | cocooned item: no drop source in the data | not in data |
+| 437 | Primal Cadence | Two-Handed Axe | 63 | primordial item: no drop source in the data (raw primordialFeatherCost 20, ancientBoneCost 19500) | not in data |
+| 162 | Bhuldar's Wrath | Two-Handed Mace | 76 | Volcanic Shaman (timeline boss, Spirits of Fire) | endgame-systems.md, Timeline details: # 10 Spirits of Fire, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 364 | Event Horizon | Two-Handed Mace | 80 | Harbinger of Destruction (harbinger, Reign of Dragons, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 7 Reign of Dragons, column "Harbinger (drop)" |
+| 384 | Cocooned Great Mace | Two-Handed Mace | 0 (sub type) | cocooned item: no drop source in the data | not in data |
+| 46 | Sharktooth Saw | Two-Handed Spear | 34 | (not loaded in the database) | uniques-sets-legendary.md, Number of uniques per base type: "...romPlayers` entries are non-obtainable (Sharktooth Saw, Heirloom of Light, Egg of the Forgotte..." |
+| 120 | Trident of the Last Abyss | Two-Handed Spear | 79 | Harton's Husk (timeline boss, Fall of the Empire) | endgame-systems.md, Timeline details: # 6 Fall of the Empire, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 320 | Sierpin's Fractal Tree | Two-Handed Spear | 48 | Exiled Mage (rune prison); experimental unique roll (itemDB.randomEncounterData) | not in data |
+| 345 | Bane of Winter | Two-Handed Spear | 82 (sub type) | Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity); Harbinger of Tyranny (harbinger, The Age of Winter, empowered) | endgame-systems.md, Timeline details: # 9 The Age of Winter, column "Harbinger (drop)" |
+| 385 | Cocooned Spear | Two-Handed Spear | 38 (sub type) | cocooned item: no drop source in the data | not in data |
+| 427 | Harmony of the First | Two-Handed Spear | 16 (sub type) | primordial item: no drop source in the data (raw primordialFangCost 11, ancientBoneCost 12500) | not in data |
+| 488 | Morditas' Vengeance | Two-Handed Spear | 82 (sub type) | Morditas (woven echo, Demigod's Ascendance) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...scendance 100%; Pinnacle Morditas drops Morditas' Vengeance 20%, Vestige of Imprisonment 80%, Unsat..." |
+| 124 | Dragonflame Edict | Two-Handed Staff | 81 | Emperor of Corpses (timeline boss, Reign of Dragons) | endgame-systems.md, Timeline details: # 7 Reign of Dragons, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 367 | Celestial Doom | Two-Handed Staff | 70 (sub type) | Aberroth (Aberroth); Harbinger of War (harbinger, Blood, Frost, and Death, empowered); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Harbinger (drop)" |
+| 386 | Cocooned Staff | Two-Handed Staff | 85 (sub type) | cocooned item: no drop source in the data | not in data |
+| 419 | Blight of Lachesis | Two-Handed Staff | 70 (sub type) | Fateweaver Lachesis (woven echo, Lostwood Folly) | uniques-sets-legendary.md, Weaver's Will: "...pt Clotho's Needle, Scissor of Atropos, Blight of Lachesis, Inheritance of the Erased, which drop..." |
+| 445 | Spirit Xylem | Two-Handed Staff | 58 (sub type) | primordial item: no drop source in the data (raw ancientBoneCost 18000) | not in data |
+| 122 | Alluvion | Two-Handed Sword | 72 | Lagon, God of Storms (timeline boss, Ending the Storm) | endgame-systems.md, Timeline details: # 5 Ending the Storm, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 212 | Eternal Eclipse | Two-Handed Sword | 72 | Rahyeh, The Black Sun (timeline boss, The Black Sun) | endgame-systems.md, Timeline details: # 3 The Black Sun, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 319 | Merophage | Two-Handed Sword | 51 | Exiled Mage (rune prison); experimental unique roll (itemDB.randomEncounterData) | not in data |
+| 339 | Black Blade of Chaos | Two-Handed Sword | 72 | Aberroth (Aberroth); Harbinger of Chaos (harbinger, Ending the Storm, empowered); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 5 Ending the Storm, column "Harbinger (drop)" |
+| 382 | Cocooned Great Sword | Two-Handed Sword | 24 (sub type) | cocooned item: no drop source in the data | not in data |
+| 417 | Clotho's Needle | Two-Handed Sword | 68 (sub type) | Fateweaver Clotho (woven echo, Lostwood Folly) | uniques-sets-legendary.md, Weaver's Will: "...- WW uniques are world drops (except Clotho's Needle, Scissor of Atropos, Blight of Lachesis..." |
+| 472 | Heorot's Repose | Two-Handed Sword | 65 | Morditas (woven echo, Circle of Frozen Blood) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...Morditas drops Frostborn Solitude 80%, Heorot's Repose 20%, Withstand the Elements 50%, Demigo..." |
+| 215 | Nightbringer | Quiver | 68 (sub type) | Harton's Husk (timeline boss, Fall of the Empire) | endgame-systems.md, Timeline details: # 6 Fall of the Empire, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 361 | Phase Point | Quiver | 87 | Harbinger of Pride (harbinger, The Stolen Lance, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 2 The Stolen Lance, column "Harbinger (drop)" |
+| 392 | Cocooned Quiver | Quiver | 52 (sub type) | cocooned item: no drop source in the data | not in data |
+| 119 | Bulwark of the Last Abyss | Shield | 80 | Harton's Husk (timeline boss, Fall of the Empire) | not in data |
+| 121 | Coral Aegis | Shield | 70 | Lagon, God of Storms (timeline boss, Ending the Storm) | endgame-systems.md, Timeline details: # 5 Ending the Storm, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 155 | Horns of Uhkeiros | Shield | 84 | Emperor of Corpses (timeline boss, Reign of Dragons, empowered) | endgame-systems.md, Timeline details: # 7 Reign of Dragons, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 161 | Faith of the Frozen | Shield | 84 | Heorot (timeline boss, The Age of Winter, empowered) | endgame-systems.md, Timeline details: # 9 The Age of Winter, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 210 | Flayer's Pride | Shield | 65 (sub type) | Abomination (timeline boss, Fall of the Outcasts) | endgame-systems.md, Timeline details: # 1 Fall of the Outcasts, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 254 | Face of the Mountain | Shield | 45 (sub type) | The Mountain Beneath (dungeon, Lightless Arbor) | endgame-systems.md, Dungeons: Boss uniques, column "Lightless Arbor" |
+| 393 | Cocooned Shield | Shield | 50 (sub type) | cocooned item: no drop source in the data | not in data |
+| 411 | Countenance of Majasa | Shield | 72 (sub type) | Majasa (woven echo, Tomb of Vessels) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...ven Firstborn, Tomb of Vessels (Majasa, Countenance of Majasa), etc. (X boss loot sheet)...." |
+| 428 | Onslaught of Cerata | Shield | 59 (sub type) | primordial item: no drop source in the data (raw primordialFeatherCost 32, ancientBoneCost 17500) | not in data |
+| 123 | Symbol of Demise | Off-Hand Catalyst | 80 | Emperor of Corpses (timeline boss, Reign of Dragons) | endgame-systems.md, Timeline details: # 7 Reign of Dragons, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 261 | Lich's Scorn | Off-Hand Catalyst | 63 | Formosus the Undying (timeline boss, Blood, Frost, and Death) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 322 | The Cuckoo | Off-Hand Catalyst | 86 | Exiled Mage (rune prison); experimental unique roll (itemDB.randomEncounterData) | not in data |
+| 394 | Cocooned Catalyst | Off-Hand Catalyst | 32 (sub type) | cocooned item: no drop source in the data | not in data |
+| 447 | Bones of the Ancestral Pack | Off-Hand Catalyst | 62 (sub type) | primordial item: no drop source in the data (raw primordialFeatherCost 15, ancientBoneCost 20000) | not in data |
+| 114 | Frozen Eyes of Formosus | Amulet | 70 | Formosus the Undying (timeline boss, Blood, Frost, and Death) | endgame-systems.md, Timeline details: # 4 Blood, Frost, and Death, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 118 | The Confluence of Fate | Amulet | 81 | Rahyeh, The Black Sun (timeline boss, The Black Sun, empowered) | endgame-systems.md, Timeline details: # 3 The Black Sun, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 130 | Gambler's Fallacy | Amulet | 0 (sub type) | none (NULL) | not in data |
+| 154 | Eye of Storms | Amulet | 85 | Lagon, God of Storms (timeline boss, Ending the Storm, empowered) | endgame-systems.md, Timeline details: # 5 Ending the Storm, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 164 | Logi's Hunger | Amulet | 82 | Volcanic Shaman (timeline boss, Spirits of Fire) | endgame-systems.md, Timeline details: # 10 Spirits of Fire, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 175 | Omnis | Amulet | 76 | Shade of Orobyss (Shade of Orobyss, corruption 200+); Confluence of Oblivion (woven echo, corruption 200+) | endgame-systems.md, Timeline details: "...ns 120+ (the Empowered guide says 150), Omnis 200+ Corruption (X, conflicting thresho..." |
+| 265 | Soul Gambler's Fallacy | Amulet | 41 | Grin the Soul Gambler (soul gambler, Soulfire Bastion) | not in data |
+| 353 | Nihilis | Amulet | 80 (sub type) | Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...ar of Oblivion (Shattered Road). Drops: Nihilis 14.29%, Seed of Ekkidrasil 38.1%, Null..." |
+| 397 | Cocooned Amulet | Amulet | 36 (sub type) | cocooned item: no drop source in the data | not in data |
+| 409 | Inheritance of the Erased | Amulet | 48 | Woven Firstborn (woven echo, Cenotaph of Worlds); Woven Firstborn (zone) | uniques-sets-legendary.md, Weaver's Will: "...Scissor of Atropos, Blight of Lachesis, Inheritance of the Erased, which drop from Fateweaver/Firstborn b..." |
+| 425 | Wildfire Embers | Amulet | 70 | primordial item: no drop source in the data (raw primordialFangCost 19, ancientBoneCost 24500) | not in data |
+| 429 | Blossom of Immortal Stone | Amulet | 80 (sub type) | primordial item: no drop source in the data (raw ancientBoneCost 50000) | uniques-sets-legendary.md, Primordial items: "...from Rift Beasts (Carrion of Creation, Blossom of Immortal Stone, Permanence of Primal Knowledge); Rift..." |
+| 439 | Truesight Glass | Amulet | 76 (sub type) | primordial item: no drop source in the data (raw ancientBoneCost 22500) | not in data |
+| 444 | Evolution's End | Amulet | 11 (sub type) | none (NULL) | not in data |
+| 469 | Exulis | Amulet | 76 (sub type) | Vision of the Observer (woven echo, Fractured Prison) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...Fractured Prison): Oculus of Ruin 100%, Exulis 10%, multiple Omen Idols (X)...." |
+| 113 | Ribbons of Blood | Ring | 53 | Abomination (timeline boss, Fall of the Outcasts) | endgame-systems.md, Timeline details: # 1 Fall of the Outcasts, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 177 | Siphon of Anguish | Ring | 55 | Shade of Orobyss (Shade of Orobyss); Confluence of Oblivion (woven echo) | endgame-systems.md, Timeline details: "...h as Woven Flesh (X). Shade of Orobyss: Siphon of Anguish, Stymied Fate at any Corruption; Apathy..." |
+| 238 | Julra's Stardial | Ring | 40 | Chronomancer Julra (dungeon, Temporal Sanctum) | endgame-systems.md, Dungeons: Boss uniques, column "Temporal Sanctum" |
+| 257 | Ashes of Mortality | Ring | 62 (sub type) | Fire Lich Cremorus (dungeon, Soulfire Bastion) | endgame-systems.md, Dungeons: Boss uniques, column "Soulfire Bastion" |
+| 262 | Penumbra | Ring | 45 | The Crimson Blade (arena); Champions' Colosseum (woven echo) | endgame-systems.md, Arena: "...e (Rogue; Physical, Poison, Fire; drops Penumbra), Vaion the Arsenal (Sentinel; Physical..." |
+| 366 | Flames of Midnight | Ring | 52 (sub type) | Harbinger of Ash (harbinger, Spirits of Fire, empowered); Aberroth (Aberroth); Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Timeline details: # 10 Spirits of Fire, column "Harbinger (drop)" |
+| 396 | Cocooned Ring | Ring | 25 (sub type) | cocooned item: no drop source in the data | not in data |
+| 423 | Legends Entwined | Ring | 42 | primordial item: no drop source in the data (raw ancientBoneCost 19500) | not in data |
+| 440 | Bluefeather Band | Ring | 36 | primordial item: no drop source in the data (raw primordialFeatherCost 29, ancientBoneCost 17500) | not in data |
+| 470 | Oculus of Ruin | Ring | 52 (sub type) | Vision of the Observer (woven echo, Fractured Prison) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...ion of the Observer (Fractured Prison): Oculus of Ruin 100%, Exulis 10%, multiple Omen Idols (..." |
+| 477 | Unsated Rage | Ring | 52 (sub type) | Morditas (woven echo, Demigod's Ascendance) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...eance 20%, Vestige of Imprisonment 80%, Unsated Rage 50% (X)...." |
+| 69 | Heirloom of Light | Relic | 0 (sub type) | (not loaded in the database) | uniques-sets-legendary.md, Number of uniques per base type: "...ies are non-obtainable (Sharktooth Saw, Heirloom of Light, Egg of the Forgotten stub)...." |
+| 72 | Orchirian's Petals | Relic | 35 (sub type) | Orchirian The Rampant (monster) | not in data |
+| 110 | Fragments of the Shattered Lance | Relic | 65 (sub type) | God Hunter Argentus (timeline boss, The Stolen Lance) | endgame-systems.md, Timeline details: # 2 The Stolen Lance, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 152 | Anchor of Oblivion | Relic | 80 (sub type) | Harton's Husk (timeline boss, Fall of the Empire, empowered) | endgame-systems.md, Timeline details: # 6 Fall of the Empire, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 163 | Herkir's Vessel | Relic | 76 | Volcanic Shaman (timeline boss, Spirits of Fire) | endgame-systems.md, Timeline details: # 10 Spirits of Fire, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 214 | Stormcarved Testament | Relic | 78 (sub type) | Lagon, God of Storms (timeline boss, Ending the Storm) | endgame-systems.md, Timeline details: # 5 Ending the Storm, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 216 | Twisted Heart of Uhkeiros | Relic | 80 (sub type) | Emperor of Corpses (timeline boss, Reign of Dragons) | endgame-systems.md, Timeline details: # 7 Reign of Dragons, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 241 | Vessel of Strife | Relic | 86 | Chronomancer Julra (dungeon, Temporal Sanctum) | endgame-systems.md, Dungeons: Boss uniques, column "Temporal Sanctum" |
+| 267 | Ashes of Orchirian | Relic | 45 | Grin the Soul Gambler (soul gambler, Soulfire Bastion) | not in data |
+| 343 | Egg of the Forgotten | Relic | 0 (sub type) | Nemesis (nemesis) | endgame-systems.md, Other encounters: "...- **Nemesis**: see `crafting.md`; Egg of the Forgotten chance 0% below level 60, 20% at 60, 60..." |
+| 395 | Cocooned Relic | Relic | 37 (sub type) | cocooned item: no drop source in the data | not in data |
+| 403 | Soul of the Mountain | Relic | 34 | Draal Queen (woven echo, Heart of the Hive) | not in data |
+| 410 | Unearthed Memories | Relic | 40 | Overgrown Graveyard (woven echo) | not in data |
+| 413 | Shattered Worlds | Relic | 64 | Aberroth (woven echo, Threshold of Eternity) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...ll at phase 5. Drops Immortal Vise 80%, Shattered Worlds 20% (X)...." |
+| 424 | Tyrant's Skull | Relic | 36 | primordial item: no drop source in the data (raw primordialFangCost 15, ancientBoneCost 13500) | not in data |
+| 433 | Reliquary Nest | Relic | 60 | primordial item: no drop source in the data (raw primordialFeatherCost 30, ancientBoneCost 21500) | not in data |
+| 159 | Reign of Winter | Bow | 70 | Heorot (timeline boss, The Age of Winter) | endgame-systems.md, Timeline details: # 9 The Age of Winter, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 391 | Cocooned Bow | Bow | 62 (sub type) | cocooned item: no drop source in the data | not in data |
+| 441 | Hydra Arc | Bow | 72 | primordial item: no drop source in the data (raw primordialFangCost 18, ancientBoneCost 18500) | not in data |
+| 344 | Harbinger's Needle | Small Idol | 0 (sub type) | Harbinger of Treason (harbinger, Fall of the Empire, empowered); Harbinger of Ash (harbinger, Spirits of Fire, empowered); Harbinger of Pride (harbinger, The Stolen Lance, empowered); Harbinger of Defilement (harbinger, Fall of the Outcasts, empowered); Harbinger of Destruction (harbinger, Reign of Dragons, empowered); Harbinger of Hatred (harbinger, The Black Sun, empowered); Aberroth (Aberroth); Harbinger of War (harbinger, Blood, Frost, and Death, empowered); Harbinger of Chaos (harbinger, Ending the Storm, empowered); Aberroth (woven echo, Threshold of Eternity); Harbinger of Tyranny (harbinger, The Age of Winter, empowered); Harbinger of Fear (harbinger, The Last Ruin, empowered) | endgame-systems.md, Timeline details: "...all Harbingers also drop Harbinger Eye, Harbinger's Needle, The Fading Brink and Temporal Keystone..." |
+| 211 | Throne of Ambition | Adorned Idol | 0 (sub type) | God Hunter Argentus (timeline boss, The Stolen Lance) | endgame-systems.md, Timeline details: # 2 The Stolen Lance, column "Boss uniques (always-one pair / other / Empowered-only)" |
+| 219 | Trinity of Flames | Adorned Idol | 0 (sub type) | Volcanic Shaman (timeline boss, Spirits of Fire, empowered) | endgame-systems.md, Timeline details: # 10 Spirits of Fire, column "Boss uniques (always-one pair / other / Empowered-only)", Empowered timeline only |
+| 486 | Frostborn Solitude | Adorned Idol | 0 (sub type) | Morditas (woven echo, Circle of Frozen Blood) | endgame-systems.md, Harbingers, Forgotten Knights and pinnacle bosses: "...Rage of Morditas below. Morditas drops Frostborn Solitude 80%, Heorot's Repose 20%, Withstand the..." |
+
+<sub>Generated by `gen_misc.cjs` (table `nodrop_uniques`) from uniques.json (canDropRandomly = false; baseTypeName, levelRequirement, subTypes) and the prose of endgame-systems.md.tpl / uniques-sets-legendary.md.tpl for sources; 159 rows.</sub>
+
 ## Pitfalls
 - Arena of Champions wave count: 40 (G) vs 50 (X). First-timeline level: 62 (A) vs 58 (X). Shade unique thresholds differ between X pages. Prefer A/G for planning.
 - Empowered level 100 is fixed; Corruption beyond 100 scales via f(c) (A) - Corruption does not raise level in Empowered.

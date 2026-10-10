@@ -4,4 +4,5 @@ export * from "./decode.js";
 export * from "./lock.js";
 export * from "./letools.js";
 export * from "./maxroll.js";
+export * from "./maxroll-guides.js";
 export * from "./run.js";

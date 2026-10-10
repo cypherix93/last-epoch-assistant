@@ -5,13 +5,14 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createContext, findMods, getTool, knowledge, lookup, name, passiveTree, resolveDbPath, schema, search, skillTree, sql, version, REPO_ROOT, type Ctx } from "./index.js";
+import { build, builds, createContext, findMods, getTool, itemUsage, knowledge, lookup, name, passiveTree, pickTabs, resolveDbPath, scanSql, schema, search, skillTree, slotMeta, sql, version, REPO_ROOT, type Ctx } from "./index.js";
 
 const dbPath = resolveDbPath();
 const have = existsSync(dbPath);
 if (!have) console.warn(`[@le/mcp tests] SKIPPED: ${dbPath} missing; run \`yarn db:build\` first.`);
 
 type R = Record<string, any>;
+const ES_SLUG = "erasing-strike-void-knight-guide";
 
 describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
   let ctx: Ctx;
@@ -30,7 +31,7 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
 
   it("schema", () => {
     const s = schema(ctx) as R;
-    expect(s.table_count).toBe(62);
+    expect(s.table_count).toBe(72);
     expect(s.tables.find((t: R) => t.name === "mods").rows).toBeGreaterThan(20000);
     expect(s.docs).toBe("docs/schema.md");
     const m = schema(ctx, "uniques") as R;
@@ -48,11 +49,44 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((search(ctx, "name:fireball", ["ability"]) as R).results[0].name).toBe("Fireball");
   });
 
+  it("ability kinds: lookup labels sub-abilities, get lists sub_abilities with damage", () => {
+    const l = lookup(ctx, "Erasing Strike", ["ability"]) as R;
+    const byId = Object.fromEntries(l.results.map((r: R) => [r.id, r]));
+    expect(byId.es6ai).toMatchObject({ ability_kind: "player", hint: "player, has tree" });
+    expect(byId.es6ai_1).toMatchObject({ ability_kind: "player_sub", hint: "player sub-ability of es6ai" });
+    expect(JSON.stringify(l)).not.toContain("minion/monster");
+    const a = getTool(ctx, "ability", "es6ai") as R;
+    expect(a.ability.kind).toBe("player");
+    const sub = a.sub_abilities.find((s: R) => s.id === "es6ai_1");
+    expect(sub.damage_total).toBeGreaterThan(0);
+    expect(sub.components[0]).toMatchObject({ component_type: "DamageEnemyOnHit" });
+    const s = getTool(ctx, "ability", "es6ai_1") as R;
+    expect(s.ability).toMatchObject({ kind: "player_sub", parent_ability: { ability_id: "es6ai", name: "Erasing Strike" } });
+    expect(s).not.toHaveProperty("sub_abilities");
+    expect((getTool(ctx, "ability", "ability_gen2") as R).ability.kind_note).toMatch(/monster/);
+  });
+
+  it("search raw=true passes FTS5 operators through; default stays safe-quoted", () => {
+    const plain = search(ctx, "fireball OR frostbolt", undefined, 50) as R;
+    const raw = search(ctx, "fireball OR frostbolt", ["ability"], 50, true) as R;
+    expect(raw.query).toBe("fireball OR frostbolt");
+    const names = new Set(raw.results.map((x: R) => x.name));
+    expect(names.has("Fireball") && names.has("Frostbolt")).toBe(true);
+    expect(plain.query).toContain('"OR"');
+    expect((search(ctx, "name:fireb*", ["ability"], 5, true) as R).results[0].name).toMatch(/^Fireb/);
+    expect((search(ctx, "NEAR(void penetration, 3)", undefined, 5, true) as R).count).toBeGreaterThan(0);
+    expect(() => search(ctx, 'fire" AND (', undefined, 5, true)).toThrow(/FTS5 error/);
+    expect(() => search(ctx, "   ", undefined, 5, true)).toThrow(/Empty/);
+  });
+
   it("get", () => {
     const u = getTool(ctx, "unique", 0) as R;
     expect(u.unique.name).toBe("Calamity");
     expect(u.mods).toHaveLength(3);
     expect(u.unique).not.toHaveProperty("raw_json");
+    expect(u.note).toMatch(/lp_eligible is DERIVED/);
+    expect(u.unique.lp_eligible).toBe(1);
+    expect(u.unique.legendary_type).toBe(0);
     expect((getTool(ctx, "unique", 0, true) as R).unique.raw).toBeTruthy();
     const a = getTool(ctx, "affix", 0) as R;
     expect(a.affix.name).toBe("Void Penetration");
@@ -136,21 +170,109 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     const n4 = t.nodes.find((n: R) => n.id === 4);
     expect(n4.requires[0]).toEqual({ node_id: 2, node_name: "Piercing Heat", points: 2 });
     expect(n4.requires[1].node_id).toBe(6);
-    expect(n4.requires_text).toBe("2>=2,6>=2");
+    expect(n4.requires_text).toBe("2>=2,6>=2"); // deprecated alias
+    // requirements are ANY-ONE-OF (adjacency): es6ai nodes 8 and 11 list each other, so AND could never be satisfied
+    expect(n4.unlocked_by_text).toBe("2>=2|6>=2");
+    expect(n4.unlocked_by).toEqual(n4.requires);
+    const es = skillTree(ctx, "es6ai") as R;
+    const e8 = es.nodes.find((n: R) => n.id === 8);
+    const e11 = es.nodes.find((n: R) => n.id === 11);
+    expect(e8.unlocked_by_text).toBe("11>=2|12>=1");
+    expect(e11.unlocked_by.map((r: R) => r.node_id)).toContain(8);
+    const sum = sql(ctx, "SELECT unlocked_by, requires FROM v_skill_node_summary WHERE tree_id = 'es6ai' AND node_id = 8") as R;
+    expect(sum.rows[0]).toEqual({ unlocked_by: "11>=2|12>=1", requires: "11>=2,12>=1" });
     const all_ = passiveTree(ctx, 1) as R;
     const f = passiveTree(ctx, 1, { filter: "ward" }) as R;
     expect(f.nodes.length).toBeGreaterThan(0);
     expect(f.nodes.length).toBeLessThan(all_.nodes.length);
     expect(f.node_count).toBe(all_.node_count);
     expect(f.nodes.every((n: R) => JSON.stringify(n).toLowerCase().includes("ward"))).toBe(true);
-    expect(((passiveTree(ctx, 1, { filter: "ward", compact: true }) as R).nodes[0])).not.toHaveProperty("description");
     expect(((passiveTree(ctx, 1, { compact: true }) as R).nodes[0])).not.toHaveProperty("x");
+  });
+
+  it("buffs that are not ailments (ui_buffs) are searchable, resolvable and gettable", () => {
+    const l = lookup(ctx, "Craterborn", ["buff"]) as R;
+    expect(l.results[0]).toMatchObject({ kind: "buff", id: "14", name: "Craterborn" });
+    expect((lookup(ctx, "Lightning Aegis", ["buff"]) as R).results[0]).toMatchObject({ kind: "buff", id: "86" });
+    expect((search(ctx, "aegis", ["buff"]) as R).results.map((r: R) => r.name)).toContain("Lightning Aegis");
+    const c = getTool(ctx, "buff", "Craterborn") as R;
+    expect(c.buff).toMatchObject({ buff_id: 14, description: "Increases fire damage and cast speed" });
+    expect(c.stat_slots.map((x: R) => x.stat)).toEqual(["FirePenetration", "CastSpeed"]);
+    expect(c.mentions.map((m: R) => m.id)).toContain("me27:25"); // the Meteor node that grants it
+    expect((getTool(ctx, "buff", 86) as R).buff.name).toBe("Lightning Aegis");
+    // Spark Charge is an ailment (kind ailment), not a ui buff
+    expect((lookup(ctx, "Spark Charge", ["ailment"]) as R).results[0]).toMatchObject({ kind: "ailment", id: "55" });
+    expect(() => getTool(ctx, "buff", "Nope")).toThrow(/No buff/);
+  });
+
+  it("get unique says how it is obtained (can_drop_randomly + drop sources)", () => {
+    const fs = getTool(ctx, "unique", 213) as R;
+    expect(fs.unique).toMatchObject({ name: "Frostbite Shackles", can_drop_randomly: 0 });
+    expect(fs.obtain).toMatch(/does NOT drop randomly.*Formosus the Undying/);
+    expect(fs.drop_sources[0]).toMatchObject({ source_kind: "timeline_boss", source_name: "Formosus the Undying", timeline_id: 4 });
+    expect((getTool(ctx, "unique", 434) as R).obtain).toMatch(/primordial item/);
+    const v = sql(ctx, "SELECT can_drop_randomly, drop_source FROM v_unique_summary WHERE unique_id = 152") as R;
+    expect(v.rows[0]).toMatchObject({ can_drop_randomly: 0, drop_source: expect.stringContaining("Harton's Husk") });
+  });
+
+  it("compact trees keep node descriptions (the 'directly' / 'for Rive' scope words live there) unless keep_descriptions is false", () => {
+    const fc = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true }) as R).nodes[0];
+    expect(fc.description).toMatch(/directly add damage.*double effect for Rive/);
+    expect(fc).not.toHaveProperty("x");
+    const bare = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver", compact: true, keep_descriptions: false }) as R).nodes[0];
+    expect(bare).not.toHaveProperty("description");
+    const long = (skillTree(ctx, "sndr1", { compact: true }) as R).nodes.map((n: R) => String(n.description ?? ""));
+    expect(Math.max(...long.map((d: string) => d.length))).toBeLessThanOrEqual(400);
+  });
+
+  it("tree node stat lines say what the property is, the modifier kind and label mismatches", () => {
+    const [dmg, ail] = (skillTree(ctx, "sndr1", { filter: "Foe Cleaver" }) as R).nodes[0].mods;
+    expect(dmg).toMatchObject({ property: 0, property_kind: "stat", stat_kind: "skill_parameter", modifier_source: "structured", label_mismatch: true });
+    expect(dmg.warning).toMatch(/only the tooltip icon hint/);
+    expect(dmg.code_ref).toContain("twoHandedWeaponStatModifier");
+    expect(ail).toMatchObject({ property: 10001, property_kind: "ailment", property_hint: "Ignite" });
+    expect(ail).not.toHaveProperty("label_mismatch");
+    const q = (getTool(ctx, "passive_node", "mg-1:54") as R).mods;
+    expect(q[0]).toMatchObject({ property_kind: "tooltip_category", property_hint: "Global Spell Damage", modifier: "increased" });
+    expect(q[1]).toMatchObject({ property: 41, modifier: "more", label_mismatch: true });
+    const duel = (passiveTree(ctx, "mg-1", { filter: "Essence Duel" }) as R).nodes[0].mods[0];
+    expect(duel).toMatchObject({ property: 54, property_kind: "display_only", modifier: "increased" });
+    expect(duel).not.toHaveProperty("property_name");
+    const wf = (skillTree(ctx, "fi9", { filter: "Winged Fire" }) as R).nodes[0].mods[1];
+    expect(wf).toMatchObject({ label: "Damage", modifier: "more", modifier_source: "structured" });
+    const fm = findMods(ctx, { source_id: "sndr1:24" }) as R;
+    expect(fm.rows[0]).toMatchObject({ label_mismatch: true, stat_kind: "skill_parameter" });
+  });
+
+  it("tree node stats say whether they scale with points", () => {
+    const av = skillTree(ctx, "av75ch", { filter: "Precision" }) as R;
+    const [perPoint, fixed] = av.nodes[0].mods;
+    expect(perPoint).toMatchObject({ scales_with_points: true, scaling: "per_point" });
+    expect(fixed).toMatchObject({ scales_with_points: false, scaling: "fixed", display: "60%" });
+    expect(fixed).not.toHaveProperty("no_scaling");
+    const chase = (passiveTree(ctx, "pr-1", { filter: "The Chase" }) as R).nodes[0];
+    expect(chase).toMatchObject({ no_scaling_type: 1, no_scaling_point_threshold: 5 });
+    expect(chase.point_bonus_description).toMatch(/cannot be damaged/);
+    expect(chase.mods.at(-1)).toMatchObject({ scales_with_points: false, scaling: "at_threshold", threshold: 5 });
+    const node = getTool(ctx, "skill_node", "av75ch:3") as R;
+    expect(node.mods.map((m: R) => m.scaling)).toEqual(["per_point", "fixed"]);
+    const rows = sql(ctx, "SELECT no_scaling, count(*) AS n FROM mods WHERE source_kind = 'skill_node' GROUP BY 1 ORDER BY 1") as R;
+    expect(rows.rows.map((r: R) => r.no_scaling)).toEqual([0, 1]);
+    expect((sql(ctx, "SELECT count(*) AS n FROM mods WHERE source_kind = 'unique_mod' AND no_scaling IS NOT NULL") as R).rows[0].n).toBe(0);
   });
 
   it("search node hits carry tree_id and node_id", () => {
     const r = search(ctx, "piercing heat", ["skill_node"]) as R;
     const h = r.results.find((x: R) => x.id === "fi9:2");
     expect(h).toMatchObject({ tree_id: "fi9", node_id: 2 });
+  });
+
+  it("drop-rate blessings: tags are a base type, not damage tags", () => {
+    const r = findMods(ctx, { property: 104, source_kinds: ["blessing"], source_id: "34:63" }) as R;
+    expect(r.rows[0]).toMatchObject({ property_name: "Increased Drop Rate", tags: 1, property_kind: "drop_category", drop_target: "Body Armor" });
+    expect(r.rows[0].tag_names).toBeUndefined();
+    const phys = findMods(ctx, { tags_all: ["Physical"], source_kinds: ["blessing"], include_untagged: false }, 2000) as R;
+    expect(phys.rows.some((x: R) => x.property === 104)).toBe(false);
   });
 
   it("find_mods ignores indirect-property rows in tag filters", () => {
@@ -174,6 +296,17 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect((sql(ctx, "select count(*) n from uniques where unique_id = ?;", [0]) as R).rows[0].n).toBe(1);
   });
 
+  it("sql tolerates ';' inside literals/comments but not between statements", () => {
+    expect((sql(ctx, "SELECT group_concat(name, '; ') AS g FROM classes") as R).rows[0].g).toContain("; ");
+    expect((sql(ctx, "SELECT 'it''s; ok' AS a, \"x;y\" AS b FROM (SELECT 1 AS \"x;y\")") as R).rows[0].a).toBe("it's; ok");
+    expect((sql(ctx, ["SELECT 1 AS a -- trailing; comment", ""].join("\n")) as R).rows[0].a).toBe(1);
+    expect((sql(ctx, "SELECT /* a;b */ 2 AS a;") as R).rows[0].a).toBe(2);
+    expect((sql(ctx, "SELECT 3 AS a; -- done") as R).rows[0].a).toBe(3);
+    expect(() => sql(ctx, "SELECT 'a'; SELECT 'b'")).toThrow(/single/);
+    expect(() => sql(ctx, "SELECT 1 /* ; */ ; DELETE FROM meta")).toThrow(/single/);
+    expect(scanSql("select ';' ; x").semicolonAt).toBeGreaterThan(0);
+  });
+
   it("sql allows only the read-only schema pragmas", () => {
     const info = sql(ctx, "PRAGMA table_info(affixes)") as R;
     expect(info.rows.map((r: R) => r.name)).toContain("affix_id");
@@ -194,6 +327,155 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     ]) {
       expect(() => sql(ctx, bad), bad).toThrow();
     }
+  });
+
+  // ---------------------------------------------------------------- community builds (Maxroll guides)
+  const hasBuilds = () => ((sql(ctx, "SELECT count(*) AS n FROM community_builds") as R).rows[0].n as number) > 0;
+
+  it("builds: lists and filters community builds", () => {
+    if (!hasBuilds()) return;
+    const vk = builds(ctx, { mastery: "Void Knight" }) as R;
+    expect(vk.count).toBeGreaterThan(0);
+    expect(vk.builds.every((b: R) => b.class === "Sentinel" && b.mastery === "Void Knight")).toBe(true);
+    const es = vk.builds.find((b: R) => b.slug === ES_SLUG);
+    expect(es).toMatchObject({ title: "Erasing Strike Void Knight Guide", main_skill: "Erasing Strike", main_ability_id: "es6ai", is_primary: true, playstyle: "Endgame" });
+    expect(es.tabs).toEqual(["Starter", "Endgame", "Aspirational"]);
+    expect(Object.keys(es.tiers)).toEqual(["corruption", "speed", "bossing"]);
+    expect((builds(ctx, { ability: "Erasing Strike" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    // ability filter: every result says how each tab uses the skill; leftover trees (points, not specialized) are flagged
+    const vo = (builds(ctx, { ability: "Volcanic Orb", any_skill: true }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(vo.ability_tabs).toEqual([
+      { tab: "Intermediate Setup (lvl 11 - 37)", specialized: true, on_bar: true, points: 14, node_count: 9 },
+      { tab: "Final Setup (lvl 38 - 80)", specialized: false, on_bar: false, points: 14, node_count: 9, leftover_tree: true },
+    ]);
+    // a Spellblade filter matches this leveling guide through its guide card (its profile opens on the Mage tab)
+    const sb = (builds(ctx, { mastery: "Spellblade" }) as R).builds.find((b: R) => b.slug === "spellblade-leveling-guide");
+    expect(sb).toMatchObject({ mastery: "Mage", guide_mastery: "Spellblade" });
+    expect(sb.mastery_match).toMatch(/guide card/);
+    expect((builds(ctx, { ability: "es6ai", class: "Sentinel", item: "World Splitter", tab: "Endgame" }) as R).builds.map((b: R) => b.slug)).toEqual([ES_SLUG]);
+    expect((builds(ctx, { affix: 76, mastery: "void-knight" }) as R).builds.map((b: R) => b.slug)).toContain(ES_SLUG);
+    const s = builds(ctx, { tier: "S", tier_list: "bossing" }) as R;
+    expect(s.builds.every((b: R) => b.tiers.bossing === "S")).toBe(true);
+    const lev = builds(ctx, { playstyle: "leveling" }) as R;
+    expect(lev.count).toBeGreaterThan(0);
+    expect(lev.builds.every((b: R) => b.playstyle === "Leveling")).toBe(true);
+    // a leveling guide opens on a base-class tab: mastery comes from the profile, the card's is guide_mastery
+    const necro = builds(ctx, { mastery: "Necromancer", playstyle: "Leveling" }) as R;
+    expect(necro.builds.find((b: R) => b.slug === "necromancer-leveling-guide")).toMatchObject({ mastery: "Acolyte", guide_mastery: "Necromancer" });
+    expect((builds(ctx, { season: "season 4" }) as R).builds.every((b: R) => /Season 4/.test(b.season))).toBe(true);
+    expect((builds(ctx, { limit: 2 }) as R)).toMatchObject({ count: 2, truncated: true });
+    expect(() => builds(ctx, { mastery: "Nope" })).toThrow(/Unknown mastery/);
+  });
+
+  it("build: one guide fully named (Erasing Strike Void Knight, Endgame)", () => {
+    if (!hasBuilds()) return;
+    const b = build(ctx, { slug: ES_SLUG }) as R;
+    expect(b.build).toMatchObject({ slug: ES_SLUG, class: "Sentinel", mastery: "Void Knight", main_skill: "Erasing Strike", profile_id: "0g5ta0n3" });
+    expect(b.tab).toMatchObject({ name: "Endgame", is_default: true, passive_points: 113 });
+    const w = b.gear.find((g: R) => g.slot === "weapon");
+    expect(w).toMatchObject({ name: "World Splitter", kind: "legendary", unique_id: 365, base: "Bardiche", corrupted: true });
+    expect(w.affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, type: "prefix", origin: "extra", roll: 1 });
+    // in-game value: affix 76 (std 0.75) on a two-handed axe (aem 2.2) rolls x3.2/1.75; the data value is stored_value
+    expect(w.affixes[0]).toMatchObject({ scale_factor: 1.8286 });
+    expect(w.affixes[0].values[0]).toMatchObject({ stat: "Melee Void Damage", value: 119, stored_value: 65, modifier: "added" });
+    // idols: Ornate (aem 0) unscaled, Large (aem -0.33) x0.67 on std-0 affixes, Omen idols aem 0
+    const large = b.idols.find((i: R) => i.name === "Heretical Large Rahyeh Idol");
+    expect(large.affixes[0]).toMatchObject({ affix_id: 211, scale_factor: 0.67 });
+    expect(large.affixes[0].values[0]).toMatchObject({ value: 0.54, stored_value: 0.8 });
+    const ornate = b.idols.find((i: R) => i.name === "Heretical Ornate Solar Idol");
+    expect(ornate.affixes.map((a: R) => a.values.map((v: R) => v.value))).toEqual([[7], [0.9], [0.05, 0.18]]);
+    expect(ornate.affixes[0]).not.toHaveProperty("scale_factor");
+    const omen = b.idols.find((i: R) => i.name === "Grand Iron Omen Idol");
+    expect(omen.affixes.map((a: R) => a.values[0].value)).toEqual([7, 0.8, 10]);
+    expect(b.units).toMatch(/scale_factor/);
+    expect(w.implicits.length).toBeGreaterThan(0);
+    expect(b.idols).toHaveLength(6);
+    expect(b.idols[0]).toMatchObject({ grid_x: 2, grid_y: 0, name: "Minor Weaver Idol", size: "1x1" });
+    expect(b.blessings[0]).toMatchObject({ timeline: "The Black Sun", name: "Grand Emptiness of Ash", is_grand: true });
+    const vk = b.passives.find((g: R) => g.mastery === "Void Knight");
+    expect(vk.points).toBe(68);
+    expect(vk.nodes.find((n: R) => n.name === "Void Well")).toMatchObject({ points: 1 });
+    expect(b.passives.map((g: R) => g.points)).toEqual([20, 68, 25]);
+    const es = b.skills.find((s: R) => s.ability_id === "es6ai");
+    expect(es).toMatchObject({ name: "Erasing Strike", specialized: true, on_bar: true, points: 26 });
+    expect(es.nodes.find((n: R) => n.name === "Time Loop")).toMatchObject({ node_id: 13, points: 1 });
+    expect(b.skills.find((s: R) => s.name === "Rebuke")).toMatchObject({ specialized: false, on_bar: true });
+    expect(b.notes.guide.faqs).toContain("Time Loop");
+    expect(b.strengths).toContain("Great AoE");
+    // tab selection, sections, id, get alias
+    expect((build(ctx, { slug: ES_SLUG, tab: "starter" }) as R).tab.name).toBe("Starter");
+    const only = build(ctx, { id: b.build.build_id, sections: ["skills"] }) as R;
+    expect(only.skills.length).toBeGreaterThan(0);
+    expect(only).not.toHaveProperty("gear");
+    expect((getTool(ctx, "build", ES_SLUG) as R).build.build_id).toBe(b.build.build_id);
+    expect((getTool(ctx, "build", b.build.build_id) as R).tab.name).toBe("Endgame");
+    expect(() => build(ctx, { slug: ES_SLUG, tab: "nope" })).toThrow(/Tabs: Starter, Endgame, Aspirational/);
+    expect(() => build(ctx, { slug: "erasing-strike" })).toThrow(/Did you mean: erasing-strike-void-knight-guide/);
+    expect(() => build(ctx, { slug: ES_SLUG, sections: ["bogus"] })).toThrow(/Unknown section/);
+  });
+
+  it("pickTabs: exact, then prefix, then substring; default / any", () => {
+    const tabs = [
+      { build_profile_id: 1, build_id: 1, ord: 0, name: "Starting Gear", is_default: 0 },
+      { build_profile_id: 2, build_id: 1, ord: 1, name: "Endgame Gear", is_default: 1 },
+      { build_profile_id: 3, build_id: 1, ord: 2, name: "Endgame Brutality", is_default: 0 },
+    ];
+    expect(pickTabs(tabs, "endgame", "default").map((t) => t.ord)).toEqual([1]);
+    expect(pickTabs(tabs, "brutality", "default").map((t) => t.ord)).toEqual([2]);
+    expect(pickTabs(tabs, undefined, "default").map((t) => t.ord)).toEqual([1]);
+    expect(pickTabs(tabs, undefined, "any")).toHaveLength(3);
+    expect(pickTabs(tabs, "aspirational", "default")).toEqual([]);
+    expect(pickTabs(tabs, "aspirational", "default", true).map((t) => t.ord)).toEqual([1]);
+  });
+
+  it("item_usage: builds using a unique or an affix", () => {
+    if (!hasBuilds()) return;
+    const u = itemUsage(ctx, { name: "World Splitter" }) as R;
+    expect(u.item).toMatchObject({ kind: "unique", name: "World Splitter", unique_ids: [365] });
+    expect(u.total_builds).toBeGreaterThanOrEqual(1);
+    expect(u.by_slot.weapon).toBe(u.total_builds);
+    const es = u.builds.find((b: R) => b.slug === ES_SLUG);
+    expect(es).toMatchObject({ mastery: "Void Knight", main_skill: "Erasing Strike", tab: "Endgame", slot: "weapon" });
+    expect(es.extra_affixes[0]).toMatchObject({ affix_id: 76, name: "Melee Void Damage", tier: 7, origin: "extra" });
+    expect((itemUsage(ctx, { unique_id: 365, mastery: "Void Knight" }) as R).by_mastery).toEqual({ "Void Knight": expect.any(Number) });
+    const a = itemUsage(ctx, { affix: 76, slot: "weapon" }) as R;
+    expect(a.item).toMatchObject({ kind: "affix", affix_ids: [76], affixes: [{ affix_id: 76, type: "prefix" }] });
+    expect(Object.keys(a.by_slot)).toEqual(["weapon"]);
+    expect(a.by_slot.weapon).toMatchObject({ typical_tier: 7 });
+    expect(a.builds.find((b: R) => b.slug === ES_SLUG)).toMatchObject({ item: "World Splitter", tier: 7, origin: "extra" });
+    expect(() => itemUsage(ctx, {})).toThrow(/exactly one/);
+    expect(() => itemUsage(ctx, { name: "No Such Unique Item" })).toThrow(/Unknown unique/);
+  });
+
+  it("slot_meta: what Void Knight builds wear on the helmet", () => {
+    if (!hasBuilds()) return;
+    const m = slotMeta(ctx, { slot: "helmet", mastery: "Void Knight" }) as R;
+    expect(m).toMatchObject({ slot: "head", tab: "Endgame", kind: "all" });
+    expect(m.matched_builds).toBeGreaterThan(0);
+    const mask = m.items.find((x: R) => x.name === "Mask of Indifference");
+    expect(mask).toMatchObject({ kind: "legendary", unique_id: 434 });
+    expect(mask.example_builds).toContain(ES_SLUG);
+    expect(mask.pct).toBeCloseTo((mask.count / m.matched_builds) * 100, 0);
+    expect(m.affixes[0]).toHaveProperty("typical_tier");
+    expect(m.affixes.every((x: R) => x.type === "prefix" || x.type === "suffix")).toBe(true);
+    const uniques = slotMeta(ctx, { slot: "head", mastery: "void-knight", kind: "unique" }) as R;
+    expect(uniques.items.every((x: R) => /unique|legendary|set/.test(x.kind))).toBe(true);
+    const rings = slotMeta(ctx, { slot: "ring", ability: "Erasing Strike" }) as R;
+    expect(rings.slot).toEqual(["finger1", "finger2"]);
+    expect(rings.items.map((x: R) => x.name)).toEqual(expect.arrayContaining(["Flames of Midnight", "Siphon of Anguish"]));
+    const lev = slotMeta(ctx, { slot: "weapon", mastery: "Necromancer" }) as R;
+    expect(lev.tab_fallback_builds).toBeGreaterThan(0);
+    expect(() => slotMeta(ctx, { slot: "elbow" })).toThrow(/Unknown slot/);
+  });
+
+  it("search and lookup find builds by title and slug", () => {
+    if (!hasBuilds()) return;
+    const s = search(ctx, "erasing strike void knight", ["build"]) as R;
+    expect(s.results[0]).toMatchObject({ kind: "build", name: "Erasing Strike Void Knight Guide" });
+    const bySlug = lookup(ctx, ES_SLUG, ["build"]) as R;
+    expect(bySlug.results[0]).toMatchObject({ kind: "build", name: "Erasing Strike Void Knight Guide" });
+    expect(bySlug.results[0].hint).toMatch(/Sentinel \/ Void Knight, Erasing Strike/);
+    expect((lookup(ctx, "Erasing Strike Void Knight Guide") as R).results[0]).toMatchObject({ kind: "build", id: bySlug.results[0].id });
   });
 
   it("knowledge", () => {
@@ -220,7 +502,8 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
     await client.connect(transport);
     try {
       const tools = (await client.listTools()).tools.map((t) => t.name);
-      expect(tools).toHaveLength(10);
+      expect(tools).toHaveLength(14);
+      expect(tools).toEqual(expect.arrayContaining(["builds", "build", "item_usage", "slot_meta"]));
       const call = async (n: string, a: object) => {
         const res = await client.callTool({ name: n, arguments: a });
         return JSON.parse((res.content as { text: string }[])[0].text) as R;
@@ -233,6 +516,12 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
       expect(s.results.some((x: R) => x.id === "fi9")).toBe(true);
       const bad = await call("get", { kind: "nope", id: 1 });
       expect(bad).toMatchObject({ ok: false });
+      const b = await call("build", { slug: ES_SLUG, sections: ["blessings"] });
+      expect(b.ok).toBe(true);
+      expect(b.blessings[0].name).toBe("Grand Emptiness of Ash");
+      expect(b).not.toHaveProperty("gear");
+      const sm = await call("slot_meta", { slot: "helmet", mastery: "void-knight" });
+      expect(sm.items.map((x: R) => x.name)).toContain("Mask of Indifference");
     } finally {
       await client.close();
     }
@@ -276,5 +565,16 @@ describe.skipIf(!have)("@le/mcp CLI call arg forms", () => {
     const bad = run(["sql", '{"query":']);
     expect(bad.status).toBe(1);
     expect(bad.stderr).toContain("Invalid JSON args");
+  }, 60_000);
+
+  it("list prints argument schemas; list --json is the raw tool list", () => {
+    const sh = (args: string[]) => spawnSync(process.execPath, ["--import", "tsx", cli, ...args], { cwd: REPO_ROOT, encoding: "utf8" });
+    const txt = sh(["list"]).stdout;
+    expect(txt).toMatch(/^ {4}query\tstring\trequired/m);
+    expect(txt).toMatch(/^ {4}limit\tinteger \[1\.\.5000]\toptional \(default 500\)/m);
+    expect(txt).toMatch(/^ {4}ability_id\tstring\trequired/m);
+    const raw = JSON.parse(sh(["list", "--json"]).stdout) as { name: string; inputSchema: { properties: object } }[];
+    expect(raw.map((t) => t.name)).toContain("sql");
+    expect(Object.keys(raw.find((t) => t.name === "sql")!.inputSchema.properties)).toEqual(["query", "params", "limit"]);
   }, 60_000);
 });

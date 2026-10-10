@@ -15,11 +15,11 @@ function walk(d: string, o: string[] = []) { for (const e of readdirSync(d)) { c
 const files = walk(R + "/.claude/skills");
 let total = 0, ok = 0, bad = 0, ph = 0;
 function count(res: any) {
-  for (const k of ["rows", "results", "nodes", "pages", "tables"]) if (Array.isArray(res[k])) return `${k}=${res[k].length}` + (res.total_matching !== undefined ? ` total=${res.total_matching}` : "");
+  for (const k of ["rows", "results", "nodes", "pages", "tables", "builds", "items"]) if (Array.isArray(res[k])) return `${k}=${res[k].length}` + (res.total_matching !== undefined ? ` total=${res.total_matching}` : "");
   return "keys=" + Object.keys(res).slice(1, 5).join(",");
 }
 const isPlaceholder = (src: string, sql: boolean) => (/<[A-Za-z][A-Za-z_ -]*>/.test(src) && !/<b>/.test(src)) || (!sql && src.includes("..."));
-function exec(file: string, line: number, tool: string, args: any, src: string, sql = false) {
+function exec(file: string, line: number, tool: string, args: any, src: string, sql = false, expectZero = false) {
   total++;
   if (isPlaceholder(src, sql)) { ph++; console.log(`PLACEHOLDER ${file}:${line} ${tool}`); return; }
   const d = defs[tool];
@@ -29,17 +29,19 @@ function exec(file: string, line: number, tool: string, args: any, src: string, 
   const res: any = runTool(ctx, d, p.data);
   if (!res.ok) { bad++; console.log(`ERR ${file}:${line} ${tool} ${res.error}`); return; }
   const c = count(res);
-  if (/=0$/.test(c) || /=0 /.test(c)) { if (!/total=[1-9]/.test(c)) { bad++; console.log(`ZERO ${file}:${line} ${tool} ${c}`); return; } }
+  if (/=0$/.test(c) || /=0 /.test(c)) { if (expectZero) { ok++; if (verbose) console.log(`ok ${file}:${line} ${tool} ${c} (expected zero)`); return; } if (!/total=[1-9]/.test(c)) { bad++; console.log(`ZERO ${file}:${line} ${tool} ${c}`); return; } }
   ok++; if (verbose) console.log(`ok ${file}:${line} ${tool} ${c}`);
 }
-function tryJson(file: string, line: number, tool: string, text: string, src: string, sql = false) {
+function tryJson(file: string, line: number, tool: string, text: string, src: string, sql = false, expectZero = false) {
   if (isPlaceholder(src, sql)) { total++; ph++; console.log(`PLACEHOLDER ${file}:${line} ${tool}`); return; }
   if (!sql && src.includes("?")) { console.log(`SIGNATURE ${file}:${line} ${src.slice(0, 60)}`); return; }
   let args: any;
   try { args = JSON.parse(text); } catch { total++; bad++; console.log(`BAD json ${file}:${line} ${src.slice(0, 90)}`); return; }
-  exec(file, line, tool, args, src, sql);
+  exec(file, line, tool, args, src, sql, expectZero);
 }
-const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge";
+// a line carrying `expect-zero` (e.g. an HTML comment) may legitimately return an empty list
+const EZ = /expect-zero/;
+const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge|builds|build|item_usage|slot_meta";
 for (const f of files) {
   const rel = relative(R + "/.claude/skills", f).split(BS).join("/");
   // strip a blockquote prefix so fenced examples inside "> " callouts are run too
@@ -74,7 +76,7 @@ for (const f of files) {
       }
     } else if (inF) buf.push(ln);
     else {
-      for (const mm of ln.matchAll(new RegExp("`((" + TOOLS + ")\\((\\{[^`]*\\})\\))`", "g"))) tryJson(rel, i + 1, mm[2], mm[3], mm[1]);
+      for (const mm of ln.matchAll(new RegExp("`((" + TOOLS + ")\\((\\{[^`]*\\})\\))`", "g"))) tryJson(rel, i + 1, mm[2], mm[3], mm[1], false, EZ.test(ln));
       for (const mm of ln.matchAll(new RegExp("`((?:" + TOOLS + ")\\((?!\\{)[^`]*\\))`", "g"))) console.log(`INLINE-SIG ${rel}:${i + 1} ${mm[1]}`);
       for (const mm of ln.matchAll(/yarn mcp:call (\w+) '(\{[^`]*?\})'/g)) tryJson(rel, i + 1, mm[1], mm[2], mm[0]);
     }

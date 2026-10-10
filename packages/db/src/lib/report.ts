@@ -1,6 +1,7 @@
 /**
  * Row counts and the deterministic build report (data/le.build-report.json).
  */
+import type { CommunityReport } from "../loaders/community.js";
 import type { ExpectedResult } from "./expected.js";
 import { countRows, listIndexes, listTables, listViews, type DB } from "./sqlite.js";
 
@@ -57,6 +58,8 @@ export interface BuildReport {
   expected: { ok: number; failed: number; results: ExpectedResult[] };
   warnings: string[];
   crosscheck_mismatches: number | null;
+  /** Community builds step summary incl. unresolved Maxroll ids (null when the step did not run). */
+  community: CommunityReport | null;
 }
 
 export interface ReportInput {
@@ -65,6 +68,7 @@ export interface ReportInput {
   expected: ExpectedResult[];
   warnings: string[];
   crosscheckMismatches: number | null;
+  community?: CommunityReport | null;
 }
 
 /** Assemble the report. Contains no timestamps or durations (deterministic for identical input). */
@@ -89,6 +93,7 @@ export function buildReport(db: DB, input: ReportInput): BuildReport {
     },
     warnings: input.warnings,
     crosscheck_mismatches: input.crosscheckMismatches,
+    community: input.community ?? null,
   };
 }
 
@@ -120,6 +125,22 @@ export function formatReport(r: BuildReport): string {
     lines.push(`  FAIL ${e.name}: expected ${e.op} ${e.expected}, got ${e.actual ?? "error"}${e.error ? ` (${e.error})` : ""}`);
   }
   if (r.crosscheck_mismatches !== null) lines.push(`crosscheck mismatches: ${r.crosscheck_mismatches}`);
+  if (r.community) {
+    const c = r.community;
+    if (!c.present) lines.push("community: no maxroll-guides folder (0 builds)");
+    else {
+      const kinds = Object.entries(c.unresolved).map(([k, v]) => `${k}=${v!.count}`);
+      lines.push(
+        `community: ${c.guides} guides, ${c.builds} builds, ${c.profiles_loaded} profiles (${c.profiles_missing} missing), ${c.tabs} tabs, ` +
+          `${c.items} items, resolution ${c.resolution}, unresolved ${c.unresolved_total}${kinds.length ? ` (${kinds.join(", ")})` : ""}` +
+          (c.unnamed_properties.length ? `, unnamed properties ${c.unnamed_properties.map((p) => p.property).join(",")}` : "") +
+          (c.inline_items ? `, inline items ${c.inline_items}` : "") +
+          (c.warnings_total
+            ? `, warnings ${c.warnings_total} (${Object.entries(c.warnings ?? {}).map(([k, v]) => `${k}=${v!.count}`).join(", ")})`
+            : ""),
+      );
+    }
+  }
   lines.push("meta:");
   for (const [k, v] of Object.entries(r.meta)) lines.push(`  ${k} = ${v}`);
   if (r.warnings.length) lines.push(`warnings: ${r.warnings.length} (see report)`);

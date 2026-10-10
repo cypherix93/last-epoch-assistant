@@ -82,7 +82,7 @@ Fields per node (A, `07b` section 2.4/2.5): `id`, `name` (internal; code switche
 
 {{gen:misc.skill_tree_sizes}}
 
-- **Root and prerequisites**: every skill tree has a root node (`maxPoints` 0 in 144 trees) that other nodes require at 0 points. `requirements` lists prerequisite node ids with the points needed in each (e.g. Immolated Core needs 1 point in node 2). Whether a node needs all or any listed prerequisite is not stated in the vendored text; the tree shapes suggest any one connected prerequisite suffices (U).
+- **Root and prerequisites**: every skill tree has a root node (`maxPoints` 0 in 144 trees) that other nodes require at 0 points. `requirements` lists prerequisite node ids with the points needed in each (e.g. Immolated Core needs 1 point in node 2). A node needs ANY ONE of the listed entries, not all: the lists are adjacency (many are mutual, e.g. es6ai nodes 8 and 11 list each other), and a simulation over the raw LE Tools trees can allocate every node of all 136 active skill trees under ANY but only 25 trees under ALL (A, derived from the raw data; docs/schema.md "Tree node semantics").
 - **Max points**: skill nodes mostly 1, 3, 4 or 5 points; passive nodes mostly 5, 6, 8 or 10; Weaver nodes 1-5 (distribution above).
 - **Mastery fields**: skill trees have `requiredMastery` 0. Passive nodes: `mastery` is the panel (0 base, 1-3 masteries); `requiredMastery` equals the panel index for mastery panels; `masteryRequirement` is points spent in the tree needed to unlock (see `classes-and-masteries.md`).
 - **`noScalingType`** (A + LE Tools format in `03_le_data_sources.md`): 0 = `SinglePoint`, 1 = `PointThreshold` with `noScalingPointThreshold` N. Stat lines flagged `noScaling` do not scale per point: they apply as a lump when the threshold is reached (e.g. "+9% at 3 points"), while the other lines are `value x points`. `null` appears on 148 skill nodes (roots/no UI).
@@ -102,6 +102,15 @@ Fields per node (A, `07b` section 2.4/2.5): `id`, `name` (internal; code switche
 - Leech tooltips are 10x the stat value (`HealthLeech` weighs 0.1) (A).
 - Season 5 passive fixes (X patch notes): Beastmaster Aspect modifiers (Lynx/Viper) no longer use the Shark modifiers; Serrated Claws threshold no longer scales with points; Druid Fetid Resilience no longer gives DoT reduction while transformed; Shaman Ironbark totem regen cap; Swirling Maelstrom 5%-per-point chance fixed; Marksman and others re-balanced (see patch notes sections by class).
 
+## Traversal skills and Evade
+- `abilities.is_traversal` (A, from `traversalSkill`) marks the movement skills that count as **Traversal Skills** for items, affixes and passives ("after you use a Traversal Skill", "lost when you use a Traversal Skill"). **Evade is not a traversal skill:** every Evade record (`evade1`, `evade2`, `evade3`, `evade3rp`, `evade3sb`, `evade3sp`, `evade3wb`, `evade4`, `evade5`) has `is_traversal` 0 (A). Texts name Evade separately ("when you use a traversal skill or Evade", "Seconds of Haste after you use Evade"), so an effect that fires on or is lost on a traversal skill does not react to Evade. For example Lament of the Lost Refuge (uid 273) loses all Corrupted Heraldry stacks when you use a Traversal Skill, so Evade keeps the stacks (data reading **A**; the engine's tag check is **U**).
+- Player skills with `is_traversal` 1 (A): Aerial Assault, Flame Rush, Fury Leap, Lunge, Shield Rush, Shift, Surge, Teleport, Transplant, Volatile Reversal. Skill-tree nodes change the flag: they **add** it to Net (Acrobatic `ne01t:28`), Chthonic Fissure (`ch0fs:26`), Smite (Descend `sm87r4:7`), Summon Skeletal Mage (`sm4g:27`), Void Cleave (`v01cv:32`), Healing Hands (`hh7pa3:22`), Summon Storm Crows' Crowstorm (`ssc50:30`), Flay (`fl44:27`), Shadow Rend (`sh4re:24`), Dive Bomb (`db992:23`), Profane Veil (`pr5fm:5`) and Smoke Bomb (`smbmb:16`); they **remove** it from Shield Rush (`sr31hu:12`), Aerial Assault (`aa989:6`), Rampage (`wb8fo:14`) and Volatile Reversal (`vr53sl:30`). **Focus (`vm53dx`) is not a traversal skill by default; with the Conveyance node (`vm53dx:30`, "Focus now counts as a Traversal skill") it is** (A).
+- Uniques whose text or mods reference traversal skills (A): Lament of the Lost Refuge (uid 273, 2h spear: Heraldry lost on traversal), Flight of Quetzeri (uid 350, boots: haste after a traversal skill and after Evade, separately), Keplahan's Pyrolith (uid 467) and Cryolith (uid 468), rings: a Volcanic Orb is cast when you directly use a fire (cold) melee attack or **fire (cold) traversal skill**, 3 s cooldown. Affixes: 676-679, 713, 769, 910, 959, 960 (Experimental boots, belt and ring affixes and the Reforged Keplahan affixes). Passives: Never Late `mg-1:87`, Nimbus Walk `mg-1:90`, Rune of Dilation `mg-1:105`, Boar Heart `pr-1:19`.
+
+```sql
+SELECT ability_id, name, is_traversal FROM abilities WHERE name = 'Evade' ORDER BY ability_id;
+```
+
 ## Weaver tree
 
 - GTD version 9 / UI version 10; node 0 is the root ("Beginning of the web"); 79 nodes have points; sum of `maxPoints` = 173 but only 53 Weaver Points exist (A, X).
@@ -116,7 +125,7 @@ All Weaver nodes (A, `trees.json`; "Requires" lists prerequisite node ids; infer
 {{gen:misc.weaver_nodes}}
 
 ## Pitfalls
-- A node's modifier type is not in `trees.json`; using `tooltipStats` alone will classify "+N%" or "N% increased" wrongly. Use the effect JSONs (kind added/increased/more).
+- A node's modifier type is not in `trees.json`; using `tooltipStats` alone will classify "+N%" or "N% increased" wrongly. Use the effect JSONs (kind added/increased/more). The database stores the matched result per line (`mods.stat_kind` / `modifier_type`, `modifier_source` structured or inferred, `code_ref`; `docs/schema.md` "Tree node stat kinds"); a `label_mismatch = 1` line is not a plain stat.
 - Many skill-tree "increased" lines behave as MORE; passive-tree damage uses INCREASED far more often (A).
 - `noScaling` stat lines apply once at the threshold; do not multiply them by points.
 - Skills with `damage[]` empty are not damageless: check ailments, mutators (`abilities_code_damage.json`) and sub-abilities.

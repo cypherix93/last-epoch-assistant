@@ -154,4 +154,73 @@ out.corruption_curve = {
     return { rows: rows.length, md: table(['Corruption c', 'f(c)', 'effect = f(c) - 1', 'Health MORE and Hit-damage MORE if scaled as 0.01 x (1+effect) = 0.01 x f(c)', 'DoT-damage MORE if 0.005 x f(c)'], rows) };
   }
 };
+
+// ----- uniques that cannot drop randomly (endgame-systems.md) -----
+// Sources are taken ONLY from prose already on the knowledge pages (endgame-systems and uniques-sets-legendary templates);
+// anything else is "not in data". Absence here does not mean the item cannot be obtained.
+const _U = () => game('uniques').data;
+const _items = () => game('items').data;
+const _bname = (id) => { const b = _items().find(x => x.baseTypeID === id); return b ? (b.displayName || b.name) : String(id); };
+const _nm = (u) => u.displayName || u.name;
+const _NODROP_ALIASES = {
+  'Fragments of the Shattered Lance': /Fragments or Shard of the Shattered Lance/,
+  'Shard of the Shattered Lance': /Fragments or Shard of the Shattered Lance/,
+  "Gaspar's Acuity": /Gaspar's Acuity or Will/,
+  "Gaspar's Will": /Gaspar's Acuity or Will/,
+  'Peak of the Mountain': /Peak, Foot, Face and Core of the Mountain/,
+  'Foot of the Mountain': /Peak, Foot, Face and Core of the Mountain/,
+  'Face of the Mountain': /Peak, Foot, Face and Core of the Mountain/,
+  'Core of the Mountain': /Peak, Foot, Face and Core of the Mountain/
+};
+out.nodrop_uniques = {
+  src: 'uniques.json (canDropRandomly = false; baseTypeName, levelRequirement, subTypes) and the prose of endgame-systems.md.tpl / uniques-sets-legendary.md.tpl for sources',
+  fn() {
+    const fs = require('fs'); const path = require('path');
+    const norm = (s) => String(s).replace(/[‘’]/g, "'");
+    const pages = [['endgame-systems.md', 'endgame-systems.md.tpl'], ['uniques-sets-legendary.md', 'uniques-sets-legendary.md.tpl']];
+    const texts = pages.map(([page, f]) => ({ page, lines: norm(fs.readFileSync(path.join(__dirname, 'tpl', f), 'utf8')).split(/\r?\n/) }));
+    const ctx = (name) => {
+      for (const { page, lines } of texts) {
+        let heading = '', hdr = null;
+        for (let i = 0; i < lines.length; i++) {
+          const ln = lines[i];
+          if (/^#{2,3} /.test(ln)) heading = ln.replace(/^#+ /, '').replace(/\s*\(.*$/, '').replace(/`/g, '');
+          if (ln.startsWith('|') && /^\|[-| :]+\|\s*$/.test(lines[i + 1] || '')) hdr = ln.split('|').slice(1, -1).map(c => c.trim());
+          if (/\{\{gen:/.test(ln)) continue;
+          if (/^Omens, imprints/.test(heading)) continue; // rebalance notes, not sources
+          const alias = _NODROP_ALIASES[name];
+          const hit = alias ? alias.test(ln) : ln.includes(name);
+          if (!hit) continue;
+          if (alias === undefined && !new RegExp("(^|[^A-Za-z])" + name.replace(/[.*+?^${}()|[\]\\]/g, '\\module.exports = out;') + "([^A-Za-z]|$)").test(ln)) continue;
+          if (ln.startsWith('|') && hdr) {
+            const cells = ln.split('|').slice(1, -1).map(c => c.trim());
+            const col = cells.findIndex(c => (alias ? alias.test(c) : c.includes(name)));
+            if (col < 0) continue;
+            const lead = /^\d+$/.test(cells[0]) ? `${hdr[0]} ${cells[0]} ${cells[1]}` : cells[0];
+            const seg = cells[col];
+            const emp = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\module.exports = out;') + "[^;,]*\\(Emp").test(seg) ? ', Empowered timeline only' : '';
+            return `${page}, ${heading}: ${lead}, column "${hdr[col]}"${emp}`;
+          }
+          const at = alias ? Math.max(0, ln.search(alias)) : ln.indexOf(name);
+          const snip = ln.slice(Math.max(0, at - 40), at + name.length + 40).replace(/\|/g, '/').trim();
+          return `${page}, ${heading}: "...${snip}..."`;
+        }
+      }
+      return null;
+    };
+    // uniques.drop_source / unique_drop_sources of data/le.sqlite (built from itemDB.monsterItemDrops etc.); needs yarn db:build
+    const Database = require(path.join(L.ROOT, 'node_modules/better-sqlite3'));
+    const dbp = process.env.LE_DB_PATH || path.join(L.ROOT, 'data/le.sqlite');
+    if (!fs.existsSync(dbp)) throw new Error('data/le.sqlite not found; run yarn db:build first (' + dbp + ')');
+    const sdb = new Database(dbp, { readonly: true });
+    const dsrc = new Map(sdb.prepare('SELECT unique_id, drop_source FROM uniques').all().map(r => [r.unique_id, r.drop_source]));
+    sdb.close();
+    const dbSrc = (id) => !dsrc.has(id) ? '(not loaded in the database)' : (dsrc.get(id) === null ? 'none (NULL)' : dsrc.get(id));
+    const itemsJ = _items();
+    const lvl = (u) => { if (u.levelRequirement !== null && u.levelRequirement !== undefined && u.levelRequirement > 0) return String(u.levelRequirement); const b = itemsJ.find(x => x.baseTypeID === u.baseType); const s = b && (b.subItems || []).find(x => x.subTypeID === (u.subTypes || [])[0]); return s ? s.levelRequirement + ' (sub type)' : ''; };
+    const rows = _U().filter(u => !u.canDropRandomly).sort((a, b) => (a.baseType - b.baseType) || (a.uniqueID - b.uniqueID))
+      .map(u => { const c = ctx(_nm(u)); return [u.uniqueID, _nm(u), _bname(u.baseType), lvl(u), dbSrc(u.uniqueID), c ? c : 'not in data']; });
+    return { rows: rows.length, md: table(['uniqueID', 'Unique', 'Slot (base type)', 'Level requirement', 'Database drop source (`uniques.drop_source`)', 'Source named on a knowledge page (else "not in data")'], rows) };
+  }
+};
 module.exports = out;

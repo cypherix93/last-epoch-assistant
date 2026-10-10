@@ -5,9 +5,9 @@ const path = require('path');
 const L = require('./lib.cjs');
 const mods = {
   classes: require('./gen_classes.cjs'), items: require('./gen_items.cjs'), uniques: require('./gen_uniques.cjs'),
-  idols: require('./gen_idols.cjs'), misc: require('./gen_misc.cjs'), glossary: require('./gen_glossary.cjs')
+  idols: require('./gen_idols.cjs'), misc: require('./gen_misc.cjs'), glossary: require('./gen_glossary.cjs'), community: require('./gen_community.cjs')
 };
-const FILE = { classes: 'gen_classes.cjs', items: 'gen_items.cjs', uniques: 'gen_uniques.cjs', idols: 'gen_idols.cjs', misc: 'gen_misc.cjs', glossary: 'gen_glossary.cjs' };
+const FILE = { classes: 'gen_classes.cjs', items: 'gen_items.cjs', uniques: 'gen_uniques.cjs', idols: 'gen_idols.cjs', misc: 'gen_misc.cjs', glossary: 'gen_glossary.cjs', community: 'gen_community.cjs' };
 const tplDir = path.join(__dirname, 'tpl');
 const outDir = path.join(L.ROOT, 'knowledge/reference');
 fs.mkdirSync(outDir, { recursive: true });

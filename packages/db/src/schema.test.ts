@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { REPO_ROOT } from "./lib/paths.js";
 import { applySchema, insertRow, listIndexes, listTables, listViews } from "./lib/sqlite.js";
 import { SOURCE_KINDS } from "./lib/stat-lines.js";
+import * as community from "./loaders/community.js";
 import * as items from "./loaders/items.js";
 import * as skills from "./loaders/skills.js";
 import * as world from "./loaders/world.js";
@@ -13,20 +14,28 @@ import { SEARCH_KINDS, buildSearch } from "./search.js";
 const EXPECTED_TABLES = [
   "abilities", "ability_components", "ability_links", "ability_properties", "affix_can_roll_on",
   "affix_display_categories", "affix_reroll_chances", "affix_stats", "affix_tiers", "affixes", "ailments",
-  "arena_tiers", "arenas", "attributes", "blessings", "class_abilities", "classes", "compact_ids",
+  "arena_tiers", "arenas", "attributes", "blessings", "class_abilities", "classes", "community_build_blessings",
+  "community_build_item_affixes", "community_build_items", "community_build_passives", "community_build_profiles",
+  "community_build_skill_nodes", "community_build_skills", "community_builds", "compact_ids",
   "conditional_properties", "dungeon_tiers", "dungeons", "endgame_mod_refs", "entities", "enums",
   "faction_ranks", "factions", "i18n", "idol_altar_properties", "idol_altars", "item_base_types",
   "item_subtypes", "masteries", "maxroll_crosscheck", "maxroll_quests", "meta", "mods",
-  "monolith_reward_groups", "monolith_rewards", "monster_mods", "player_properties", "prophecy_unlocks",
+  "monolith_reward_groups", "monolith_rewards", "monster_mods", "node_tooltip_properties", "player_properties", "prophecy_unlocks",
   "raw_globals", "relations", "scenes", "search", "set_tooltips", "sets", "stat_properties",
   "stat_property_alt_texts", "tag_bits", "timeline_blessings", "timeline_difficulties", "timelines",
-  "tree_node_requirements", "tree_nodes", "trees", "ui_buffs", "unique_subtypes", "unique_tooltip_entries",
+  "tree_node_requirements", "tree_nodes", "trees", "ui_buffs", "unique_drop_sources", "unique_subtypes", "unique_tooltip_entries",
   "unique_tooltips", "uniques", "woven_echoes",
 ];
-const EXPECTED_VIEWS = ["v_affix_summary", "v_blessings", "v_mods_named", "v_skill_node_summary", "v_unique_summary"];
+const EXPECTED_VIEWS = [
+  "v_affix_summary", "v_affix_usage", "v_affix_values", "v_blessings", "v_build_items_named", "v_build_nodes_named", "v_build_summary",
+  "v_idol_affix_values", "v_item_usage", "v_mods_named", "v_skill_node_summary", "v_unique_summary",
+];
 const EXPECTED_INDEXES = [
   "abilities_index", "abilities_name", "ability_components_type", "ability_properties_ability",
-  "affix_can_roll_on_base", "affixes_name", "ailments_name", "blessings_timeline", "compact_ids_target",
+  "affix_can_roll_on_base", "affixes_name", "ailments_name", "blessings_timeline", "community_build_blessings_blessing",
+  "community_build_item_affixes_affix", "community_build_items_profile", "community_build_items_subtype",
+  "community_build_items_unique", "community_build_passives_node", "community_build_skill_nodes_node",
+  "community_build_skills_ability", "community_builds_class", "community_builds_slug", "compact_ids_target",
   "endgame_mod_refs_mod", "enums_value", "item_subtypes_name", "mods_identity", "mods_property", "mods_source",
   "mods_tags", "relations_source", "relations_target", "timeline_blessings_blessing", "tree_nodes_name",
   "uniques_base", "uniques_name",
@@ -61,7 +70,8 @@ describe("schema.sql", () => {
       "affix_can_roll_on", "affix_reroll_chances", "affix_display_categories", "set_tooltips", "unique_subtypes",
       "unique_tooltips", "unique_tooltip_entries", "stat_property_alt_texts", "class_abilities", "ability_links",
       "tree_node_requirements", "timeline_blessings", "endgame_mod_refs", "prophecy_unlocks", "relations", "search",
-      "maxroll_crosscheck"]);
+      "maxroll_crosscheck", "community_build_item_affixes", "community_build_blessings", "community_build_passives",
+      "community_build_skills", "community_build_skill_nodes", "node_tooltip_properties"]);
     for (const t of EXPECTED_TABLES.filter((x) => !noRaw.has(x))) {
       const cols = (db.prepare(`SELECT name FROM pragma_table_info(?)`).all(t) as { name: string }[]).map((c) => c.name);
       expect(cols, t).toContain("raw_json");
@@ -70,13 +80,13 @@ describe("schema.sql", () => {
 
   it("contains every table named by the loader stubs", () => {
     const tables = new Set(listTables(db));
-    for (const mod of [world, items, skills]) {
+    for (const mod of [world, items, skills, community]) {
       for (const t of [...mod.tables, ...mod.sharedTables]) expect(tables.has(t), t).toBe(true);
     }
   });
 
   it("assigns every owned table to exactly one loader", () => {
-    const owned = [...world.tables, ...items.tables, ...skills.tables];
+    const owned = [...world.tables, ...items.tables, ...skills.tables, ...community.tables];
     expect(new Set(owned).size).toBe(owned.length);
     const shared = ["meta", "mods", "relations", "compact_ids", "search"];
     expect([...owned, ...shared].sort()).toEqual([...EXPECTED_TABLES].sort());
@@ -91,6 +101,9 @@ describe("schema.sql", () => {
 
   it("every expected-count query prepares against the schema", () => {
     for (const mod of [world, items, skills]) for (const e of mod.expected) expect(() => db.prepare(e.sql), e.name).not.toThrow();
+    for (const e of community.expectedFor(join(REPO_ROOT, "packages/db/src/loaders/__fixtures__/maxroll-guides"))) {
+      expect(() => db.prepare(e.sql).get(), e.name).not.toThrow();
+    }
   });
 
   it("views run on synthetic rows", () => {

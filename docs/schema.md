@@ -40,11 +40,17 @@ modifier = { property  (stat property id, SP 0..133; 5000+ skill-local ids in tr
 | `tier` | affix tier, 1-based (T1 = 1), only for `affix_tier` rows. One row per (affix, tier, stat line). |
 | `property_name` | the name of the stat the line grants. **Indirect properties are resolved**: SP 98 `PlayerProperty` -> the player property name (`tags` = index), SP 58 `AbilityProperty` -> the ability property name (`tags` = ability index, `special_tag` = property index), SP 130 `IdolAltarProperty` -> the altar property name, SP 88 `LevelOfSkills` with `special_tag = 1` -> `Level of <ability>`. NULL for skill-local ids (use `label`). |
 | `tag_names` | `tags` decoded with `AT`, comma list (`Physical,Melee`); NULL when `tags = 0` or `tags` is an index (indirect properties). Filter by bit with `tags & 8192 <> 0` (Minion), or by name with `tag_names LIKE '%Minion%'`. |
-| `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative). NULL for display-only lines (tree node stats carry only text). |
-| `value_min`, `value_max` | roll range; equal for fixed values. For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
+| `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative). Tree node stats: from the decompiled node code or inferred from the label (see `modifier_source`), NULL when neither says (and for skill parameters). |
+| `value_min`, `value_max` | roll range; equal for fixed values (unique mods with raw `canRoll` 0 are loaded as fixed at `value`: the raw `maxValue` of those is a leftover, see docs/data-sources/letools.md). For display-only lines parsed from the text when it is a single number (`'+25%'` -> 0.25). |
 | `display`, `label` | source text: `display` is the value text of tree node stats (`'+25%'`), `label` the line name (`'Pierce Chance'`, affix line display name). |
 | `context` | qualifier, e.g. `'attribute:2'` (ability scaling per point of Intelligence) or `'per_level'`. |
 | `set_requirement`, `hidden`, `is_downside` | set pieces needed; `hideInTooltip`; tree node stat marked as a downside. |
+| `no_scaling` | tree node stats only (else NULL): raw `noScaling`. 0 = the value is per point allocated; 1 = does not scale per point (fixed, or a lump at the point threshold). See "Tree node semantics". |
+| `property_kind` | tree node stats only (else NULL): what `property` is. `stat` (an SP id < 5000, but only the tooltip icon hint of the line), `tooltip_category` (5000-9999: a global tooltip category, named in `node_tooltip_properties`), `ailment` (>= 10000: an ailment icon, 10000 + AilmentID; 15000+/20000+/25000+ are icon variants), `display_only` (54 None). See "Tree node stat kinds" in 3.5. |
+| `stat_kind` | tree node stats only: `added` / `increased` / `more` (= `modifier_type`), `skill_parameter` (the line sets a skill mutator field, e.g. `RiveMutator.twoHandedWeaponStatModifier`: a skill-local mechanic, not a stat line), `conversion`, `unknown`. |
+| `modifier_source` | tree node stats only: `structured` (kind from the decompiled node effect, see 3.5) or `inferred` (from the label: More/Less -> more, Increased/Reduced -> increased, a flat number -> added, a percentage on an SP that displays added values as percentages -> added, else `unknown`). |
+| `label_mismatch` | tree node stats only: 1 when `property_kind = 'stat'` but the line is NOT a plain `<modifier> <property_name>` line: the label names something else or something narrower (Foe Cleaver `sndr1:24` "Effect of Damage Stats on a 2h Weapon" on SP 0 Damage; Volcanic Orb "Orb Damage", Rive "Strike Two Damage", "Armor Per Minion"), or the code applies a different stat (Quintessence of Triumph `mg-1:54` "More Spell Damage" on SP 41 Adaptive Spell Damage is a conditional MORE damage stat). Read `label` and `code_ref`, not `property_name`. |
+| `code_ref` | tree node stats with `modifier_source = 'structured'`: the matched code effect, `add_stat <SP> <kind> [<tags>] {<condition>} (<wrapper>) -> <mutator list>` or `field <Mutator.field>`. |
 
 `source_kind` values:
 
@@ -75,7 +81,9 @@ Example rows (unique 0 "Calamity", affix 0 "Void Penetration", Fireball node 2 "
 | affix_tier | 0 | 0 | 1 | 59 | Penetration | 16 | Void | 0 | 0 | 0.04 | 0.04 | | Void Penetration |
 | affix_tier | 0 | 0 | 2 | 59 | Penetration | 16 | Void | 0 | 0 | 0.05 | 0.05 | | Void Penetration |
 | skill_node | fi9:2 | 0 | | 5002 | | 0 | | 0 | | 0.25 | 0.25 | +25% | Pierce Chance |
-| skill_node | fi9:2 | 1 | | 66 | Mana Cost | 0 | | 0 | | 0.33 | 0.33 | +33% | Mana Cost |
+| skill_node | fi9:2 | 1 | | 66 | Mana Cost | 0 | | 0 | 1 | 0.33 | 0.33 | +33% | Mana Cost |
+
+(`fi9:2` ord 0 is `property_kind 'tooltip_category'`, `stat_kind 'skill_parameter'`, `code_ref 'field FireballMutator.pierceChance'`; ord 1 is `stat_kind 'increased'`, `code_ref 'field FireballMutator.increasedManaCost'`; both `modifier_source 'structured'`.)
 
 The view `v_mods_named` adds `source_name` (the owning unique / affix / node / ... name), `property_enum` (SP name) and `modifier_name` (`added` / `increased` / `more`).
 
@@ -123,14 +131,15 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | table | purpose | key | rows |
 |---|---|---|---|
 | `item_base_types` | base types (Helmet, Relic, Small Idol, Blessing, Idol Altar, Affix Shard, ...) with category (NULL for 8 base types not listed by the loot-filter categories), size, max affixes | base_type_id | 48 |
-| `item_subtypes` | every base item (sub type) with level / class requirement, weapon stats, lens effect; implicits are mods (`implicit` / `blessing` / `idol_altar`) | (base_type_id, sub_type_id) | 1,558 |
+| `item_subtypes` | every base item (sub type) with level / class requirement, weapon stats, lens effect, `affix_effect_modifier` (the AEM its affixes scale with: the base type's, or 0 for Omen idol sub types, `affix_effectiveness = 1`); implicits are mods (`implicit` / `blessing` / `idol_altar`) | (base_type_id, sub_type_id) | 1,558 |
 | `affixes` | prefixes and suffixes (incl. idol, set, corrupted, Weaver affixes): name, title, type, special type, roll target, class specificity, weighting | affix_id | 1,156 |
-| `affix_stats` | the stat lines of each affix (1 for single, 2 for multi affixes) | (affix_id, ord) | 1,696 |
+| `affix_stats` | the stat lines of each affix (1 for single, 2 for multi affixes), with `rounding_scale` (the value grid: 100 Hundredth, 1 Integer, 10 Tenth, 1000 Thousandth) | (affix_id, ord) | 1,696 |
 | `affix_tiers` | tiers with required level; the roll values are mods `affix_tier` | (affix_id, tier) | 6,238 |
 | `affix_can_roll_on` | base types an affix rolls on | (affix_id, base_type_id) | 2,539 |
 | `affix_reroll_chances` | per equipment type reroll chance / weighting | (affix_id, ord) | 218 |
 | `affix_display_categories` | the 45 crafting categories with their header | idx | 45 |
-| `uniques` | uniques and set items: name, lore, base/sub type, set, legendary potential fields, drop flags | unique_id | 486 |
+| `uniques` | uniques and set items: name, lore, base/sub type, set, legendary potential fields, drop flags (`can_drop_randomly`), `drop_source` (summary of `unique_drop_sources`, or a note for primordial / cocooned uniques) and `drop_source_count` | unique_id | 486 |
+| `unique_drop_sources` | content-specific drop sources: `source_kind` (harbinger, aberroth, shade_of_orobyss, nemesis, arena, loot_lizard, soul_gambler, rune_prison, dungeon, timeline_boss, woven_echo, zone, monster, experimental, cache), `source_name` (boss), timeline / dungeon / woven echo id and name, `empowered_only`, `min_corruption`, `chance` / `max_chance`. From `itemDB.monsterItemDrops[]` (entries with a uniqueId), `randomEncounterData.experimentalUniqueDropInfo[]` and `oneShotCaches[]` guaranteed uniques (`dropBossLoot.json` regroups the same data) | (unique_id, ord) | 178 (106 uniques) |
 | `unique_subtypes` | all sub types of a unique | (unique_id, ord) | 486 |
 | `unique_tooltips` | the custom tooltip lines (text with `[min,max,decimals]` placeholders) | (unique_id, ord) | 562 |
 | `unique_tooltip_entries` | tooltip line order: a mod (`ref_kind 'mod'`, ref_index = mods.source_ord) or a description | (unique_id, ord) | 2,459 |
@@ -138,6 +147,17 @@ Example `stat_properties` rows: `(0, 'Damage', 'SP', 'Damage', ..., has_display_
 | `set_tooltips` | set bonus descriptions with piece requirement | (set_id, ord) | 18 |
 | `idol_altars` | idol altar sub types with their 5x5 grid | sub_type_id | 13 (`grid_index` ordering is unverified) |
 | `blessings` | blessing sub types with timeline, difficulty (0 normal, 1 empowered = grand) and slot list; the stat is mods `blessing` | sub_type_id | 224 |
+
+**Affix values depend on the item (`v_affix_values`, `v_idol_affix_values`).** The tier ranges in `mods` (`affix_tier`) are STORED values, authored for the affix's `affixes.standard_affix_effect_modifier` (std). On an item whose affix effect modifier is `aem` (`item_base_types.affix_effect_modifier`, per sub type `item_subtypes.affix_effect_modifier`: Omen idols use 0) the range becomes `stored x (1 + aem) / (1 + std)` (factor 1 when aem = std), rounded to `affix_stats.rounding_scale` (decompiled `AffixList+Affix.getModifier`, vendor `07a_assets_core_data.md`, D; `knowledge/reference/item-system.md`). This matters most for idols (aem -0.83 Small / Minor, -0.62 Humble / Stout, -0.33 Grand / Large, 0 Ornate / Huge, -0.05 Adorned) and for gear: Body Armor 0.5, one-handed weapons 0.75, two-handed weapons 2.2, shields / catalysts / amulets 0.17. Examples: affix 119 (std 0) T1 0.22..0.60 rolls 0.15..0.40 on a Grand Idol; affix 912 (std -0.33) T7 7..8 rolls 10..12 on an Ornate Idol and is unscaled on Grand / Large idols; Added Health (25) T5 61..90 rolls 92..135 on Body Armor. Read in-game ranges from `v_affix_values` (one row per affix x base type it rolls on x tier x line: `stored_min/max`, `scale_factor`, `value_min/max`) or `v_idol_affix_values` (idol bases only, with `idol_size` WxH); `v_build_items_named.affixes_text` and the `build` / `item_usage` tools apply the factor of the build item's own sub type. SQLite rounds half away from zero where the game rounds half to even in float32, so a value exactly on a .5 boundary can differ by one grid step (U).
+
+**How a unique is obtained.** `can_drop_randomly = 0` means the unique is not in the random drop pool. Its sources are in `unique_drop_sources` (e.g. Frostbite Shackles 213: Formosus the Undying, timeline boss of Blood, Frost, and Death; Anchor of Oblivion 152: Harton's Husk, empowered Fall of the Empire; World Splitter 365 and The Inevitable 347: harbingers and Aberroth; Shattered Chains 180: Shade of Orobyss and a woven echo, corruption 120+). 156 uniques have `can_drop_randomly = 0`: 104 have a source row, the 25 primordial ones (Mask of Indifference 434, ...) and 23 cocooned ones have no drop table in the data (`drop_source` is a note; primordial uniques carry raw `primordialFeatherCost` / `primordialFangCost` / `ancientBoneCost`, whose use is not described in the data: U), and 4 (Fractured Crown, Gambler's Fallacy, Avarice, Evolution's End) have neither (`drop_source` NULL). `get` kind `unique` returns `drop_sources` and a one-line `obtain`; `v_unique_summary` has `can_drop_randomly` and `drop_source`.
+
+**Legendary fields of `uniques` (what the columns mean).**
+
+- `legendary_type` is the raw `.legendaryType` enum: **0 = LegendaryPotential, 1 = WeaversWill**. It says which upgrade system the unique carries (LP or Weaver's Will, sharing the same 5 save bits); it is NOT "can roll LP". 1 on exactly 18 uniques (the Erased and Weaver items). This column used to be called `is_legendary_capable`, which was a misreading.
+- `can_drop_as_legendary` is the raw `.canDropAsLegendary`: 1 on 4 uniques (Exulis, Unsated Rage, Withstand the Elements, Frostborn Solitude), all with `drops_specific_legendary_affixes = 1` (a fixed pool of legendary affixes).
+- `effective_level_for_lp` / `override_effective_level_for_lp`: the level used for legendary potential, only when the override flag is 1 (0 with override 1 occurs on 3 uniques; 0 with override 0, 271 uniques, means "not set": LP then presumably uses the item's own level, unverified).
+- **LP eligibility is not in the data.** No raw field says whether a unique can roll legendary potential. `lp_eligible` is DERIVED by the loader: 1 when the unique is not a set item and `legendary_type = 0` (all non-set, non-Weaver-Will uniques can drop with LP in the game; set items cannot). `weavers_will` is derived: 1 when `legendary_type = 1`. Treat both as game knowledge, not data (label U/G). `get` on a unique repeats this in its `note`.
 
 Example rows:
 
@@ -156,14 +176,24 @@ Example rows:
 | `ability_components` | the prefab components (87 types: `DamageEnemyOnHit`, `ChanceToApplyAilmentsOnHit`, `CastAfterDuration`, ...) with full JSON | (ability_id, ord) | 2,516 |
 | `ability_links` | combo and shared-cooldown abilities | (ability_id, link_kind, ord) | 129 |
 | `ailments` | 148 ailments with duration, stacks, per-type base damage (`dmg_*`), damage types; buffs are mods `ailment_buff` | ailment_id | 148 |
-| `ui_buffs` | non-ailment buffs shown in the UI (Iron Mastery, Reactive Ward, ...) | buff_id | 264 |
+| `ui_buffs` | non-ailment buffs shown in the buff bar (Iron Mastery, Reactive Ward, Craterborn 14, Lightning Aegis 86, ...): name, description, max_instances. Their stat slots are the `BuffPropId` enum entries named `<enum_name>_<stat>` (Craterborn_FirePenetration, Craterborn_CastSpeed; `BuffId` is a separate id space, Craterborn = 59); the values are in game code, not in the data (read them from the granting node / item text). Buffs that are ailments (Spark Charge 55, Frenzy, Haste) are in `ailments`. Search kind `buff`, lookup kind `buff`, get kind `buff` (by buff_id or enum name; returns stat_slots and the nodes / items that mention it) | buff_id | 264 |
 | `entities` | minion / summoned actors | entity_id | 96 |
 | `trees` | 136 skill trees, 5 class passive trees, the Weaver tree | tree_id | 142 |
 | `tree_nodes` | all nodes with names, descriptions, max points, mastery, UI position; stats are mods `skill_node` / `passive_node` / `weaver_node` | (tree_id, node_id) | 3,956 + 541 + 80 |
-| `tree_node_requirements` | prerequisite node and points | (tree_id, node_id, ord) | 4,928 |
+| `tree_node_requirements` | adjacency: the node can be taken when ANY ONE listed node holds the given points (not all; see "Tree node semantics") | (tree_id, node_id, ord) | 4,928 |
+| `node_tooltip_properties` | names of the tree node stat tooltip categories (property 5000-9999 = `NodeTooltipPropertyList.properties[p - 5000]`), e.g. 5110 'Melee Damage', 5048 'Global Spell Damage'. A GLOBAL list: the same id is the same category in every tree (5110 is 'Melee Damage' in `mg-1` and `kn-1`; the per-line meaning is in `label`). Not in the LE Tools / Maxroll data; from the vendored 1.5.0 asset extract `vendor/lastepochbuilder/research/data/game/tree_node_stats.json`; every 5000+ id used by 1.5.2 nodes is covered | property | 131 |
 | `relations` | abilities / ailments referred to, triggered or levelled by affix / unique / set / implicit lines and by tree nodes | id | 2,207 + 3,236 |
 
 Example rows: `abilities ('fi9', name 'Fireball', ability_index 1, is_player_ability 1, has_skill_tree 1, tags 264 'Fire,Spell', mana_cost 3)`; `tree_nodes ('fi9', 2, 'skill', name 'Piercing Heat', max_points 4, description 'Fireball now pierces enemies (continue through targets it hits), but costs more mana.')`; `tree_node_requirements ('fi9', 2, 0, required_node_id 0, required_points 0)`; `ailments (7, 'Poison', duration 3, dmg_poison 28, damage_types 'Poison', tags 4096 'DoT')`.
+
+**`abilities.kind` (derived).** The raw ability list has no field separating player skills from what they spawn, so the loader (`packages/db/src/lib/ability-kind.ts`) derives `kind`: `player` (in `playerAbilityIdList`, 182); `player_sub` (209: reachable from a player ability by an id reference in its prefab, or an id that starts with `<player id>_` or contains a player id as an underscore segment; `parent_ability_id` names the player ability; e.g. `es6ai_1` is Erasing Strike's damage sub-ability and `es6ai_1` -> `ability_gen55_1` Void Rift is reached through it); `minion` (160: listed in an `entityList` actor's `abilityList`, an `entity_` id, or only reachable from those); `other` (677: ailment / item / node / proc abilities such as `ability_gen<n>` and `ailment_<n>`, plus monster abilities). There is NO separate monster kind: the data has no monster actor list, so monsters cannot be told apart from `other`. A player skill's hit damage often lives in a `player_sub` row (`es6ai` itself has no damage component); `get` on a player ability lists its `sub_abilities` with their decoded components, and `lookup` rows for abilities carry `ability_kind`. Skill-tree mutator copies (`mm_<player id>_<n>...`, `ability_gen<n>_<player id>_<n>`) are node variants of the skill and also appear as `player_sub`.
+
+**Tree node semantics (verified against the raw LE Tools trees).**
+
+- `tree_node_requirements` is an ADJACENCY list read as ANY ONE: node `N` can be taken as soon as at least ONE listed `required_node_id` holds `required_points` points (`required_points` 0 = plain link, the neighbour only has to be allocated, e.g. the root). It is NOT "needs all of them". Evidence: in `es6ai` node 8 lists 11 and 12 while node 11 lists 9, 10 and 8, so the AND reading can never be satisfied; of the 136 active skill trees only 25 could be fully allocated under AND, all 136 under ANY (a simulation over the raw data). The 5 class passive trees are fully reachable under both readings, so ANY is the rule inferred from the shared format (U for passives). Many edges are mutual (A lists B and B lists A): the list is connectivity, not a prerequisite chain.
+- The tree tools therefore return `unlocked_by` (`[{node_id, node_name, points}]`) and `unlocked_by_text` (`'11>=2|12>=1'`, `|` = OR), and `v_skill_node_summary.unlocked_by` uses the same `|` text. `requires` / `requires_text` / `v_skill_node_summary.requires` are DEPRECATED aliases (comma separated, which reads as AND; kept for one release, remove after).
+- **Tree node stat kinds.** The raw node stats (LE Tools `LESkillTrees` / `LECharTrees` / `LEWeaverTree` `nodes[].stats[]` and Maxroll `skillTrees.<id>.nodes.<n>.stats[]`, same shape) carry only `{statName, value: '+25%', property, tags, noScaling, downside, sprite}`: there is NO modifier type, and `property` is only the tooltip icon hint (decompiled `NodeTooltipPropertyList.GetStatPropertyName`, vendor `07b_assets_abilities_trees.md` section 1.2, D). The game applies node effects in code (`<Skill>Tree.updateMutator`). The loader therefore pairs every 1.5.2 line with a code effect from the vendored decompile of game 1.5.0 (`vendor/lastepochbuilder/research/data/game/skill_node_effects.json`, `passive_node_effects.json`; helper `packages/db/src/loaders/skills-node-kinds.ts`): same tree id and node id, same node display name (guard against renumbered nodes), the same magnitude (per point, or flat for no-scaling lines), the line's own SP property first, then a code stat or mutator field whose name shares the label's words (passive trees first use the decompile's own line-to-effect pairing). Matched lines get `modifier_source 'structured'`, `modifier_type` from the code (`add_stat` kinds added / increased / more; conditional and per-stack more = more; ailment chance = added; ailment duration / effect = increased; mutator fields by name prefix `increased*` / `more*` / `less*` / `added*` / `extra*`, other fields `stat_kind 'skill_parameter'`) and `code_ref`; the rest are `inferred` from the text. 1.5.2 coverage: skill_node 4,081 of 6,528 structured, passive_node 1,235 of 1,440, weaver_node 0 of 70 (no decompiled Weaver mapping). Structured kinds are D for the 1.5.0 code matched to 1.5.2 by name and magnitude (a node whose code changed between 1.5.0 and 1.5.2 with the same name and value would be misread: residual U); inferred kinds are U. `skill_tree` / `passive_tree` / `get` / `find_mods` return these fields per line plus `modifier` (the name), `property_hint` (tooltip category or ailment name) and a `warning` when `label_mismatch = 1`; `property_name` is dropped for `display_only` lines.
+- Node stat values (`mods` rows of `skill_node`, `passive_node`, `weaver_node`) are display text parsed to numbers (`display`, `value_min`) and are PER POINT allocated unless `mods.no_scaling = 1` (raw `stats[].noScaling`): total = value x points. A `no_scaling = 1` line does not scale: in a node with `tree_nodes.no_scaling_type = 0` (SinglePoint) it is given once from the first point (fixed), in a node with `no_scaling_type = 1` (PointThreshold) it is a lump granted when `no_scaling_point_threshold` points are allocated, together with `point_bonus_description`. The tree tools replace the raw flag by `scales_with_points` (boolean) and `scaling` (`per_point` | `fixed` | `at_threshold`, plus `threshold`) on every node stat line; `mods.no_scaling` is NULL for every other source. Source: raw `stats[].noScaling`, `noScalingType`, `noScalingPointThreshold`; the per_point/fixed/threshold reading follows vendor/lastepochbuilder/client/docs/UI.md and knowledge/reference/skills-and-trees.md (A); the exact in-game timing of threshold lumps is unverified (U).
 
 ### 3.6 Endgame and world
 
@@ -188,17 +218,54 @@ Example: `monster_mods (113, letools_compact_id 'MIzDMQ', mod_type 2, objective_
 
 ### 3.7 Full-text search
 
-`search` is an FTS5 table `(kind UNINDEXED, id UNINDEXED, name, text)` with `tokenize = 'porter unicode61'` (stemming: "ignites" matches "ignite"). Kinds, in insertion order: `unique`, `affix`, `item_subtype`, `ability` (player abilities first), `skill_node`, `passive_node`, `weaver_node`, `ailment`, `stat_property`, `player_property`, `ability_property`, `set`, `blessing`, `monster_mod`, `timeline`, `dungeon`. `id` is the key of the row in its table as text (`'<tree>:<node>'` for nodes, `'<base>:<sub>'` for sub types, `'<ability_index>:<prop_index>'` for ability properties). `text` concatenates descriptions, tooltip lines and the owner's mod labels / property names. Rank with `bm25(search, 0, 0, 10, 1)` to weight name matches 10x.
+`search` is an FTS5 table `(kind UNINDEXED, id UNINDEXED, name, text)` with `tokenize = 'porter unicode61'` (stemming: "ignites" matches "ignite"). Kinds, in insertion order: `unique`, `affix`, `item_subtype`, `ability` (player abilities first), `skill_node`, `passive_node`, `weaver_node`, `ailment`, `buff` (ui_buffs: name, description, enum name, BuffPropId stat slots), `stat_property`, `player_property`, `ability_property`, `set`, `blessing`, `monster_mod`, `timeline`, `dungeon`, `build` (community builds: `id` = `community_builds.build_id`, name = guide title, text = title, class, mastery, main skill, author, slug). `id` is the key of the row in its table as text (`'<tree>:<node>'` for nodes, `'<base>:<sub>'` for sub types, `'<ability_index>:<prop_index>'` for ability properties). `text` concatenates descriptions, tooltip lines and the owner's mod labels / property names. Rank with `bm25(search, 0, 0, 10, 1)` to weight name matches 10x.
 
 ### 3.8 Views
 
 | view | one row per | columns |
 |---|---|---|
-| `v_mods_named` | mods row | mods columns + `source_name`, `property_enum`, `modifier_name` |
-| `v_unique_summary` | unique | name, base_type, sub_type, set_name, `mods_text` (all mods flattened), `tooltip_text`, lore |
-| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers), `rolls_on_text` |
-| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list), `requires` |
-| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, modifier_name, value_min, value_max |
+| `v_mods_named` | mods row | mods columns (incl. the tree columns `property_kind`, `stat_kind`, `modifier_source`, `label_mismatch`, `code_ref`) + `source_name`, `property_enum`, `modifier_name` |
+| `v_unique_summary` | unique | name, base_type, sub_type, set_name, `can_drop_randomly`, `drop_source`, `mods_text` (all mods flattened), `tooltip_text`, lore |
+| `v_affix_values` | (affix, base type it rolls on, tier, line) | affix_name, base_type, tier, ord, label, property, property_name, tag_names, special_tag, modifier_type, `std_aem`, `item_aem`, `scale_factor`, `rounding_scale`, `stored_min` / `stored_max` (the data), `value_min` / `value_max` (in-game range on that base) |
+| `v_idol_affix_values` | (affix, idol base, tier, line) | v_affix_values for base types 25-33 plus `idol` (base name) and `idol_size` (`3x1`, ...) |
+| `v_affix_summary` | affix | name, title, prefix/suffix, `tier_count`, `min_value`/`max_value` of the first stat line across tiers, `stats_text` (each line with its range over all tiers and its tag names in brackets, e.g. `Damage added 3..100 [Void,Melee]`), `rolls_on_text` |
+| `v_skill_node_summary` | tree node | tree_name, node name, max_points, mastery, description, `stats_text` (`label: display` list; `[more]` / `[increased]` / `[added]` = `stat_kind`, with `?` when inferred, `[skill parameter]`; `(no scaling)` marks non-per-point lines; `(not a plain <property>)` marks `label_mismatch` lines), `unlocked_by` (`node>=points` entries joined by a vertical bar = any one of; `requires` is the deprecated comma-separated alias) |
+| `v_blessings` | blessing stat line | blessing name, timeline_name, is_grand, slot_kind, property_name, special_tag, tags, tag_names, modifier_name, value_min, value_max |
+
+### 3.9 Community builds
+
+Maxroll build guides and their planner profiles, loaded by `packages/db/src/loaders/community.ts` from `data/raw/<version>/maxroll-guides/` (`index.json` + `profiles/<id>.json`, see [data-sources/maxroll.md](data-sources/maxroll.md#planner-profiles-community-build-guides)). What the data is, its caveats and the four MCP tools over it: [community-builds.md](community-builds.md). Every id is the game id of the tables above, so a build joins directly to `uniques`, `affixes` / `mods` (tier rolls), `item_subtypes`, `blessings`, `trees` / `tree_nodes` and `abilities`. An id that does not resolve is stored as is and counted in the build report under `community.unresolved` (kinds `class`, `mastery`, `guide_class`, `ability`, `skill_tree`, `skill_node`, `passive_tree`, `passive_node`, `unique`, `item_subtype`, `affix`, `affix_tier`, `blessing`, `timeline`, `blessing_timeline`, `item_key`, each with a count and up to 5 examples; 1.5.2: 0). Explained quirks are counted under `community.warnings` instead (same shape): `guide_mastery` (the guide card's mastery differs from the profile's default tab: leveling guides open on a base-class tab; the profile wins, the card's is kept in `guide_mastery_index`), `mainset_unique` (the profile's `mainset` is a unique_id, stored in `main_unique_id`) and `removed_node` (a tree history entry for a node id that is a hole in the tree's numbering in both LE Tools and Maxroll, i.e. a node removed in an older patch: not stored, not counted in the points). `community.inline_items` counts items given inline in a slot (stored with `item_key 'inline'`). `community.unnamed_properties` lists stat properties used by the build items that have no display name (1.5.2: property 120 `EffectOfAilmentOnYou`). The tables are empty when the folder does not exist.
+
+| table | purpose | key |
+|---|---|---|
+| `community_builds` | one row per guide x planner profile: slug, title, url, author, updated_at, season, playstyle, style_tags (JSON), `class_id` / `mastery_index` (our ids, from the profile's default tab), `class_name` / `mastery_name` (the guide card, as published) and `guide_mastery_index` (the card's mastery resolved), `main_ability_id` (+ `main_ability_source` `mainset` / `title` / `points`), `main_unique_id` (when the profile's mainset is an item), `tier_corruption` / `tier_speed` / `tier_bossing`, planner_id, profile_id, `is_primary`, `profile_status` (`ok` / `missing` / `invalid` / `none`), `profile_name_default`, strengths / weaknesses (JSON), `notes_json` (guide notes as plain text per section) | build_id |
+| `community_build_profiles` | the planner tabs (Starter / Endgame / Aspirational): `is_default` (the tab the planner opens on), class, mastery, level, `passive_points`, `skill_points`, `notes_json` | build_profile_id; (build_id, ord) |
+| `community_build_items` | one row per equipped item and idol of a tab: `slot` (`weapon`, `head`, ..., `altar`, `idol`), `item_key` (the `PD.items` key, or `inline` when the slot holds the item object itself), idol `grid_x` / `grid_y` (5x5 altar grid, top-left cell) and `size_x` / `size_y`, `kind` (`unique` / `legendary` / `set` / `idol` / `exalted` / `rare` / `magic` / `normal`), base_type_id, sub_type_id, unique_id, set_id, is_corrupted, implicit / unique roll arrays (JSON) | item_row_id |
+| `community_build_item_affixes` | affixes of an item: `origin` (`normal`, `extra` = on a unique (LP or slam, not distinguished by the data), `sealed`, `corruption`), affix_id, 1-based `tier`, `roll` (0..1, 1 = max of the tier range), `is_prefix` | (item_row_id, ord) |
+| `community_build_blessings` | blessing per timeline slot: `timeline_id` (= slot + 1), `blessing_id` (= `blessings.sub_type_id`), roll, is_grand | (build_profile_id, slot) |
+| `community_build_passives` | class tree (and Weaver tree) allocation: tree_id, node_id, points, `first_ord` (allocation order) | (build_profile_id, tree_id, node_id) |
+| `community_build_skills` | skills of a tab: ability_id, Maxroll key, tree_id, `is_specialized` / `spec_slot` (from the planner's `specializedSkills`), `on_bar` / `bar_slot`, tree `points`, `node_count` (allocated nodes of its tree in this tab) and `has_tree_points` (points > 0). `has_tree_points = 1` with `is_specialized = 0` is a leftover tree: the skill was specialized earlier in the planner and is not in this tab's specialization slots, so the tree has no effect in game (spellblade-leveling-guide 'Final Setup': Volcanic Orb 14 points, 9 nodes, not specialized; it is specialized in 'Intermediate Setup') | (build_profile_id, ord) |
+| `community_build_skill_nodes` | skill tree allocation: tree_id (= ability id), node_id, points, first_ord | (build_profile_id, tree_id, node_id) |
+
+| view | one row per | columns |
+|---|---|---|
+| `v_build_summary` | build | class / mastery / main skill names, tiers, default tab name and level, `specialized_skills` and `uniques` of the default tab |
+| `v_build_items_named` | build item (all tabs) | profile_name, is_default, slot, grid_x/y, kind, `item_name` (unique or base name), sub_type, base_type, `affixes_text` (`<affix> T<tier>[ x<factor>] [origin] (<line> <rolled value>, ...)`; in-game values: the tier range scaled by the item's affix effect modifier (` x0.67` marks a scaled affix, see `v_affix_values`), fractions for percentages) |
+| `v_item_usage` | (unique, slot) | `builds` (any tab), `default_builds`, `guides`, `items` |
+| `v_affix_usage` | (affix, slot, origin) | builds, default_builds, items, min / max / avg tier |
+| `v_build_nodes_named` | allocated node | `kind` (`passive` / `skill`), tree_id, tree_name, node_id, node_name, points, max_points, mastery |
+
+Notes for tool and query authors:
+
+- Pick a tab. Every build has 2 to 6 tabs and the views return all of them; filter `is_default = 1` (the tab the planner opens on, usually `Endgame` / `Endgame Gear`, a `Starting Setup` tab for leveling guides) or on `profile_name`. Tab names are free text (`Endgame`, `Endgame Gear`, `Endgame ` with a trailing space, `Block Endgame`); match them case-insensitively on a trimmed prefix, as the MCP tools do.
+- Count builds, not items: one build carries up to 12 idols and two rings, and the same item usually appears in several tabs. `v_item_usage` / `v_affix_usage` already count `DISTINCT build_id`; do the same in your own aggregates.
+- `v_build_items_named.affixes_text` values are in-game values (scaled by the item's affix effect modifier; fractions for increased / more: `0.08` = 8%). The `build` MCP tool returns the same values per stat line with a `modifier` (`added` / `increased` / `more`), plus `scale_factor` on a scaled affix and `stored_value` (the unscaled data value) on its lines.
+- Unique mods (`uniqueRolls`) are not expanded in the views; read them with `get` kind `unique` and `community_build_items.unique_rolls`.
+- `v_build_nodes_named` lists skill trees of non-specialized skills too (`community_build_skills.is_specialized = 0`): planner leftovers with no in-game effect. Filter them out unless you want the raw planner state.
+- Builds per guide: one `community_builds` row per planner profile; `is_primary = 1` is the guide's own planner (one guide in 1.5.2 has two profiles). Filter `is_primary = 1` to count guides.
+- MCP tools over these tables: `builds` (list / filter), `build` (one build, fully named; also `get` kind `build`), `item_usage` (who uses a unique or an affix), `slot_meta` (what a slot looks like across builds). `search` kind `build` and `lookup` kind `build` resolve titles and slugs. See [community-builds.md](community-builds.md).
+
+Example row (`v_build_summary`, the sample Erasing Strike guide): `slug 'erasing-strike-void-knight-guide', class_name 'Sentinel', mastery_name 'Void Knight', main_skill 'Erasing Strike', profile_name_default 'Endgame', specialized_skills 'Erasing Strike, Devouring Orb, Anomaly, Void Cleave, Abyssal Echoes'`.
 
 ## 4. Example queries
 
@@ -399,12 +466,51 @@ ORDER BY pp.idx;
 SELECT key, value FROM meta ORDER BY key;
 ```
 
+20. Most used uniques in community builds (default tab), per slot:
+
+```sql
+SELECT name, slot, default_builds, builds
+FROM v_item_usage
+ORDER BY default_builds DESC, builds DESC, name
+LIMIT 20;
+```
+
+21. Gear and passives of one build's default tab, with names and rolled affix values:
+
+```sql
+SELECT i.slot, i.grid_x, i.grid_y, i.kind, i.item_name, i.affixes_text
+FROM v_build_items_named i
+JOIN community_builds b ON b.build_id = i.build_id
+WHERE b.slug = 'erasing-strike-void-knight-guide' AND i.is_default = 1
+ORDER BY i.item_row_id;
+
+SELECT n.kind, n.tree_name, n.node_name, n.points, n.max_points
+FROM v_build_nodes_named n
+JOIN community_build_profiles p ON p.build_profile_id = n.build_profile_id
+JOIN community_build_skills s ON s.build_profile_id = p.build_profile_id AND s.tree_id = n.tree_id
+WHERE p.is_default = 1 AND p.build_id = 1 AND s.is_specialized = 1
+ORDER BY n.tree_id, n.first_ord;
+```
+
+22. Builds of a mastery that use a given affix, with the tier they aim for:
+
+```sql
+SELECT b.title, i.slot, x.tier, x.origin
+FROM community_build_item_affixes x
+JOIN community_build_items i ON i.item_row_id = x.item_row_id
+JOIN community_build_profiles p ON p.build_profile_id = i.build_profile_id AND p.is_default = 1
+JOIN community_builds b ON b.build_id = p.build_id
+JOIN masteries m ON m.class_id = b.class_id AND m.mastery_index = b.mastery_index
+WHERE m.name = 'Void Knight' AND x.affix_id = 34
+ORDER BY b.title, i.slot;
+```
+
 ## 5. Version and provenance
 
 - **Game version**: `meta.game_version` (`Version 1.5.2`, from the LE Tools `gameVersion` global) and `meta.game_version_number` (`1.5.2`).
 - **Data version**: `meta.data_version` is the folder under `data/raw/` that was built (from `data/raw/CURRENT` unless `--version` was given); `meta.data_version_folder` is the LE Tools data folder (`version152`).
 - **Fetch time and source hashes**: copied from `data/raw/<version>/sources.lock.json`: `fetched_at`, one `letools_sha256:<section>/<file>` per LE Tools data file, `letools_sha256:i18n/en.json`, `maxroll_data_hash` (the 8-hex cache-busting hash), `maxroll_sha256`, `maxroll_etag`, `maxroll_last_modified`. Two databases with equal hashes were built from identical inputs.
-- **Build**: `meta.schema_version` (bumped on incompatible schema changes), `meta.build_tool_version` (`@le/db <version>`), `meta.loaded_steps` (which build steps succeeded; a full build has `world,items,skills,search,crosscheck`).
+- **Build**: `meta.schema_version` (bumped on incompatible schema changes), `meta.build_tool_version` (`@le/db <version>`), `meta.loaded_steps` (which build steps succeeded; a full build has `world,items,skills,community,search,crosscheck`).
 - **Determinism**: the build iterates source collections in sorted key order and writes no timestamps other than `fetched_at`; rebuilding from the same raw data gives the same rows and the same `data/le.build-report.json`.
-- **Build report** (`data/le.build-report.json`, committed, regenerated by every full `yarn db:build`; expected-count checks live in each loader's `expected` export, 89 checks in 1.5.2): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings and the cross-check mismatch count. `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
+- **Build report** (`data/le.build-report.json`, committed, regenerated by every full `yarn db:build`; expected-count checks live in each loader's `expected` export, 93 checks in 1.5.2 without community builds): row count per table, empty tables, mods per source_kind, search rows per kind, foreign-key violations, the acceptance-count results, loader status, warnings, the cross-check mismatch count and `community` (guides / builds / profiles loaded, `unresolved` Maxroll ids per kind with examples, `unnamed_properties`). `data/crosscheck-report.json` (committed) holds the LE Tools vs Maxroll comparison summary; the individual mismatches are in `maxroll_crosscheck`.
 - **After a game patch**: `yarn fetch` then `yarn db:build`; review `git diff data/le.build-report.json`.

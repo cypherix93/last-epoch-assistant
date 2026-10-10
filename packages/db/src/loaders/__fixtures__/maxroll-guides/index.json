@@ -1,0 +1,22 @@
+{
+  "fetched_at": "2026-10-08T00:00:00.000Z",
+  "list_url": "https://maxroll.gg/last-epoch/build-guides",
+  "guides": [
+    {
+      "slug": "erasing-strike-void-knight-guide",
+      "title": "Erasing Strike Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/erasing-strike-void-knight-guide",
+      "author": "Volca",
+      "updated": "2026-09-26",
+      "season": "5",
+      "playstyle": "Melee",
+      "style_tags": ["Melee", "Void"],
+      "class": "Sentinel",
+      "mastery": "Void Knight",
+      "planner_id": "0g5ta0n3",
+      "profile_ids": ["0g5ta0n3"],
+      "tiers": { "corruption": "S", "speed": "A", "bossing": "S" }
+    }
+  ],
+  "tier_lists": {}
+}

@@ -1,0 +1,2691 @@
+{
+  "fetched_at": "2026-10-09T03:30:02.822Z",
+  "list_url": "https://maxroll.gg/last-epoch/build-guides",
+  "guides": [
+    {
+      "slug": "lightning-blast-runemaster-guide",
+      "title": "Lightning Blast Runemaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/lightning-blast-runemaster-guide",
+      "author": "BinaQc",
+      "updated": "October 8, 2026",
+      "updated_iso": "2026-10-08",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "mage",
+      "mastery": "runemaster",
+      "planner_id": "fr66z80q",
+      "profile_ids": [
+        "fr66z80q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "A",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "tornado-shaman-guide",
+      "title": "Tornado Shaman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/tornado-shaman-guide",
+      "author": "BinaQc",
+      "updated": "October 8, 2026",
+      "updated_iso": "2026-10-08",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "primalist",
+      "mastery": "shaman",
+      "planner_id": "kj6jox0q",
+      "profile_ids": [
+        "kj6jox0q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "shadow-cascade-bladedancer-guide",
+      "title": "Shadow Cascade Bladedancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shadow-cascade-bladedancer-guide",
+      "author": "BinaQc",
+      "updated": "October 8, 2026",
+      "updated_iso": "2026-10-08",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "rogue",
+      "mastery": "bladedancer",
+      "planner_id": "uz6jpp0q",
+      "profile_ids": [
+        "uz6jpp0q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "anurok-frogs-beastmaster-guide",
+      "title": "Anurok Frogs Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/anurok-frogs-beastmaster-guide",
+      "author": "BinaQc",
+      "updated": "October 8, 2026",
+      "updated_iso": "2026-10-08",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "rl6jp20q",
+      "profile_ids": [
+        "rl6jp20q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "A",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "shadow-rend-bladedancer-guide",
+      "title": "Shadow Rend Bladedancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shadow-rend-bladedancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "October 7, 2026",
+      "updated_iso": "2026-10-07",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "bladedancer",
+      "planner_id": "zge0t60e",
+      "profile_ids": [
+        "zge0t60e"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "stygian-coal-lich-guide",
+      "title": "Stygian Coal Lich Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/stygian-coal-lich-guide",
+      "author": "Volca",
+      "updated": "October 7, 2026",
+      "updated_iso": "2026-10-07",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "eo9n270v",
+      "profile_ids": [
+        "eo9n270v"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "rip-blood-lich-leveling-guide",
+      "title": "Rip Blood Lich Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/rip-blood-lich-leveling-guide",
+      "author": "Volca",
+      "updated": "October 7, 2026",
+      "updated_iso": "2026-10-07",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "fa8rmy0v",
+      "profile_ids": [
+        "fa8rmy0v"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "melee-avalanche-shaman-guide",
+      "title": "Melee Avalanche Shaman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/melee-avalanche-shaman-guide",
+      "author": "Volca",
+      "updated": "October 7, 2026",
+      "updated_iso": "2026-10-07",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "primalist",
+      "mastery": "shaman",
+      "planner_id": "npq70b0t",
+      "profile_ids": [
+        "npq70b0t"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "B",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "ignite-radiant-lance-paladin-guide",
+      "title": "Ignite Radiant Lance Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/ignite-radiant-lance-paladin-guide",
+      "author": "Volca",
+      "updated": "October 6, 2026",
+      "updated_iso": "2026-10-06",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "gg33xj0s",
+      "profile_ids": [
+        "gg33xj0s"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "abyssal-echoes-void-knight-guide",
+      "title": "Abyssal Echoes Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/abyssal-echoes-void-knight-guide",
+      "author": "Volca",
+      "updated": "October 5, 2026",
+      "updated_iso": "2026-10-05",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "i4li50ot",
+      "profile_ids": [
+        "i4li50ot"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "swipe-beastmaster-guide",
+      "title": "Swipe Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/swipe-beastmaster-guide",
+      "author": "Volca",
+      "updated": "October 5, 2026",
+      "updated_iso": "2026-10-05",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "lv7xf00v",
+      "profile_ids": [
+        "lv7xf00v"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "C",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "shuriken-marksman-guide",
+      "title": "Shuriken Marksman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shuriken-marksman-guide",
+      "author": "Volca",
+      "updated": "October 5, 2026",
+      "updated_iso": "2026-10-05",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "marksman",
+      "planner_id": "90fchi0t",
+      "profile_ids": [
+        "90fchi0t"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "rive-void-knight-guide",
+      "title": "Rive Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/rive-void-knight-guide",
+      "author": "Volca",
+      "updated": "October 5, 2026",
+      "updated_iso": "2026-10-05",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "7e5t00ny",
+      "profile_ids": [
+        "7e5t00ny"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "bleed-hammerdin-paladin-guide",
+      "title": "Bleed Hammerdin Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/bleed-hammerdin-paladin-guide",
+      "author": "Volca",
+      "updated": "October 4, 2026",
+      "updated_iso": "2026-10-04",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "vx1xw0gs",
+      "profile_ids": [
+        "vx1xw0gs"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "radiant-lance-paladin-guide",
+      "title": "Radiant Lance Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-paladin-guide",
+      "author": "Volca",
+      "updated": "October 4, 2026",
+      "updated_iso": "2026-10-04",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "czdxmm0x",
+      "profile_ids": [
+        "czdxmm0x"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "shield-throw-paladin-guide",
+      "title": "Shield Throw Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shield-throw-paladin-guide",
+      "author": "Volca",
+      "updated": "October 3, 2026",
+      "updated_iso": "2026-10-03",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "0679x03l",
+      "profile_ids": [
+        "0679x03l"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "radiant-lance-void-knight-guide",
+      "title": "Radiant Lance Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-void-knight-guide",
+      "author": "Volca",
+      "updated": "October 3, 2026",
+      "updated_iso": "2026-10-03",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "mde1rv0x",
+      "profile_ids": [
+        "mde1rv0x"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "radiant-lance-leveling-guide",
+      "title": "Radiant Lance Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/radiant-lance-leveling-guide",
+      "author": "terek",
+      "updated": "October 1, 2026",
+      "updated_iso": "2026-10-01",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "0w2ltq0g",
+      "profile_ids": [
+        "0w2ltq0g"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "upheaval-beastmaster-guide",
+      "title": "Upheaval Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/upheaval-beastmaster-guide",
+      "author": "Volca",
+      "updated": "September 30, 2026",
+      "updated_iso": "2026-09-30",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "88e0b0ln",
+      "profile_ids": [
+        "88e0b0ln"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "C",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "forge-strike-forge-guard-guide",
+      "title": "Forge Strike Forge Guard Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/forge-strike-forge-guard-guide",
+      "author": "Volca",
+      "updated": "September 30, 2026",
+      "updated_iso": "2026-09-30",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "forge-guard",
+      "planner_id": "qo1niv06",
+      "profile_ids": [
+        "qo1niv06"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "marksman-leveling-guide",
+      "title": "Marksman Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/marksman-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "marksman",
+      "planner_id": "je68sc0e",
+      "profile_ids": [
+        "je68sc0e"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "bladedancer-leveling-guide",
+      "title": "Bladedancer Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/bladedancer-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "rogue",
+      "mastery": "bladedancer",
+      "planner_id": "sb62zd0e",
+      "profile_ids": [
+        "sb62zd0e"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "falconer-leveling-guide",
+      "title": "Rogue Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/falconer-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "falconer",
+      "planner_id": "dz3y3005",
+      "profile_ids": [
+        "dz3y3005"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "necromancer-leveling-guide",
+      "title": "Necromancer Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/necromancer-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "ea7od0qq",
+      "profile_ids": [
+        "ea7od0qq"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "warlock-leveling-guide",
+      "title": "Acolyte Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/warlock-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "warlock",
+      "planner_id": "o771k00f",
+      "profile_ids": [
+        "o771k00f"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "paladin-leveling-guide",
+      "title": "Sentinel Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/paladin-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "lp4lq0i3",
+      "profile_ids": [
+        "lp4lq0i3"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "shaman-leveling-guide",
+      "title": "Primalist Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shaman-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "shaman",
+      "planner_id": "3k9hk0gr",
+      "profile_ids": [
+        "3k9hk0gr"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "spellblade-leveling-guide",
+      "title": "Mage Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/spellblade-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "mage",
+      "mastery": "spellblade",
+      "planner_id": "ps21bf0v",
+      "profile_ids": [
+        "ps21bf0v"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "shatter-strike-leveling-guide",
+      "title": "Shatter Strike Leveling Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shatter-strike-leveling-guide",
+      "author": "terek",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Leveling",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "mage",
+      "mastery": "spellblade",
+      "planner_id": "gh3b90il",
+      "profile_ids": [
+        "gh3b90il"
+      ],
+      "tiers": {}
+    },
+    {
+      "slug": "meteor-sorcerer-guide",
+      "title": "Meteor Sorcerer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/meteor-sorcerer-guide",
+      "author": "BinaQc",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "mage",
+      "mastery": "sorcerer",
+      "planner_id": "3pt4f0gf",
+      "profile_ids": [
+        "3pt4f0gf"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "shield-bash-forge-guard-guide",
+      "title": "Shield Bash Forge Guard Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shield-bash-forge-guard-guide",
+      "author": "Volca",
+      "updated": "September 29, 2026",
+      "updated_iso": "2026-09-29",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "forge-guard",
+      "planner_id": "im7tk0it",
+      "profile_ids": [
+        "im7tk0it"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "C",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "storm-crows-beastmaster-guide",
+      "title": "Storm Crows Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/storm-crows-beastmaster-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "sj6jp40q",
+      "profile_ids": [
+        "sj6jp40q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "B",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "spirit-thorns-beastmaster-guide",
+      "title": "Spirit Thorns Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/spirit-thorns-beastmaster-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 4",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Range"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "c45teq0o",
+      "profile_ids": [
+        "c45teq0o"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "static-orb-sorcerer-guide",
+      "title": "Static Orb Sorcerer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/static-orb-sorcerer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "mage",
+      "mastery": "sorcerer",
+      "planner_id": "csbexj0h",
+      "profile_ids": [
+        "csbexj0h"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "hydrahedron-runemaster-guide",
+      "title": "Hydrahedron Runemaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/hydrahedron-runemaster-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "mage",
+      "mastery": "runemaster",
+      "planner_id": "ph66z90q",
+      "profile_ids": [
+        "ph66z90q"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "reflect-shaman-guide",
+      "title": "Reflect Shaman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/reflect-shaman-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee",
+        "Minions",
+        "Range"
+      ],
+      "class": "primalist",
+      "mastery": "shaman",
+      "planner_id": "1o6jp50q",
+      "profile_ids": [
+        "1o6jp50q"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "shatter-totem-werebear-druid-guide",
+      "title": "Shatter Totem Werebear Druid Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shatter-totem-werebear-druid-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "primalist",
+      "mastery": "druid",
+      "planner_id": "nn6jp80q",
+      "profile_ids": [
+        "nn6jp80q"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "totem-shaman-guide",
+      "title": "Totem Shaman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/totem-shaman-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Minions",
+        "Range"
+      ],
+      "class": "primalist",
+      "mastery": "shaman",
+      "planner_id": "vr6jps0q",
+      "profile_ids": [
+        "vr6jps0q"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "multistrike-forge-guard-guide",
+      "title": "Multistrike Forge Guard Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/multistrike-forge-guard-guide",
+      "author": "Volca",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "forge-guard",
+      "planner_id": "vdcxm0lg",
+      "profile_ids": [
+        "vdcxm0lg"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "B",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "fire-aura-spellblade-guide",
+      "title": "Fire Aura Spellblade Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/fire-aura-spellblade-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "mage",
+      "mastery": "spellblade",
+      "planner_id": "o4b870id",
+      "profile_ids": [
+        "o4b870id"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "shatter-strike-spellblade-guide",
+      "title": "Shatter Strike Spellblade Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shatter-strike-spellblade-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "mage",
+      "mastery": "spellblade",
+      "planner_id": "j6i0l0i4",
+      "profile_ids": [
+        "j6i0l0i4"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "B",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "flame-reave-spellblade-guide",
+      "title": "Flame Reave Spellblade Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/flame-reave-spellblade-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "mage",
+      "mastery": "spellblade",
+      "planner_id": "cg2j4d0n",
+      "profile_ids": [
+        "cg2j4d0n"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "glacier-sorcerer-guide",
+      "title": "Glacier Sorcerer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/glacier-sorcerer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "mage",
+      "mastery": "sorcerer",
+      "planner_id": "41daw0q2",
+      "profile_ids": [
+        "41daw0q2"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "sabertooth-beastmaster-guide",
+      "title": "Sabertooth Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/sabertooth-beastmaster-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "7k3ez0gd",
+      "profile_ids": [
+        "7k3ez0gd"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "B",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "raptor-beastmaster-guide",
+      "title": "Raptor Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/raptor-beastmaster-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "no49f0q9",
+      "profile_ids": [
+        "no49f0q9"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "bear-beastmaster-guide",
+      "title": "Bear Beastmaster Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/bear-beastmaster-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "primalist",
+      "mastery": "beastmaster",
+      "planner_id": "1j2bc0q0",
+      "profile_ids": [
+        "1j2bc0q0"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "C",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "multishot-marksman-guide",
+      "title": "Multishot Marksman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/multishot-marksman-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "marksman",
+      "planner_id": "1g47u005",
+      "profile_ids": [
+        "1g47u005"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "bladestorm-bladedancer-guide",
+      "title": "Bladestorm Bladedancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/bladestorm-bladedancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "bladedancer",
+      "planner_id": "4441120i",
+      "profile_ids": [
+        "4441120i"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "forged-weapons-forge-guard-guide",
+      "title": "Forged Weapons Forge Guard Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/forged-weapons-forge-guard-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "sentinel",
+      "mastery": "forge-guard",
+      "planner_id": "qwtue0v9",
+      "profile_ids": [
+        "qwtue0v9"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "C",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "zombie-warlock-guide",
+      "title": "Zombie Warlock Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/zombie-warlock-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "warlock",
+      "planner_id": "kb3ocj0e",
+      "profile_ids": [
+        "kb3ocj0e"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "skeleton-necromancer-guide",
+      "title": "Skeleton Necromancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/skeleton-necromancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "y21h9h0x",
+      "profile_ids": [
+        "y21h9h0x"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "B",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "wraith-necromancer-guide",
+      "title": "Wraith Necromancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/wraith-necromancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Minions",
+        "Range"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "f3261003",
+      "profile_ids": [
+        "f3261003"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "skeleton-mage-necromancer-guide",
+      "title": "Skeleton Mage Necromancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/skeleton-mage-necromancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "jo4ei80q",
+      "profile_ids": [
+        "jo4ei80q"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "C",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "blood-spectre-necromancer-guide",
+      "title": "Blood Spectre Necromancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/blood-spectre-necromancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "i6ahli0t",
+      "profile_ids": [
+        "i6ahli0t"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "B",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "abomination-necromancer-guide",
+      "title": "Abomination Necromancer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/abomination-necromancer-guide",
+      "author": "Lizard_IRL",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee",
+        "Minions"
+      ],
+      "class": "acolyte",
+      "mastery": "necromancer",
+      "planner_id": "8b7z40qt",
+      "profile_ids": [
+        "8b7z40qt"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "B",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "ballista-falconer-guide",
+      "title": "Ballista Falconer Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/ballista-falconer-guide",
+      "author": "BinaQc",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Minions",
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "falconer",
+      "planner_id": "kl66zb0q",
+      "profile_ids": [
+        "kl66zb0q"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "multistrike-smite-void-knight-guide",
+      "title": "Multistrike Smite Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/multistrike-smite-void-knight-guide",
+      "author": "Volca",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "2i2in0qc",
+      "profile_ids": [
+        "2i2in0qc"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "B",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "javelin-paladin-guide",
+      "title": "Javelin Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/javelin-paladin-guide",
+      "author": "Volca",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "c174p0ze",
+      "profile_ids": [
+        "c174p0ze"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "crit-hammerdin-paladin-guide",
+      "title": "Crit Hammerdin Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/crit-hammerdin-paladin-guide",
+      "author": "Volca",
+      "updated": "September 28, 2026",
+      "updated_iso": "2026-09-28",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "fz1tg0qv",
+      "profile_ids": [
+        "fz1tg0qv"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "heartseeker-marksman-guide",
+      "title": "Heartseeker Marksman Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/heartseeker-marksman-guide",
+      "author": "Volca",
+      "updated": "September 27, 2026",
+      "updated_iso": "2026-09-27",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Range"
+      ],
+      "class": "rogue",
+      "mastery": "marksman",
+      "planner_id": "ch2i0lbq",
+      "profile_ids": [
+        "ch2i0lbq"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "harvest-lich-guide",
+      "title": "Harvest Flay Lich Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/harvest-lich-guide",
+      "author": "Volca",
+      "updated": "September 27, 2026",
+      "updated_iso": "2026-09-27",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "0i1300go",
+      "profile_ids": [
+        "0i1300go"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "chaos-bolts-lich-guide",
+      "title": "Chaos Bolts Lich Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/chaos-bolts-lich-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "0y7au08m",
+      "profile_ids": [
+        "0y7au08m"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "erasing-strike-void-knight-guide",
+      "title": "Erasing Strike Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/erasing-strike-void-knight-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "0g5ta0n3",
+      "profile_ids": [
+        "0g5ta0n3"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "time-rot-void-knight-guide",
+      "title": "Shield Throw Time Rot Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/time-rot-void-knight-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "qr5lt0rq",
+      "profile_ids": [
+        "qr5lt0rq"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "judgement-aura-paladin-guide",
+      "title": "Judgement Aura Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/judgement-aura-paladin-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "8xt70z7t",
+      "profile_ids": [
+        "8xt70z7t"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "B",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "judgement-paladin-guide",
+      "title": "Judgement Paladin Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/judgement-paladin-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "paladin",
+      "planner_id": "9n5nu0er",
+      "profile_ids": [
+        "9n5nu0er"
+      ],
+      "tiers": {
+        "corruption": "A",
+        "speed": "C",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "flay-mana-lich-guide",
+      "title": "Flay Mana Lich Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/flay-mana-lich-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster",
+        "Melee"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "2ai4s0qh",
+      "profile_ids": [
+        "2ai4s0qh"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "rip-blood-lich-guide",
+      "title": "Rip Blood Lich Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/rip-blood-lich-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "lich",
+      "planner_id": "svfnx0q6",
+      "profile_ids": [
+        "svfnx0q6"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "echo-warpath-void-knight-guide",
+      "title": "Warpath Void Knight Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/echo-warpath-void-knight-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "void-knight",
+      "planner_id": "kf9or0nu",
+      "profile_ids": [
+        "kf9or0nu"
+      ],
+      "tiers": {
+        "corruption": "S",
+        "speed": "S",
+        "bossing": "A"
+      }
+    },
+    {
+      "slug": "flame-whip-warlock-guide",
+      "title": "Flame Whip Warlock Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/flame-whip-warlock-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "warlock",
+      "planner_id": "2svd0sa0",
+      "profile_ids": [
+        "2svd0sa0"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "A",
+        "bossing": "B"
+      }
+    },
+    {
+      "slug": "profane-veil-warlock-guide",
+      "title": "Profane Veil Warlock Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/profane-veil-warlock-guide",
+      "author": "Volca",
+      "updated": "September 26, 2026",
+      "updated_iso": "2026-09-26",
+      "season": "Season 5 Rage Of The Frostborn",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Caster"
+      ],
+      "class": "acolyte",
+      "mastery": "warlock",
+      "planner_id": "q538ke0e",
+      "profile_ids": [
+        "q538ke0e"
+      ],
+      "tiers": {
+        "corruption": "B",
+        "speed": "B",
+        "bossing": "S"
+      }
+    },
+    {
+      "slug": "shield-rush-forge-guard-guide",
+      "title": "Shield Rush Forge Guard Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/shield-rush-forge-guard-guide",
+      "author": "BinaQc",
+      "updated": "March 25, 2026",
+      "updated_iso": "2026-03-25",
+      "season": "Season 4",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "sentinel",
+      "mastery": "forge-guard",
+      "planner_id": "7f5tdu0o",
+      "profile_ids": [
+        "7f5tdu0o"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "B",
+        "bossing": "C"
+      }
+    },
+    {
+      "slug": "frostbite-swarmblade-druid-guide",
+      "title": "Frostbite Swarmblade Druid Guide",
+      "url": "https://maxroll.gg/last-epoch/build-guides/frostbite-swarmblade-druid-guide",
+      "author": "BinaQc",
+      "updated": "March 25, 2026",
+      "updated_iso": "2026-03-25",
+      "season": "Season 4",
+      "playstyle": "Endgame",
+      "style_tags": [
+        "Melee"
+      ],
+      "class": "primalist",
+      "mastery": "druid",
+      "planner_id": "kg56tr03",
+      "profile_ids": [
+        "kg56tr03",
+        "20tfn0go"
+      ],
+      "tiers": {
+        "corruption": "C",
+        "speed": "C",
+        "bossing": "C"
+      }
+    }
+  ],
+  "tier_lists": {
+    "corruption": {
+      "url": "https://maxroll.gg/last-epoch/tierlists/corruption-tier-list",
+      "title": "Endgame Tier List for Last Epoch Season 5 - Rage of the Frostborn",
+      "updated": "2026-10-07",
+      "entries": [
+        {
+          "name": "Shadow Cascade BD",
+          "tier": "S",
+          "slug": "shadow-cascade-bladedancer-guide"
+        },
+        {
+          "name": "Static Orb Sorcerer",
+          "tier": "S",
+          "slug": "static-orb-sorcerer-guide"
+        },
+        {
+          "name": "Rip Blood Lich",
+          "tier": "S",
+          "slug": "rip-blood-lich-guide"
+        },
+        {
+          "name": "Flay Mana Lich",
+          "tier": "S",
+          "slug": "flay-mana-lich-guide"
+        },
+        {
+          "name": "Stygian Coal Lich",
+          "tier": "S",
+          "slug": "stygian-coal-lich-guide"
+        },
+        {
+          "name": "Shield Throw Time Rot VK",
+          "tier": "S",
+          "slug": "time-rot-void-knight-guide"
+        },
+        {
+          "name": "Flame Reave Spellblade",
+          "tier": "S",
+          "slug": "flame-reave-spellblade-guide"
+        },
+        {
+          "name": "Lightning Blast Runemaster",
+          "tier": "S",
+          "slug": "lightning-blast-runemaster-guide"
+        },
+        {
+          "name": "Ballista Falconer (ZHP)",
+          "tier": "S",
+          "slug": "ballista-falconer-guide"
+        },
+        {
+          "name": "Tornado Shaman",
+          "tier": "S",
+          "slug": "tornado-shaman-guide"
+        },
+        {
+          "name": "Erasing Strike Void Knight",
+          "tier": "S",
+          "slug": "erasing-strike-void-knight-guide"
+        },
+        {
+          "name": "Storm Crows Beastmaster",
+          "tier": "S",
+          "slug": "storm-crows-beastmaster-guide"
+        },
+        {
+          "name": "Anurok Frogs Beastmaster",
+          "tier": "S",
+          "slug": "anurok-frogs-beastmaster-guide"
+        },
+        {
+          "name": "Warpath Void Knight",
+          "tier": "S",
+          "slug": "echo-warpath-void-knight-guide"
+        },
+        {
+          "name": "Blood Spectre Necromancer",
+          "tier": "S",
+          "slug": "blood-spectre-necromancer-guide"
+        },
+        {
+          "name": "Skeleton Necromancer",
+          "tier": "S",
+          "slug": "skeleton-necromancer-guide"
+        },
+        {
+          "name": "Fire Aura Spellblade",
+          "tier": "A",
+          "slug": "fire-aura-spellblade-guide"
+        },
+        {
+          "name": "Bladestorm Bladedancer",
+          "tier": "A",
+          "slug": "bladestorm-bladedancer-guide"
+        },
+        {
+          "name": "Radiant Lance Paladin",
+          "tier": "A",
+          "slug": "radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Shatter Totem Werebear",
+          "tier": "A",
+          "slug": "shatter-totem-werebear-druid-guide"
+        },
+        {
+          "name": "Harvest Flay Lich",
+          "tier": "A",
+          "slug": "harvest-lich-guide"
+        },
+        {
+          "name": "Shuriken Marksman",
+          "tier": "A",
+          "slug": "shuriken-marksman-guide"
+        },
+        {
+          "name": "Shadow Rend Bladedancer",
+          "tier": "A",
+          "slug": "shadow-rend-bladedancer-guide"
+        },
+        {
+          "name": "Zombie Warlock",
+          "tier": "A",
+          "slug": "zombie-warlock-guide"
+        },
+        {
+          "name": "Rive Void Knight",
+          "tier": "A",
+          "slug": "rive-void-knight-guide"
+        },
+        {
+          "name": "Chaos Bolts Lich",
+          "tier": "A",
+          "slug": "chaos-bolts-lich-guide"
+        },
+        {
+          "name": "Bleed Hammerdin Paladin",
+          "tier": "A",
+          "slug": "bleed-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Sabertooth Beastmaster",
+          "tier": "A",
+          "slug": "sabertooth-beastmaster-guide"
+        },
+        {
+          "name": "Bear Beastmaster",
+          "tier": "A",
+          "slug": "bear-beastmaster-guide"
+        },
+        {
+          "name": "Hydrahedron Runemaster",
+          "tier": "A",
+          "slug": "hydrahedron-runemaster-guide"
+        },
+        {
+          "name": "Totem Shaman",
+          "tier": "A",
+          "slug": "totem-shaman-guide"
+        },
+        {
+          "name": "Judgement Aura Paladin",
+          "tier": "A",
+          "slug": "judgement-aura-paladin-guide"
+        },
+        {
+          "name": "Judgement Paladin",
+          "tier": "A",
+          "slug": "judgement-paladin-guide"
+        },
+        {
+          "name": "Shatter Strike Spellblade",
+          "tier": "A",
+          "slug": "shatter-strike-spellblade-guide"
+        },
+        {
+          "name": "Abomination Necromancer",
+          "tier": "A",
+          "slug": "abomination-necromancer-guide"
+        },
+        {
+          "name": "Meteor Sorcerer",
+          "tier": "A",
+          "slug": "meteor-sorcerer-guide"
+        },
+        {
+          "name": "Melee Avalanche Shaman",
+          "tier": "B",
+          "slug": "melee-avalanche-shaman-guide"
+        },
+        {
+          "name": "Profane Veil Warlock",
+          "tier": "B",
+          "slug": "profane-veil-warlock-guide"
+        },
+        {
+          "name": "Multistrike Smite Void Knight",
+          "tier": "B",
+          "slug": "multistrike-smite-void-knight-guide"
+        },
+        {
+          "name": "Heartseeker Marksman",
+          "tier": "B",
+          "slug": "heartseeker-marksman-guide"
+        },
+        {
+          "name": "Crit Hammerdin Paladin",
+          "tier": "B",
+          "slug": "crit-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Javelin Paladin",
+          "tier": "B",
+          "slug": "javelin-paladin-guide"
+        },
+        {
+          "name": "Shield Throw Paladin",
+          "tier": "B",
+          "slug": "shield-throw-paladin-guide"
+        },
+        {
+          "name": "Flame Whip Warlock",
+          "tier": "B",
+          "slug": "flame-whip-warlock-guide"
+        },
+        {
+          "name": "Reflect Shaman",
+          "tier": "B",
+          "slug": "reflect-shaman-guide"
+        },
+        {
+          "name": "Multistrike Forge Guard",
+          "tier": "B",
+          "slug": "multistrike-forge-guard-guide"
+        },
+        {
+          "name": "Upheaval Beastmaster",
+          "tier": "B",
+          "slug": "upheaval-beastmaster-guide"
+        },
+        {
+          "name": "Swipe Beastmaster",
+          "tier": "B",
+          "slug": "swipe-beastmaster-guide"
+        },
+        {
+          "name": "Ignite Radiant Lance Paladin",
+          "tier": "B",
+          "slug": "ignite-radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Radiant Lance Void Knight",
+          "tier": "B",
+          "slug": "radiant-lance-void-knight-guide"
+        },
+        {
+          "name": "Abyssal Echoes Void Knight",
+          "tier": "B",
+          "slug": "abyssal-echoes-void-knight-guide"
+        },
+        {
+          "name": "Shield Bash Forge Guard",
+          "tier": "B",
+          "slug": "shield-bash-forge-guard-guide"
+        },
+        {
+          "name": "Forged Weapons Forge Guard",
+          "tier": "B",
+          "slug": "forged-weapons-forge-guard-guide"
+        },
+        {
+          "name": "Forge Strike Forge Guard",
+          "tier": "C",
+          "slug": "forge-strike-forge-guard-guide"
+        },
+        {
+          "name": "Spirit Thorns Beastmaster",
+          "tier": "C",
+          "slug": "spirit-thorns-beastmaster-guide"
+        },
+        {
+          "name": "Multishot Marksman",
+          "tier": "C",
+          "slug": "multishot-marksman-guide"
+        },
+        {
+          "name": "Glacier Sorcerer",
+          "tier": "C",
+          "slug": "glacier-sorcerer-guide"
+        },
+        {
+          "name": "Raptor Beastmaster",
+          "tier": "C",
+          "slug": "raptor-beastmaster-guide"
+        },
+        {
+          "name": "Wraith Necromancer",
+          "tier": "C",
+          "slug": "wraith-necromancer-guide"
+        },
+        {
+          "name": "Skeleton Mage Necromancer",
+          "tier": "C",
+          "slug": "skeleton-mage-necromancer-guide"
+        },
+        {
+          "name": "Frostbite Swarmblade Druid",
+          "tier": "C",
+          "slug": "frostbite-swarmblade-druid-guide"
+        },
+        {
+          "name": "Shield Rush Forge Guard",
+          "tier": "C",
+          "slug": "shield-rush-forge-guard-guide"
+        }
+      ]
+    },
+    "speed": {
+      "url": "https://maxroll.gg/last-epoch/tierlists/speed-farming-tier-list",
+      "title": "Speed Farming Tier List for Last Epoch Season 5 - Rage of the Frostborn",
+      "updated": "2026-10-07",
+      "entries": [
+        {
+          "name": "Tornado Shaman",
+          "tier": "S",
+          "slug": "tornado-shaman-guide"
+        },
+        {
+          "name": "Warpath Void Knight",
+          "tier": "S",
+          "slug": "echo-warpath-void-knight-guide"
+        },
+        {
+          "name": "Ballista Falconer (ZHP)",
+          "tier": "S",
+          "slug": "ballista-falconer-guide"
+        },
+        {
+          "name": "Flay Mana Lich",
+          "tier": "S",
+          "slug": "flay-mana-lich-guide"
+        },
+        {
+          "name": "Stygian Coal Lich",
+          "tier": "S",
+          "slug": "stygian-coal-lich-guide"
+        },
+        {
+          "name": "Harvest Flay Lich",
+          "tier": "S",
+          "slug": "harvest-lich-guide"
+        },
+        {
+          "name": "Shield Throw Time Rot VK",
+          "tier": "S",
+          "slug": "time-rot-void-knight-guide"
+        },
+        {
+          "name": "Static Orb Sorcerer",
+          "tier": "S",
+          "slug": "static-orb-sorcerer-guide"
+        },
+        {
+          "name": "Erasing Strike Void Knight",
+          "tier": "S",
+          "slug": "erasing-strike-void-knight-guide"
+        },
+        {
+          "name": "Shadow Cascade BD",
+          "tier": "S",
+          "slug": "shadow-cascade-bladedancer-guide"
+        },
+        {
+          "name": "Bladestorm Bladedancer",
+          "tier": "S",
+          "slug": "bladestorm-bladedancer-guide"
+        },
+        {
+          "name": "Rip Blood Lich",
+          "tier": "S",
+          "slug": "rip-blood-lich-guide"
+        },
+        {
+          "name": "Shuriken Marksman",
+          "tier": "S",
+          "slug": "shuriken-marksman-guide"
+        },
+        {
+          "name": "Shadow Rend Bladedancer",
+          "tier": "S",
+          "slug": "shadow-rend-bladedancer-guide"
+        },
+        {
+          "name": "Flame Reave Spellblade",
+          "tier": "S",
+          "slug": "flame-reave-spellblade-guide"
+        },
+        {
+          "name": "Lightning Blast Runemaster",
+          "tier": "A",
+          "slug": "lightning-blast-runemaster-guide"
+        },
+        {
+          "name": "Fire Aura Spellblade",
+          "tier": "A",
+          "slug": "fire-aura-spellblade-guide"
+        },
+        {
+          "name": "Zombie Warlock",
+          "tier": "A",
+          "slug": "zombie-warlock-guide"
+        },
+        {
+          "name": "Chaos Bolts Lich",
+          "tier": "A",
+          "slug": "chaos-bolts-lich-guide"
+        },
+        {
+          "name": "Totem Shaman",
+          "tier": "A",
+          "slug": "totem-shaman-guide"
+        },
+        {
+          "name": "Flame Whip Warlock",
+          "tier": "A",
+          "slug": "flame-whip-warlock-guide"
+        },
+        {
+          "name": "Hydrahedron Runemaster",
+          "tier": "A",
+          "slug": "hydrahedron-runemaster-guide"
+        },
+        {
+          "name": "Anurok Frogs Beastmaster",
+          "tier": "A",
+          "slug": "anurok-frogs-beastmaster-guide"
+        },
+        {
+          "name": "Shatter Totem Werebear",
+          "tier": "A",
+          "slug": "shatter-totem-werebear-druid-guide"
+        },
+        {
+          "name": "Radiant Lance Paladin",
+          "tier": "A",
+          "slug": "radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Heartseeker Marksman",
+          "tier": "A",
+          "slug": "heartseeker-marksman-guide"
+        },
+        {
+          "name": "Crit Hammerdin Paladin",
+          "tier": "A",
+          "slug": "crit-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Rive Void Knight",
+          "tier": "A",
+          "slug": "rive-void-knight-guide"
+        },
+        {
+          "name": "Javelin Paladin",
+          "tier": "A",
+          "slug": "javelin-paladin-guide"
+        },
+        {
+          "name": "Meteor Sorcerer",
+          "tier": "A",
+          "slug": "meteor-sorcerer-guide"
+        },
+        {
+          "name": "Bleed Hammerdin Paladin",
+          "tier": "A",
+          "slug": "bleed-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Shield Throw Paladin",
+          "tier": "A",
+          "slug": "shield-throw-paladin-guide"
+        },
+        {
+          "name": "Abyssal Echoes Void Knight",
+          "tier": "A",
+          "slug": "abyssal-echoes-void-knight-guide"
+        },
+        {
+          "name": "Radiant Lance Void Knight",
+          "tier": "A",
+          "slug": "radiant-lance-void-knight-guide"
+        },
+        {
+          "name": "Ignite Radiant Lance Paladin",
+          "tier": "A",
+          "slug": "ignite-radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Reflect Shaman",
+          "tier": "A",
+          "slug": "reflect-shaman-guide"
+        },
+        {
+          "name": "Judgement Aura Paladin",
+          "tier": "B",
+          "slug": "judgement-aura-paladin-guide"
+        },
+        {
+          "name": "Spirit Thorns Beastmaster",
+          "tier": "B",
+          "slug": "spirit-thorns-beastmaster-guide"
+        },
+        {
+          "name": "Storm Crows Beastmaster",
+          "tier": "B",
+          "slug": "storm-crows-beastmaster-guide"
+        },
+        {
+          "name": "Multistrike Smite Void Knight",
+          "tier": "B",
+          "slug": "multistrike-smite-void-knight-guide"
+        },
+        {
+          "name": "Sabertooth Beastmaster",
+          "tier": "B",
+          "slug": "sabertooth-beastmaster-guide"
+        },
+        {
+          "name": "Shatter Strike Spellblade",
+          "tier": "B",
+          "slug": "shatter-strike-spellblade-guide"
+        },
+        {
+          "name": "Raptor Beastmaster",
+          "tier": "B",
+          "slug": "raptor-beastmaster-guide"
+        },
+        {
+          "name": "Melee Avalanche Shaman",
+          "tier": "B",
+          "slug": "melee-avalanche-shaman-guide"
+        },
+        {
+          "name": "Multishot Marksman",
+          "tier": "B",
+          "slug": "multishot-marksman-guide"
+        },
+        {
+          "name": "Abomination Necromancer",
+          "tier": "B",
+          "slug": "abomination-necromancer-guide"
+        },
+        {
+          "name": "Wraith Necromancer",
+          "tier": "B",
+          "slug": "wraith-necromancer-guide"
+        },
+        {
+          "name": "Multistrike Forge Guard",
+          "tier": "B",
+          "slug": "multistrike-forge-guard-guide"
+        },
+        {
+          "name": "Forge Strike Forge Guard",
+          "tier": "B",
+          "slug": "forge-strike-forge-guard-guide"
+        },
+        {
+          "name": "Shield Rush Forge Guard",
+          "tier": "B",
+          "slug": "shield-rush-forge-guard-guide"
+        },
+        {
+          "name": "Blood Spectre Necromancer",
+          "tier": "B",
+          "slug": "blood-spectre-necromancer-guide"
+        },
+        {
+          "name": "Profane Veil Warlock",
+          "tier": "B",
+          "slug": "profane-veil-warlock-guide"
+        },
+        {
+          "name": "Glacier Sorcerer",
+          "tier": "B",
+          "slug": "glacier-sorcerer-guide"
+        },
+        {
+          "name": "Skeleton Necromancer",
+          "tier": "B",
+          "slug": "skeleton-necromancer-guide"
+        },
+        {
+          "name": "Upheaval Beastmaster",
+          "tier": "C",
+          "slug": "upheaval-beastmaster-guide"
+        },
+        {
+          "name": "Swipe Beastmaster",
+          "tier": "C",
+          "slug": "swipe-beastmaster-guide"
+        },
+        {
+          "name": "Frostbite Swarmblade Druid",
+          "tier": "C",
+          "slug": "frostbite-swarmblade-druid-guide"
+        },
+        {
+          "name": "Bear Beastmaster",
+          "tier": "C",
+          "slug": "bear-beastmaster-guide"
+        },
+        {
+          "name": "Shield Bash Forge Guard",
+          "tier": "C",
+          "slug": "shield-bash-forge-guard-guide"
+        },
+        {
+          "name": "Judgement Paladin",
+          "tier": "C",
+          "slug": "judgement-paladin-guide"
+        },
+        {
+          "name": "Skeleton Mage Necromancer",
+          "tier": "C",
+          "slug": "skeleton-mage-necromancer-guide"
+        },
+        {
+          "name": "Forged Weapons Forge Guard",
+          "tier": "C",
+          "slug": "forged-weapons-forge-guard-guide"
+        }
+      ]
+    },
+    "bossing": {
+      "url": "https://maxroll.gg/last-epoch/tierlists/bossing-tier-list",
+      "title": "Bossing Tier List for Last Epoch Season 5 - Rage of the Frostborn",
+      "updated": "2026-10-07",
+      "entries": [
+        {
+          "name": "Blood Spectre Necromancer",
+          "tier": "S",
+          "slug": "blood-spectre-necromancer-guide"
+        },
+        {
+          "name": "Skeleton Necromancer",
+          "tier": "S",
+          "slug": "skeleton-necromancer-guide"
+        },
+        {
+          "name": "Stygian Coal Lich",
+          "tier": "S",
+          "slug": "stygian-coal-lich-guide"
+        },
+        {
+          "name": "Rip Blood Lich",
+          "tier": "S",
+          "slug": "rip-blood-lich-guide"
+        },
+        {
+          "name": "Flay Mana Lich",
+          "tier": "S",
+          "slug": "flay-mana-lich-guide"
+        },
+        {
+          "name": "Shield Throw Time Rot VK",
+          "tier": "S",
+          "slug": "time-rot-void-knight-guide"
+        },
+        {
+          "name": "Lightning Blast Runemaster",
+          "tier": "S",
+          "slug": "lightning-blast-runemaster-guide"
+        },
+        {
+          "name": "Flame Reave Spellblade",
+          "tier": "S",
+          "slug": "flame-reave-spellblade-guide"
+        },
+        {
+          "name": "Shatter Strike Spellblade",
+          "tier": "S",
+          "slug": "shatter-strike-spellblade-guide"
+        },
+        {
+          "name": "Shadow Cascade BD",
+          "tier": "S",
+          "slug": "shadow-cascade-bladedancer-guide"
+        },
+        {
+          "name": "Storm Crows Beastmaster",
+          "tier": "S",
+          "slug": "storm-crows-beastmaster-guide"
+        },
+        {
+          "name": "Static Orb Sorcerer",
+          "tier": "S",
+          "slug": "static-orb-sorcerer-guide"
+        },
+        {
+          "name": "Profane Veil Warlock",
+          "tier": "S",
+          "slug": "profane-veil-warlock-guide"
+        },
+        {
+          "name": "Ballista Falconer (ZHP)",
+          "tier": "S",
+          "slug": "ballista-falconer-guide"
+        },
+        {
+          "name": "Rive Void Knight",
+          "tier": "S",
+          "slug": "rive-void-knight-guide"
+        },
+        {
+          "name": "Erasing Strike Void Knight",
+          "tier": "S",
+          "slug": "erasing-strike-void-knight-guide"
+        },
+        {
+          "name": "Shuriken Marksman",
+          "tier": "A",
+          "slug": "shuriken-marksman-guide"
+        },
+        {
+          "name": "Tornado Shaman",
+          "tier": "A",
+          "slug": "tornado-shaman-guide"
+        },
+        {
+          "name": "Fire Aura Spellblade",
+          "tier": "A",
+          "slug": "fire-aura-spellblade-guide"
+        },
+        {
+          "name": "Bear Beastmaster",
+          "tier": "A",
+          "slug": "bear-beastmaster-guide"
+        },
+        {
+          "name": "Shatter Totem Werebear",
+          "tier": "A",
+          "slug": "shatter-totem-werebear-druid-guide"
+        },
+        {
+          "name": "Warpath Void Knight",
+          "tier": "A",
+          "slug": "echo-warpath-void-knight-guide"
+        },
+        {
+          "name": "Anurok Frogs Beastmaster",
+          "tier": "A",
+          "slug": "anurok-frogs-beastmaster-guide"
+        },
+        {
+          "name": "Abomination Necromancer",
+          "tier": "A",
+          "slug": "abomination-necromancer-guide"
+        },
+        {
+          "name": "Bladestorm Bladedancer",
+          "tier": "A",
+          "slug": "bladestorm-bladedancer-guide"
+        },
+        {
+          "name": "Harvest Flay Lich",
+          "tier": "A",
+          "slug": "harvest-lich-guide"
+        },
+        {
+          "name": "Shadow Rend Bladedancer",
+          "tier": "A",
+          "slug": "shadow-rend-bladedancer-guide"
+        },
+        {
+          "name": "Radiant Lance Paladin",
+          "tier": "A",
+          "slug": "radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Judgement Aura Paladin",
+          "tier": "A",
+          "slug": "judgement-aura-paladin-guide"
+        },
+        {
+          "name": "Meteor Sorcerer",
+          "tier": "A",
+          "slug": "meteor-sorcerer-guide"
+        },
+        {
+          "name": "Sabertooth Beastmaster",
+          "tier": "A",
+          "slug": "sabertooth-beastmaster-guide"
+        },
+        {
+          "name": "Multistrike Smite Void Knight",
+          "tier": "B",
+          "slug": "multistrike-smite-void-knight-guide"
+        },
+        {
+          "name": "Zombie Warlock",
+          "tier": "B",
+          "slug": "zombie-warlock-guide"
+        },
+        {
+          "name": "Bleed Hammerdin Paladin",
+          "tier": "B",
+          "slug": "bleed-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Chaos Bolts Lich",
+          "tier": "B",
+          "slug": "chaos-bolts-lich-guide"
+        },
+        {
+          "name": "Multistrike Forge Guard",
+          "tier": "B",
+          "slug": "multistrike-forge-guard-guide"
+        },
+        {
+          "name": "Raptor Beastmaster",
+          "tier": "B",
+          "slug": "raptor-beastmaster-guide"
+        },
+        {
+          "name": "Totem Shaman",
+          "tier": "B",
+          "slug": "totem-shaman-guide"
+        },
+        {
+          "name": "Wraith Necromancer",
+          "tier": "B",
+          "slug": "wraith-necromancer-guide"
+        },
+        {
+          "name": "Flame Whip Warlock",
+          "tier": "B",
+          "slug": "flame-whip-warlock-guide"
+        },
+        {
+          "name": "Hydrahedron Runemaster",
+          "tier": "B",
+          "slug": "hydrahedron-runemaster-guide"
+        },
+        {
+          "name": "Melee Avalanche Shaman",
+          "tier": "B",
+          "slug": "melee-avalanche-shaman-guide"
+        },
+        {
+          "name": "Javelin Paladin",
+          "tier": "B",
+          "slug": "javelin-paladin-guide"
+        },
+        {
+          "name": "Crit Hammerdin Paladin",
+          "tier": "B",
+          "slug": "crit-hammerdin-paladin-guide"
+        },
+        {
+          "name": "Shield Throw Paladin",
+          "tier": "B",
+          "slug": "shield-throw-paladin-guide"
+        },
+        {
+          "name": "Upheaval Beastmaster",
+          "tier": "B",
+          "slug": "upheaval-beastmaster-guide"
+        },
+        {
+          "name": "Swipe Beastmaster",
+          "tier": "B",
+          "slug": "swipe-beastmaster-guide"
+        },
+        {
+          "name": "Forge Strike Forge Guard",
+          "tier": "C",
+          "slug": "forge-strike-forge-guard-guide"
+        },
+        {
+          "name": "Skeleton Mage Necromancer",
+          "tier": "C",
+          "slug": "skeleton-mage-necromancer-guide"
+        },
+        {
+          "name": "Shield Bash Forge Guard",
+          "tier": "C",
+          "slug": "shield-bash-forge-guard-guide"
+        },
+        {
+          "name": "Heartseeker Marksman",
+          "tier": "C",
+          "slug": "heartseeker-marksman-guide"
+        },
+        {
+          "name": "Ignite Radiant Lance Paladin",
+          "tier": "C",
+          "slug": "ignite-radiant-lance-paladin-guide"
+        },
+        {
+          "name": "Abyssal Echoes Void Knight",
+          "tier": "C",
+          "slug": "abyssal-echoes-void-knight-guide"
+        },
+        {
+          "name": "Radiant Lance Void Knight",
+          "tier": "C",
+          "slug": "radiant-lance-void-knight-guide"
+        },
+        {
+          "name": "Forged Weapons Forge Guard",
+          "tier": "C",
+          "slug": "forged-weapons-forge-guard-guide"
+        },
+        {
+          "name": "Reflect Shaman",
+          "tier": "C",
+          "slug": "reflect-shaman-guide"
+        },
+        {
+          "name": "Glacier Sorcerer",
+          "tier": "C",
+          "slug": "glacier-sorcerer-guide"
+        },
+        {
+          "name": "Judgement Paladin",
+          "tier": "C",
+          "slug": "judgement-paladin-guide"
+        },
+        {
+          "name": "Frostbite Swarmblade Druid",
+          "tier": "C",
+          "slug": "frostbite-swarmblade-druid-guide"
+        },
+        {
+          "name": "Spirit Thorns Beastmaster",
+          "tier": "C",
+          "slug": "spirit-thorns-beastmaster-guide"
+        },
+        {
+          "name": "Multishot Marksman",
+          "tier": "C",
+          "slug": "multishot-marksman-guide"
+        },
+        {
+          "name": "Shield Rush Forge Guard",
+          "tier": "C",
+          "slug": "shield-rush-forge-guard-guide"
+        }
+      ]
+    }
+  }
+}

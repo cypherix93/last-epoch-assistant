@@ -11,7 +11,7 @@ Answering a game question: load the matching skill (`.claude/skills/README.md` l
 ```
 packages/
   fetch/   @le/fetch  download LE Tools + Maxroll data to data/raw/<version>/
-  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 62 tables, unified `mods`)
+  db/      @le/db     normalize raw JSON into data/le.sqlite (better-sqlite3, FTS5; 72 tables incl. 8 community-build tables, unified `mods`)
   mcp/     @le/mcp    MCP server "le-data" over the db (@modelcontextprotocol/sdk, stdio) + CLI
 data/
   raw/<ver>/          raw downloads per game version (committed); raw/CURRENT = latest version string
@@ -32,10 +32,10 @@ docs/                 data-source study, schema.md, loader-contract.md
 - `yarn typecheck` - `tsc -b --noEmit`
 - `yarn test` - vitest (the db and mcp suites need the built database; they skip with a warning without it)
 - `yarn fetch` - download raw game data (`--source letools|maxroll`, `--force`, `--version 150`)
-- `yarn db:build` - build `data/le.sqlite` from `data/raw/CURRENT`. Flags: `--only <steps|none>` (steps `world,items,skills,search,crosscheck`, comma separated, repeatable; `none` = schema + meta only), `--version <folder>`, `--out <path>` (default `data/le.sqlite`), `--report <path>` / `--no-report` (write neither the build nor the crosscheck report), `--allow-stubs`, `--quiet`. `LE_DB_ALLOW_STUBS=1` (same as `--allow-stubs`) skips loaders that still throw "not implemented" (status `stub`) instead of failing. Exit 1 when a step fails or an expected count does not match.
+- `yarn db:build` - build `data/le.sqlite` from `data/raw/CURRENT`. Flags: `--only <steps|none>` (steps `world,items,skills,community,search,crosscheck`, comma separated, repeatable; `none` = schema + meta only), `--version <folder>`, `--out <path>` (default `data/le.sqlite`), `--report <path>` / `--no-report` (write neither the build nor the crosscheck report), `--allow-stubs`, `--quiet`. `LE_DB_ALLOW_STUBS=1` (same as `--allow-stubs`) skips loaders that still throw "not implemented" (status `stub`) instead of failing. Exit 1 when a step fails or an expected count does not match.
 - `yarn setup` - `yarn fetch && yarn db:build`
 - `yarn mcp` - start the MCP server on stdio
-- `yarn mcp:list` - list the server's tools (one line each)
+- `yarn mcp:list` - list the server's tools with their input schemas (one line per argument; `--json` for the raw list)
 - `yarn mcp:call <tool> [args] [--pretty]` - call one tool from the shell (see below)
 - `yarn probes:verify` - re-run the probe suite's ground truth (`node tests/probes/make-questions.js --verify`); prints `ALL 30 VERIFIED`
 - `yarn skills:check` - run every tool-call and SQL example in `.claude/skills/**/*.md` against `data/le.sqlite` (`tests/skill-examples/runner.mts`); must report `BAD/ZERO 0`
@@ -45,7 +45,7 @@ docs/                 data-source study, schema.md, loader-contract.md
 `@le/mcp` is an MCP server named `le-data` (stdio) over `data/le.sqlite` (build it first with `yarn db:build`; override the path with `LE_DB_PATH`).
 
 - Enable in Claude Code: the repo-root `.mcp.json` registers it as `node --import tsx packages/mcp/src/cli.ts start` (plain `node` + tsx, no build and no `yarn`/`cmd /c` wrapper, so it works from a direct spawn on Windows). Approve the project server when prompted, then run `/mcp` to check that it is connected (enable it there if it is listed as disabled). Tools appear as `mcp__le-data__<tool>`.
-- Tools: `version`, `schema`, `search`, `get`, `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH, plus `PRAGMA table_list`, `PRAGMA table_info(<t>)`, `PRAGMA index_list(<t>)`), `knowledge`. Every response has `ok: true` or `{ok:false,error}`. Argument shapes: `.claude/skills/README.md`.
+- Tools (14): `version`, `schema`, `search`, `get` (kinds incl. `buff` for non-ailment buffs), `lookup`, `find_mods`, `skill_tree`, `passive_tree`, `sql` (read-only SELECT/WITH, plus `PRAGMA table_list`, `PRAGMA table_info(<t>)`, `PRAGMA index_list(<t>)`), `knowledge`, and the community-build tools `builds` (list / filter guides), `build` (one guide in full, also `get` kind `build`), `item_usage` (which guides use a unique or an affix), `slot_meta` (item and affix distribution of a slot across guides). Every response has `ok: true` or `{ok:false,error}`. Argument shapes: `.claude/skills/README.md`.
 - CLI fallback (no MCP): `yarn mcp:call <tool> [args]`. Only the JSON result goes to stdout (single line; add `--pretty` to indent), logs go to stderr, exit code 1 on `ok:false`. Do NOT use `yarn -s` (not valid in yarn berry; it is not needed). Three ways to pass args, first match wins:
   1. `@path/to/args.json` reads the JSON args from a file (for `sql`, a file that does not start with `{` is raw SQL); `sql --query-file <path>` reads raw SQL from a file.
   2. stdin: `-`, or no args argument with piped stdin. For `sql`, stdin text that does not start with `{` is raw SQL and is wrapped as `{query}`.
@@ -53,7 +53,11 @@ docs/                 data-source study, schema.md, loader-contract.md
   - Use 1 or 2 for anything containing shell-special characters (`<`, `>`, `%`, `&`, `|`, parentheses: yarn runs scripts through cmd.exe on Windows, which mangles them, sometimes silently) and for anything containing a single quote (every SQL string literal, names like "Naga's Fang"). Writing the args to a file is the most robust form.
   - Bash: `printf '%s' '{"name":"Calamity","kinds":["unique"]}' | yarn mcp:call lookup`, or `echo "select name from uniques where name like '%Claim%' and unique_id > 0" | yarn mcp:call sql`.
   - PowerShell: `@'` + newline + `select name from uniques where name like '%Claim%' and unique_id > 0` + newline + `'@ | yarn mcp:call sql` (single-quoted here-string, closing `'@` at column 0; JSON works too).
-- Source layout: `packages/mcp/src/{context,get,tools,server,cli,index}.ts`; tests in `index.test.ts`.
+- Source layout: `packages/mcp/src/{context,get,tools,builds,server,cli,list,index}.ts` (`builds.ts` = the four community-build tools); tests in `index.test.ts`.
+
+## Community builds
+
+`data/raw/<ver>/maxroll-guides/` holds Maxroll's Last Epoch build guides (73 guides, 74 planner profiles for 1.5.2), decoded by the `community` build step into the `community_*` tables (gear with affix tiers, idols, blessings, passive and skill allocations, notes) with every id resolved to the game tables. They are community-authored choices, not game truth: use them for "what do builds run" questions (`builds`, `build`, `item_usage`, `slot_meta`, or the `v_build_*` views via `sql`) and never as a source for mechanics. A build has several tabs (Starter / Endgame / Aspirational); say which one a fact comes from. The build report's `community` key must show `unresolved_total` 0; explained quirks (leveling-guide mastery, item mainsets, removed tree nodes) are `community.warnings`. Details: `docs/community-builds.md` and `docs/schema.md` section 3.9.
 
 ## Skills
 

@@ -9,6 +9,7 @@ Three loaders fill `data/le.sqlite` from the raw data. They are developed in par
 | `packages/db/src/loaders/world.ts`, `world.test.ts`, `packages/db/src/crosscheck.ts` | **world agent** | stat properties, enums, i18n, classes, monster mods, timelines, dungeons, arena, rewards, factions, quests (Maxroll), raw_globals; the LE Tools vs Maxroll cross-check |
 | `packages/db/src/loaders/items.ts`, `items.test.ts` | **items agent** | base types, sub types, implicits, affixes, uniques, sets, idols, idol altars, blessings, item relations |
 | `packages/db/src/loaders/skills.ts`, `skills.test.ts` | **skills agent** | abilities, components, ailments, UI buffs, entities, skill / class / Weaver trees and nodes, node relations |
+| `packages/db/src/loaders/community.ts`, `community.test.ts`, `src/loaders/__fixtures__/maxroll-guides/` | **community builds** | Maxroll build guides / planner profiles -> `community_*` tables (section 7) |
 | `packages/db/schema.sql`, `src/build-db.ts`, `src/search.ts`, `src/lib/*`, `docs/schema.md`, this file | schema owner (frozen for the loader agents) | |
 
 Rules:
@@ -16,7 +17,7 @@ Rules:
 - Edit only your own files. If you need a schema change or a helper change, do not edit `schema.sql` / `src/lib/*`; put the request in your final report (or keep a local helper inside your loader file). Extra columns you need can wait: everything is in `raw_json`.
 - You may add private helper modules next to your loader (`src/loaders/items-*.ts`, ...); nobody else touches them.
 - Each loader writes only its own tables (the `tables` export of its file) plus its rows in the shared tables `mods`, `relations`, `compact_ids` (identified by `source_kind` / `kind`). `meta` and `search` are written by the build.
-- A loader must not read tables written by another loader: `--only items` runs items alone. Read everything from `ctx.raw`.
+- A loader must not read tables written by another loader: `--only items` runs items alone. Read everything from `ctx.raw`. Exception: the community loader (section 7) resolves ids against the game tables and therefore runs after world, items and skills.
 
 ## 2. The API
 
@@ -83,10 +84,11 @@ ctx.mods.insert({
 // an affix roll (tier is 1-based)
 ctx.mods.insert({ sourceKind: "affix_tier", sourceId: a.affixId, sourceOrd: i, tier: t + 1, ..., valueMin: roll.min, valueMax: roll.max,
                   label: ctx.t(p.modDisplayNameKey), labelKey: p.modDisplayNameKey, raw: { ...p, ...roll } });
-// a display-only tree node stat
+// a tree node stat (display text; kind from the decompiled node code or the label, see loaders/skills-node-kinds.ts)
 ctx.mods.insert({ sourceKind: "skill_node", sourceId: `${treeId}:${node.id}`, sourceOrd: i, property: s.property, tags: s.tags,
-                  modifierType: null, display: s.value, value: parseDisplayValue(s.value),
-                  label: ctx.t(s.statNameKey), labelKey: s.statNameKey, isDownside: s.downside, raw: s });
+                  modifierType: k.modifierType, display: s.value, value: parseDisplayValue(s.value),
+                  label: ctx.t(s.statNameKey), labelKey: s.statNameKey, isDownside: s.downside,
+                  propertyKind, statKind: k.statKind, modifierSource: k.source, labelMismatch, codeRef: k.codeRef, raw: s });
 // a stat block {property, specialTag, tags, addedValue, increasedValue, moreValues[]} -> 1 row per non-zero component
 ctx.mods.insertStatBlock({ sourceKind: "ailment_buff", sourceId: ail.id, sourceOrd: i }, buff);
 ```
@@ -123,6 +125,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | items | mods `affix_tier` | 9,711 |
 | items | mods `implicit` / `blessing` / `idol_altar` (= 1,529 implicits) | 1,284 / 234 / 11 |
 | items | uniques (all / set items) / unique_subtypes | 486 / 61 / 486 |
+| items | unique_drop_sources (rows / uniques with a source) | 178 / 106 |
 | items | mods `unique_mod` / unique_tooltips / unique_tooltip_entries | 2,440 / 562 / 2,459 |
 | items | sets / mods `set_bonus` / set_tooltips | 25 / 54 / 18 |
 | items | idol_altars / blessings (all with a timeline) | 13 / 224 |
@@ -135,6 +138,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 | skills | trees (skill / class / weaver) | 136 / 5 / 1 |
 | skills | tree_nodes (skill / class / weaver; all with UI position) | 3,956 / 541 / 80 |
 | skills | tree_node_requirements | 4,928 |
+| skills | node_tooltip_properties | 131 (vendored tree_node_stats.json; names of the 5000-9999 node stat tooltip categories) |
 | skills | mods `skill_node` / `passive_node` / `weaver_node` | 6,528 / 1,440 / 70 |
 | skills | relations (tree nodes) | 3,236 |
 
@@ -144,7 +148,7 @@ The build checks every `expected` entry of the loaders that ran successfully and
 yarn db:build                                  # full build; fails while a loader is a stub
 LE_DB_ALLOW_STUBS=1 yarn db:build              # stubs are skipped (status 'stub' in the report)
 yarn db:build --only items                     # only the items step (+ nothing else; search not rebuilt)
-yarn db:build --only world,items,search        # several steps; order is always world -> items -> skills -> search -> crosscheck
+yarn db:build --only world,items,search        # several steps; order is always world -> items -> skills -> community -> search -> crosscheck
 yarn db:build --only none                      # schema + meta only
 yarn db:build --only items --out /tmp/x.sqlite --no-report    # do not touch data/le.sqlite or the committed report
 ```
@@ -181,3 +185,13 @@ The same raw data must give the same database and the same report:
 - insert rows in a stable order (rowids of `mods` and `relations` are insertion order);
 - `raw_json` via `rawJson()` (keeps the source key order);
 - never depend on the order of rows written by another loader.
+
+## 7. Community builds loader
+
+`src/loaders/community.ts` exports `tables`, `sharedTables` (none), `modSourceKinds` (none), `expected` (invariants) and `loadCommunity(ctx): CommunityReport`. It differs from the three game loaders in three ways:
+
+- **Input**: `data/raw/<version>/maxroll-guides/index.json` and `profiles/<id>.json` (written by the guides fetch), read from `ctx.raw.dir`. When `index.json` is absent the step is a no-op with one log line (`community: no maxroll-guides/index.json ..., skipped (0 builds)`), so the main build works without the folder. A listed profile whose file is missing gives a build row with `profile_status 'missing'` and a warning.
+- **Reads the game tables** (classes, masteries, abilities, trees, tree_nodes, uniques, item_subtypes, item_base_types, affixes, affix_tiers, blessings, timelines) to resolve and validate every Maxroll id. Run it with world, items and skills; with `--only community` alone the rows are loaded but nothing is resolved (`community.resolution = 'skipped'` in the report).
+- **Expected counts depend on the folder**: `StepRunner.expected` may be a function of the context, evaluated after the step; the community runner uses `expectedFor(guidesDir(ctx))`: `community_builds` = guides x profile ids of `index.json` (0 without the folder), `>= 1` build and `>= 1` tab when the folder and a profile file exist, plus the invariants in `expected`.
+
+The step's return value is written to the build report as `community`: `{present, guides, builds, profiles_loaded, profiles_missing, tabs, items, affixes, resolution, unresolved_total, unresolved: {<kind>: {count, distinct, examples[]}}, unnamed_properties: [{property, enum_name, lines}]}`; each unresolved kind is also a warning. `community.test.ts` loads the committed fixture (`__fixtures__/maxroll-guides/`, the Erasing Strike Void Knight guide, profile 0g5ta0n3) against the real game tables and checks the decode against an independent ground truth (gear, affixes and tiers, idols, blessings, passives, skill nodes).

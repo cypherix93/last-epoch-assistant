@@ -19,13 +19,14 @@ Core principle: resolve the name to an id, `get` the record, read the `mods` row
 |---|---|
 | `version()` | meta rows: game version, data folder, `fetched_at`, hashes. Call first to know which patch you are reading. |
 | `schema()` | tables, columns, views summary and a pointer to `docs/schema.md`. |
-| `search(query, kinds?, limit?=20)` | FTS5 hits `{kind, id, name, snippet, rank}`. For fuzzy or text discovery only; it does **not** reliably rank the player skill first (see Name resolution). |
-| `lookup(name, kinds?, limit?=10)` | name -> ids: exact matches, then prefix, then FTS, with `score` and `hint`. **Use this to resolve names**; player abilities rank above minion/monster abilities. |
-| `get(kind, id, include_raw?=false)` | one entity. The reply is `{ok, kind, <main record under a key named after the kind>, <children as separate top-level keys>}`: for example `unique` + `mods` + `tooltips` + `subtypes` + `set`; `affix` + `stats` + `tiers` (each with its `mods`) + `can_roll_on`; `ability` + `components` + `links` + `attribute_scaling` + `level_scaling` + `properties` + `has_tree`; `set` + `bonus_mods` + `tooltips` + `members`. Children are not merged into the main record. `raw_json` is stripped unless `include_raw:true`, which returns it **parsed** under `raw` inside the main record. For `ability`, every component carries a `decoded` object (damaging components: `damage` by type name, `damage_total`, `crit_chance`, `crit_multiplier`, `added_damage_scaling`, `hit`, `damage_tags`, `penetration`; `ChanceToApplyAilmentsOnHit`: `ailments[]` with `id`, `name`, `chance`; `DestroyAfterDuration`: `duration`) plus its scalar `fields`, and the ability record adds `tags_names` and, when `charges_gained_per_second > 0`, `cooldown_seconds` (= 1 / charges_gained_per_second). Mod rows (here, in `find_mods` and in the tree tools) carry `special_tag_name` (the ailment name, for ailment-keyed properties such as SP 1 AilmentChance) and `property_kind` (`player_property`, `ability_property`, `idol_altar_property` for SP 98, 58, 130). SQL pattern 9 / `json_extract` on `ability_components.raw_json` remains the way to read fields `decoded` does not cover. Kinds: unique, affix, subtype, base_type, set, blessing, ability, skill_tree, skill_node, passive_tree, passive_node, weaver_node, ailment, property, player_property, ability_property, class, mastery, monster_mod, timeline, dungeon. |
-| `find_mods({filters?, limit?=100})` | mods joined with source names. Arguments are **nested**: `{"filters":{...},"limit":N}`. `filters` keys: `property?` (SP id), `property_name?` (substring of the display name, e.g. "Armor" not "Armour"), `tags_any?` / `tags_all?` (tag names or integer bits), `include_untagged?` (default **true**: `tags_any` also returns `tags = 0` global rows; set `false` to require the bit), `modifier_type?` (0 added, 1 increased, 2 more, `null` = display-only lines), `source_kinds?`, `source_id?` (one owner, string or number), `min_value?` (`value_max >=`), `special_tag?` (exact match), `include_indirect?` (default **false**: SP 58, 98 and 130 rows store an index in `tags`, not a mask, so tag filters skip them; set `true` to let a tag filter see them). Reply: `{total_matching, count, truncated, rows}`; rows carry `source_name` and, for tree nodes, `source_context` (the tree name). Always nest filter keys under `filters`; top-level filter keys are not accepted. |
-| `skill_tree(ability_id, filter?, compact?)` | nodes + stats + requirements + positions of one skill tree (accepts an ability id or tree id). `requires` is a structured array `[{node_id, node_name, points}]` (plus `requires_text` `'2>=2,6>=2'`). `filter` keeps only nodes whose name, description or mod text contains the string (case-insensitive); `compact:true` drops descriptions and x/y. Node ids in the reply are `id` (the node number); cite them as `<tree_id>:<id>` (`fi9:6`). |
-| `passive_tree(class_id, filter?, compact?)` | class passive nodes + stats + requirements (same `requires`, `filter`, `compact` as `skill_tree`). `class_id`: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name ("Mage") or a tree id (`mg-1`, `weaver`). |
+| `search(query, kinds?, limit?=20)` | FTS5 hits `{kind, id, name, snippet, rank}`. For fuzzy or text discovery only (kind `buff` finds non-ailment buffs from `ui_buffs`: `search("Craterborn", ["buff"])` -> buff 14, Lightning Aegis is 86); it does **not** reliably rank the player skill first (see Name resolution). `raw?: boolean (false)` passes `query` to FTS5 MATCH unchanged (`fire OR cold`, `NEAR(a b, 5)`, `"damage over time" NOT minion`); an FTS syntax error then comes back as a tool error instead of being sanitised. |
+| `lookup(name, kinds?, limit?=10)` | name -> ids: exact matches, then prefix, then FTS, with `score` and `hint`. **Use this to resolve names**; player abilities rank above their sub-abilities, minion and other abilities; `kinds:["buff"]` resolves a buff-bar buff to its `buff_id` (Craterborn 14, Lightning Aegis 86); each ability row carries `ability_kind` (`player`, `player_sub` of `parent_ability_id`, `minion`, `other`). |
+| `get(kind, id, include_raw?=false)` | one entity. The reply is `{ok, kind, <main record under a key named after the kind>, <children as separate top-level keys>}`: for example `unique` + `mods` + `tooltips` + `subtypes` + `set`; `affix` + `stats` + `tiers` (each with its `mods`) + `can_roll_on`; `ability` + `components` + `links` + `attribute_scaling` + `level_scaling` + `properties` + `has_tree`; `set` + `bonus_mods` + `tooltips` + `members`. Children are not merged into the main record. `raw_json` is stripped unless `include_raw:true`, which returns it **parsed** under `raw` inside the main record. For `ability`, every component carries a `decoded` object (damaging components: `damage` by type name, `damage_total`, `crit_chance`, `crit_multiplier`, `added_damage_scaling`, `hit`, `damage_tags`, `penetration`; `ChanceToApplyAilmentsOnHit`: `ailments[]` with `id`, `name`, `chance`; `DestroyAfterDuration`: `duration`) plus its scalar `fields`, and the ability record adds `tags_names` and, when `charges_gained_per_second > 0`, `cooldown_seconds` (= 1 / charges_gained_per_second). Mod rows (here, in `find_mods` and in the tree tools) carry `special_tag_name` (the ailment name, for ailment-keyed properties such as SP 1 AilmentChance) and `property_kind` (`player_property`, `ability_property`, `idol_altar_property` for SP 98, 58, 130). For a player skill the reply also carries `kind` (`player`, `player_sub`, `minion`, `other`) and `sub_abilities` (the abilities it spawns, each with its decoded damage components): when the parent's own components have no damage, the hit is on the sub-ability (Erasing Strike `es6ai` -> `es6ai_1`; a component's `ref_ability_id` is the pointer). SQL pattern 9 / `json_extract` on `ability_components.raw_json` remains the way to read fields `decoded` does not cover. For a `unique` the reply also has `drop_sources` (rows of `unique_drop_sources`) and `obtain`, a one-line "how to get it" (e.g. World Splitter 365: does NOT drop randomly, sources Harbinger of Hatred, Aberroth); for a `buff` (by `buff_id` or enum name) it returns `stat_slots` and the nodes / items that mention it; for a tree node the stat lines carry the kind fields. Kinds: unique, affix, subtype, base_type, set, blessing, ability, skill_tree, skill_node, passive_tree, passive_node, weaver_node, ailment, buff, build, property, player_property, ability_property, class, mastery, monster_mod, timeline, dungeon. |
+| `find_mods({filters?, limit?=100})` | mods joined with source names. Arguments are **nested**: `{"filters":{...},"limit":N}`. `filters` keys: `property?` (SP id), `property_name?` (substring of the display name, e.g. "Armor" not "Armour"), `tags_any?` / `tags_all?` (tag names or integer bits), `include_untagged?` (default **true**: `tags_any` also returns `tags = 0` global rows; set `false` to require the bit), `modifier_type?` (0 added, 1 increased, 2 more; `null` = lines with no kind: tree-node lines whose kind neither the node code nor the label gives, skill parameters, non-stat lines), `source_kinds?`, `source_id?` (one owner, string or number), `min_value?` (`value_max >=`), `special_tag?` (exact match), `include_indirect?` (default **false**: SP 58, 98 and 130 rows store an index in `tags`, not a mask, so tag filters skip them; set `true` to let a tag filter see them). Reply: `{total_matching, count, truncated, rows}`; rows carry `source_name` and, for tree nodes, `source_context` (the tree name) plus `property_kind`, `stat_kind`, `modifier_source` (`structured` = from the decompiled node code, `inferred` = from the label), `code_ref`, `modifier`, `property_hint` (tooltip category or ailment name for 5000+ / 10000+ properties) and, when `label_mismatch` is 1, a `warning`. Always nest filter keys under `filters`; top-level filter keys are not accepted. |
+| `skill_tree(ability_id, filter?, compact?)` | nodes + stats + requirements + positions of one skill tree (accepts an ability id or tree id). `unlocked_by` is a structured array `[{node_id, node_name, points}]` meaning ANY ONE of those nodes with that many points unlocks the node (plus `unlocked_by_text` `'2>=2|6>=2'`; `requires` / `requires_text` are deprecated aliases). Each node stat line carries `scales_with_points` and `scaling` (`per_point`: the value is per point allocated; `fixed`; `at_threshold` with `threshold`). `filter` keeps only nodes whose name, description or mod text contains the string (case-insensitive); `compact:true` drops x/y and the UI fields but keeps `description` / `alt_text` truncated at 400 characters (`keep_descriptions:false` also drops them, the old compact behaviour). Every node stat line carries the kind fields above (`stat_kind`, `modifier_source`, `code_ref`, `property_hint`, `label_mismatch` + `warning`). Node ids in the reply are `id` (the node number); cite them as `<tree_id>:<id>` (`fi9:6`). |
+| `passive_tree(class_id, filter?, compact?)` | class passive nodes + stats + requirements (same `unlocked_by`, `filter`, `compact`, `keep_descriptions` and node stat kind fields as `skill_tree`). `class_id`: 0 Primalist, 1 Mage, 2 Sentinel, 3 Acolyte, 4 Rogue, a class name ("Mage") or a tree id (`mg-1`, `weaver`). |
 | `sql(query, params?, limit?=500)` | read-only single SELECT/WITH, or one of the schema pragmas `PRAGMA table_list`, `PRAGMA table_info(<table>)`, `PRAGMA index_list(<table>)` (every other PRAGMA is rejected); `params` fill `?`; reply `{columns, rows, row_count, truncated}`. To see a table's columns: `sql({"query":"PRAGMA table_info(affixes)"})`, or `schema({"table":"affixes"})` (columns plus 3 sample rows). |
+| `builds`, `build`, `item_usage`, `slot_meta` | Community (Maxroll) build guides: list/filter builds, one full named build, where an item or affix is used, and the per-slot community-standard picks. See the **Community builds** section below. |
 | `knowledge(page?)` | no argument lists pages; with `page` returns `{path, lines, text}` (the whole page as one string; there is no section parameter, so open the repo file to read one section). |
 
 2. No MCP: from the repo root run `yarn mcp:call <tool> [args] [--pretty]` (Bash; in PowerShell pipe a single-quoted here-string into the command, or use Bash). Only the JSON result goes to stdout, on **one line** (`--pretty` indents it); logs go to stderr; the exit code is 1 when the reply is `ok:false`. Do not use `yarn -s` (not supported by yarn berry). Args, first match wins:
@@ -75,7 +76,7 @@ On a full 1.5.2 build expect 486 uniques, 1,228 abilities (182 player abilities)
 
 Rules:
 - Ids are source ids, not row numbers. Ability ids are strings (`fi9` Fireball); tree node keys are `'<tree>:<node>'` (`fi9:2`); sub types are `'<base>:<sub>'`; unique and affix ids are integers, but in `mods.source_id` they are stored as TEXT, so `CAST(x AS TEXT)` when joining.
-- **Resolve names with `lookup`, not `search`.** `lookup({"name":"Fireball","kinds":["ability"]})` returns the player skill `fi9` first (`hint: "player, has tree"`) and then minion/monster abilities with the same name. `search({"query":"Fireball"})` does not rank `fi9` first: the skill_node `fi9:0` and minion abilities named Fireball compete with it. Use `search` for fuzzy or text discovery ("which uniques mention leech") and always pass `kinds`.
+- **Resolve names with `lookup`, not `search`.** `lookup({"name":"Fireball","kinds":["ability"]})` returns the player skill `fi9` first (`hint: "player, has tree"`) and then same-named sub-abilities (`ability_kind: "player_sub"`, e.g. `es6ai_1`), minion abilities and others. `search({"query":"Fireball"})` does not rank `fi9` first: the skill_node `fi9:0` and minion abilities named Fireball compete with it. Use `search` for fuzzy or text discovery ("which uniques mention leech") and always pass `kinds`.
 - **Always pass `kinds` to `lookup`** unless you want every kind: a bare `lookup({"name":"Warpath"})` also returns `ability_property` and `skill_node` rows that share the word.
 - Ambiguous names (a unique and its base item, a skill and a mastery skill, the same node name in many trees): `lookup` returns several kinds. Pick by `kinds`, confirm with `get`, and state which one you chose. Never take the first hit silently.
 - **Unresolved names.** If `lookup` (with `kinds`) returns nothing, say so, then offer the closest matches from `search({"query":"<fragment>*","kinds":["unique"]})` or a `LIKE '%fragment%'` query, clearly marked as substitutes. Never silently answer for a different item.
@@ -106,7 +107,8 @@ One row is one stat line: `(property, tags, special_tag, extra_tag, modifier_typ
 | `tags` / `tag_names` | AT bitmask of the damage or skill types the line applies to. For indirect properties `tags` is an **index**, not a mask |
 | `special_tag` | selector: AilmentID, trigger event (HitEventTag), conditional index, ability-property index; 0 = wildcard |
 | `extra_tag` | ability index for skill-bound lines (0 = all skills) |
-| `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative); NULL = display-only text |
+| `modifier_type` | 0 added (flat), 1 increased (additive %), 2 more (multiplicative). Tree-node lines: from the decompiled node code or inferred from the label (see `modifier_source`); NULL when neither says, and for skill parameters (`stat_kind = 'skill_parameter'`) |
+| `stat_kind`, `modifier_source`, `code_ref`, `property_kind`, `label_mismatch` | tree-node lines only (else NULL). `stat_kind`: `added` / `increased` / `more` / `skill_parameter` / `conversion` / `unknown`. `modifier_source`: `structured` (code, **D**) or `inferred` (label, **U**); `code_ref` = the matched code effect. `property_kind`: `stat` (SP < 5000, only the tooltip icon hint), `tooltip_category` (5000-9999), `ailment` (>= 10000), `display_only` (54). `label_mismatch` = 1: the line is not a plain `<modifier> <property_name>` line, read `label` / `code_ref`, never `property_name` |
 | `value_min` / `value_max` | roll range; fractions for percents (0.25 = 25%); equal when fixed. Exception: on SP 98 / 58 rows `value_max` is often 0 or below `value_min` (384 of 3,380 rows); read `value_min` as the magnitude there |
 | `display`, `label`, `context` | tree-node text value (`+25%`), line name, qualifier (`per_level`, or `attribute:N` with N = 0 Strength, 1 Vitality, 2 Intelligence, 3 Dexterity, 4 Attunement) |
 
@@ -120,7 +122,7 @@ How a query matches mods and how they combine: `knowledge/mechanics/stat-model.m
 
 `tag_bits(value, bit, name)` holds all 30 tags. Common values: Physical 1, Lightning 2, Cold 4, Fire 8, Void 16, Necrotic 32, Poison 64, Elemental 128, Spell 256, Melee 512, Throwing 1024, Bow 2048, DoT 4096, Minion 8192, Totem 16384, PetResisted 32768, Potion 65536, Buff 131072, Channelling 262144, Transform 524288, LowLife 1048576, HighLife 2097152, FullLife 4194304, Hit 8388608, Curse 16777216, Ailment 33554432.
 
-- `tag_names` is pre-decoded (`Fire,Spell`). NULL means `tags = 0` (applies to everything of that property) **or** an indirect property. Do not read NULL as "no restriction" for SP 58, 88, 98, 130.
+- `tag_names` is pre-decoded (`Fire,Spell`). NULL means `tags = 0` (applies to everything of that property) **or** an indirect property. Do not read NULL as "no restriction" for SP 58, 88, 98, 104, 105, 130.
 - Filter a bit: `(tags & 8192) <> 0` (always parenthesise `&`). Filter untagged: `tags = 0`.
 - A mod applies to a damage source only if **every** tag on the mod is present on the source (subset rule; Elemental also matches Fire, Cold and Lightning). A mod with `tags = 520` (Fire|Melee) does not apply to a spell. Details: `knowledge/mechanics/damage-pipeline.md#4-tag-matching`.
 - A skill's own tags: `abilities.tags` / `tag_names` (Fireball = 264 = Fire|Spell).
@@ -136,7 +138,7 @@ How a query matches mods and how they combine: `knowledge/mechanics/stat-model.m
 | 88 LevelOfSkills | with `special_tag = 1`, `tags` = ability index ("Level of Fireball") | `abilities.ability_index` |
 | 117, 131-133 | `special_tag` = conditional damage property | `conditional_properties` |
 | 100 AilmentConversion | `special_tag` = from AilmentID, `tags` = to AilmentID | `ailments` |
-| 5000+ | skill-local stat in a tree node, `property_name` NULL | read `label`, `display`, node `description` |
+| 5000-9999 | tooltip category of a tree-node line, `property_name` NULL (`property_kind = 'tooltip_category'`). A GLOBAL list: 5110 is "Melee Damage" in every tree; name it with `node_tooltip_properties` (join on `property`) or read `property_hint` in tool replies | read `label`, `display`, `code_ref`, node `description`; the category is only an icon hint |
 
 `property_name` already holds the resolved name for 58, 98, 130 and 88. SP and enum names: `knowledge/mechanics/stat-model.md#property-ids-sp`.
 
@@ -220,10 +222,10 @@ WHERE modifier_type = 2 AND property = 0
 ORDER BY value_max DESC LIMIT 25;
 ```
 
-8. A skill's tree nodes with stats and prerequisites (node stats have `modifier_type` NULL, so read `stats_text`). To find nodes that mention a word, filter `name`, `stats_text` and `description`, never `requires` (it holds prerequisite node names, so "Void" matches every node behind Void Spiral); or use `skill_tree({"ability_id":"fi9","filter":"ignite","compact":true})`:
+8. A skill's tree nodes with stats and prerequisites (`stats_text` marks each line `[more]` / `[increased]` / `[added]` = `stat_kind`, with `?` when the kind is inferred, `[skill parameter]` for mutator fields). To find nodes that mention a word, filter `name`, `stats_text` and `description`, never `unlocked_by` (it holds prerequisite node names, so "Void" matches every node behind Void Spiral); or use `skill_tree({"ability_id":"fi9","filter":"ignite","compact":true})`:
 
 ```sql
-SELECT node_id, name, max_points, stats_text, requires, description
+SELECT node_id, name, max_points, stats_text, unlocked_by, description
 FROM v_skill_node_summary
 WHERE tree_kind = 'skill' AND tree_name = 'Fireball'
 ORDER BY node_id;
@@ -293,13 +295,118 @@ The same idea through MCP (pattern 6 restricted to two source kinds). `include_u
 find_mods({"filters":{"property":0,"modifier_type":1,"tags_any":["Minion"],"include_untagged":false,"source_kinds":["affix_tier","unique_mod"]},"limit":50})
 ```
 
-Tag names or integer bits both work (`"tags_any":[8192]`). Display-only tree-node lines: `find_mods({"filters":{"property":0,"modifier_type":null,"source_kinds":["skill_node"]},"limit":20})` (606 rows in this build; `modifier_type` must be the JSON `null`, not omitted). One owner: `{"filters":{"source_id":"33","source_kinds":["unique_mod"]}}`.
+Tag names or integer bits both work (`"tags_any":[8192]`). Tree-node "more" lines: `find_mods({"filters":{"property":0,"modifier_type":2,"source_kinds":["skill_node"]},"limit":20})` (437 rows in this build); node lines with no kind at all: `"modifier_type":null` (must be the JSON `null`, not omitted). One owner: `{"filters":{"source_id":"33","source_kinds":["unique_mod"]}}`.
 
-**A bit test can match indirect properties by accident.** For SP 58, 98 and 130 the `tags` column is an index, not a mask. `find_mods` already skips those rows in `tags_any` / `tags_all` (pass `"include_indirect":true` to keep them); in SQL add `AND property NOT IN (58, 98, 130)` yourself.
+**A bit test can match indirect properties by accident.** For SP 58, 98, 104, 105 and 130 the `tags` column is an index, not a mask (104/105 Increased Drop Rate/Experience: with `special_tag` 0 it is an item base_type_id; `get`/`find_mods` rows add `drop_target`). `find_mods` already skips those rows in `tags_any` / `tags_all` (pass `"include_indirect":true` to keep them); in SQL add `AND property NOT IN (58, 98, 130)` yourself.
+
+## Node kinds, item scaling, drop sources and buffs
+
+**Tree-node kinds.** A skill's "more" nodes, with the code behind each line (Fireball shown; `label_mismatch` 1 lines are not plain stats: read `label` and `code_ref`):
+
+```sql
+SELECT source_id AS node, source_name AS node_name, label, display, modifier_source, label_mismatch, code_ref
+FROM v_mods_named
+WHERE source_kind = 'skill_node' AND source_id LIKE 'fi9:%' AND modifier_type = 2
+ORDER BY CAST(substr(source_id, 5) AS INTEGER), source_ord;
+```
+
+**Tooltip categories (5000+).** `node_tooltip_properties` is one global list (131 names, every 5000+ id used by 1.5.2 nodes is covered), not per tree; join it to a node's lines:
+
+```sql
+SELECT m.source_id AS node, m.label, n.name AS tooltip_category
+FROM mods m JOIN node_tooltip_properties n ON n.property = m.property
+WHERE m.source_kind = 'skill_node' AND m.source_id LIKE 'fi9:%' AND m.property_kind = 'tooltip_category'
+ORDER BY CAST(substr(m.source_id, 5) AS INTEGER), m.source_ord
+LIMIT 5;
+```
+
+**Affix values depend on the item.** The tier ranges in `mods` (`affix_tier`) are STORED values, authored for the affix's `standard_affix_effect_modifier`. On a base with another affix effect modifier the range is `stored x (1 + item_aem) / (1 + std_aem)`, rounded to the affix's rounding grid (decompiled `AffixList+Affix.getModifier`, **D**; `knowledge/reference/item-system.md#affix-effectiveness-affixeffectmodifier-and-value-formula`). Quote in-game ranges from `v_affix_values` (one row per affix x base type x tier x line) or `v_idol_affix_values` (idol bases, with `idol` and `idol_size`); both keep `stored_min` / `stored_max` (the data) next to `value_min` / `value_max` (scaled) and the `scale_factor`. World Splitter's Melee Void Damage T7 is stored 51-65 and reads 93-119 on its Two-Handed Axe (x1.8286, **D** formula, unverified in game: **U**). `v_build_items_named.affixes_text` and the `build` / `item_usage` tools already apply the factor of the build item's own sub type.
+
+```sql
+SELECT u.name AS unique_item, u.base_type, v.affix_name, v.tier, v.std_aem, v.item_aem, v.scale_factor,
+       v.stored_min || '-' || v.stored_max AS stored, v.value_min || '-' || v.value_max AS scaled
+FROM v_unique_summary u
+JOIN v_affix_values v ON v.base_type = u.base_type
+WHERE u.unique_id = 365 AND v.affix_name = 'Melee Void Damage' AND v.tier = 7 AND v.ord = 0;
+```
+
+```sql
+SELECT idol, idol_size, tier, std_aem, item_aem, scale_factor, stored_min, stored_max, value_min, value_max
+FROM v_idol_affix_values
+WHERE affix_id = 912 AND tier = 7 AND ord = 0
+ORDER BY base_type_id;
+```
+
+**How a unique is obtained.** `uniques.drop_source` is a text summary of the rows in `unique_drop_sources` (harbinger, aberroth, timeline_boss, dungeon, arena, woven_echo, ...; `drop_source_count` counts them), or a note for primordial / cocooned uniques that have no drop table. `can_drop_randomly = 0` AND `drop_source IS NULL` (4 uniques, e.g. Avarice 131) is the only case that is truly "not in data". `get({"kind":"unique","id":365})` returns `drop_sources` and `obtain`.
+
+```sql
+SELECT u.unique_id, u.name, u.can_drop_randomly, u.drop_source, s.source_kind, s.source_name
+FROM uniques u LEFT JOIN unique_drop_sources s ON s.unique_id = u.unique_id
+WHERE u.unique_id IN (131, 213, 365, 434)
+ORDER BY u.unique_id, s.ord;
+```
+
+**Buffs.** Buff-bar buffs that are not ailments are in `ui_buffs` (Craterborn 14, Lightning Aegis 86) with stat slots from the `BuffPropId` enum. `get({"kind":"buff","id":14})` returns the record, `stat_slots` (Craterborn: FirePenetration, CastSpeed) and the nodes / items that mention it; `lookup({"name":"Lightning Aegis","kinds":["buff"]})` and `search` with `kinds:["buff"]` resolve names. The stat values are game code, not data: read them from the granting node or item text. A buff that is an ailment (Spark Charge, Frenzy, Haste) is in `ailments`.
+
+**Community build skills.** `community_build_skills.has_tree_points` (points > 0) and `node_count` (allocated nodes of its tree in that tab) tell a real allocation from a planner leftover without a join: a row with `is_specialized = 0` and `has_tree_points = 1` is a leftover with no effect in game (477 rows over 93 skills). `builds` with an `ability` filter returns `ability_tabs` per guide (`{tab, specialized, on_bar, points, node_count, leftover_tree?}`).
+
+```sql
+SELECT count(*) AS leftover_rows, count(DISTINCT ability_id) AS skills
+FROM community_build_skills WHERE is_specialized = 0 AND has_tree_points = 1;
+```
+
+## Community builds (Maxroll guides, game 1.5.2)
+
+The database also holds 74 Maxroll build guides (planner profiles of the 1.5.2 season) in eight `community_*` tables and five views (`docs/schema.md` section 3.9; full list of builds: `knowledge/reference/community-builds.md`). Every id is a game id, so a build joins directly to `uniques`, `affixes`, `mods`, `blessings`, `trees`, `abilities`.
+
+**Caveat (read before quoting).** This is guide data, not game truth: it says what Maxroll authors recommend for 1.5.2 (label **X**), not what the game allows or what is optimal. Slot names are the planner's: `weapon`, `offhand`, `head`, `body`, `hands`, `waist`, `feet`, `neck`, `finger1`, `finger2`, `relic`, `idol`, `altar`. A usage count is "N of 74 builds", not a power ranking; counts depend on the build mix (the dataset is skewed to popular skills). Affix `origin` `extra` means slammed or legendary-potential on a unique; the data does not tell the two apart. The default tab of a guide is its Endgame (or opening) profile; Starter and Aspirational tabs also count in `builds`.
+
+| Object | What it is |
+|---|---|
+| `community_builds` | one row per guide x profile: slug, title, class/mastery ids, `main_ability_id`, tiers (corruption / speed / bossing: S, A, B, C or NULL) |
+| `community_build_items` + `community_build_item_affixes` | equipped items and idols per tab; affixes with 1-based tier, roll (0..1), `origin` (`normal`, `extra`, `sealed`, `corruption`) |
+| `community_build_passives`, `community_build_skill_nodes`, `community_build_skills`, `community_build_blessings`, `community_build_profiles` | allocations, skill bar, blessings, tabs |
+| `v_build_summary` | one row per build with names, tiers, default tab, specialised skills, uniques |
+| `v_build_items_named` | one row per item with name and `affixes_text` |
+| `v_item_usage` | (unique, slot): `builds`, `default_builds`, `guides`, `items` |
+| `v_affix_usage` | (affix, slot, origin): builds, items, min / max / avg tier |
+| `v_build_nodes_named` | allocated passive / skill nodes with names, points, mastery |
+
+The four tools answer the usual questions without SQL (shapes; `?` optional):
+
+```
+builds({class?, mastery?, ability?, any_skill?, item?, affix?, tier?, tier_list?, playstyle?, season?, limit?})   -> {builds:[{build_id, slug, title, url, author, updated, season, playstyle, class, mastery, main_skill, tiers:{corruption,speed,bossing}, tabs, is_primary}], count}
+build({id? | slug?, tab?, sections?})                         -> the full named build: gear per slot with affixes / tier / origin, idols, blessings, passives by mastery with points, skills with node points, notes, strengths / weaknesses
+item_usage({name? | unique_id? | affix?, slot?, tab?, class?, mastery?})   -> {item, total_builds, by_slot, by_mastery, builds:[{build_id, slug, title, mastery, main_skill, tab, slot, extra_affixes}]}
+slot_meta({slot, class?, mastery?, ability?, tab?, kind?})    -> {matched_builds, items:[{name, kind, count, pct, example_builds}], affixes:[{affix, count, pct, typical_tier, prefix|suffix}]}
+```
+
+(The code fence above is a signature sketch, not a runnable example.) For anything else use `sql` on the views. Executable examples:
+
+Builds of one mastery with their tiers:
+
+```sql
+SELECT slug, main_skill, tier_corruption, tier_speed, tier_bossing
+FROM v_build_summary WHERE mastery_name = 'Void Knight' ORDER BY slug;
+```
+
+Most used items in a slot (count is builds, any tab):
+
+```sql
+SELECT name, slot, builds, default_builds FROM v_item_usage WHERE slot = 'weapon' ORDER BY builds DESC, name LIMIT 10;
+```
+
+Most used affixes on boots, with the tier the guides take:
+
+```sql
+SELECT name, origin, builds, items, round(avg_tier, 1) AS avg_tier FROM v_affix_usage WHERE slot = 'feet' ORDER BY builds DESC, name LIMIT 10;
+```
+
+Rules: a count of 0 builds means "no guide uses it", not "bad" (the item may be new or niche); never present a Maxroll tier (`tier_*`) as a game fact; when a proposal differs from the community builds, say how (see **le-build-around-item** Phase C2 and **le-bis-selection**).
 
 ## Gotchas
 
-- **Display-only node stats**: skill and passive tree node stat lines often have `modifier_type = NULL` (text only, value parsed from `'+25%'`). Never infer added, increased or more from the wording; skill-tree damage is mostly **more** (`knowledge/mechanics/damage-pipeline.md#5-increased-more-and-skill-trees`). Say "type not in data" instead of guessing.
+- **Node stat kinds**: tree-node lines carry `stat_kind` / `modifier_type` from the decompiled node code (`modifier_source = 'structured'`, **D**) or from the label (`inferred`, **U**, 2,447 of 6,528 skill-node lines); `modifier_type` is NULL only where neither says (1,830 unknown + 1,408 skill parameters among skill nodes). Never infer the kind from the wording yourself, and never treat a `label_mismatch = 1` line as a plain `property_name` stat: read its `label` and `code_ref` (Foe Cleaver `sndr1:24`, Quintessence of Triumph `mg-1:54`). Weaver nodes are all `inferred`. Say "kind inferred (U)" or "kind not in data" instead of guessing. See "Node kinds, item scaling, drop sources and buffs" below.
 - **Blessings and idol altars**: their implicits are `mods` rows with `source_kind = 'blessing'` (`source_id '34:<sub>'`) and `'idol_altar'` (`'41:<sub>'`), not `affix_tier`. A query over `affix_tier` misses them. Idol affixes themselves are in `affixes` (`rolls_on = 1`).
 - **Uniques**: tooltip special effects are not stat lines; they are SP 98 or 58 rows, or tooltip text only (`unique_tooltips`, `knowledge/interactions/unique-effects-index.md`). `uniques.mod_count` counts stat lines only. `v_unique_summary.tooltip_text` is NULL for 167 uniques whose text lives only in `mods_text`: search `coalesce(tooltip_text, '') || ' ' || coalesce(mods_text, '')`, never `tooltip_text` alone. `v_unique_summary` has no `is_primordial` / legendary-drop columns; read those from `uniques`.
 - **"Everything a unique does"**: `knowledge/interactions/unique-effects-index.md` has one row per unique, but the page is 118 KB; `grep -n "Calamity" knowledge/interactions/unique-effects-index.md` (or grep the uid) instead of fetching it whole.
@@ -315,8 +422,10 @@ Tag names or integer bits both work (`"tags_any":[8192]`). Display-only tree-nod
 - **Damage arrays are not in tag-bit order.** `ability_components.raw_json` `$.baseDamageStats.damage` is `[physical, fire, cold, lightning, necrotic, void, poison]` (Fireball `[0,25,0,0,0,0,0]`), whereas `tag_bits` orders Physical 1, Lightning 2, Cold 4, Fire 8. Never index one with the other.
 - **No cooldown column.** `abilities` has `max_charges` and `charges_gained_per_second`; cooldown is `1 / charges_gained_per_second` when that is > 0 (0.25/s means 4 s). `get({"kind":"ability",...})` returns it as `cooldown_seconds`.
 - **Ability index vs ability id.** SP 58 `tags`, SP 88 `tags` and an "AP162"-style reference are `abilities.ability_index` (an integer), not `ability_id`: `SELECT ability_id, name, is_player_ability FROM abilities WHERE ability_index = 162` gives `ability_gen98` Fire Aura. Many such abilities are not player skills (`is_player_ability = 0`): an item or node casts them.
+- **Legendary / LP fields on `uniques`.** `legendary_type` is the raw enum (0 = LegendaryPotential, 1 = Weaver's Will); `lp_eligible` is derived (1 when `legendary_type = 0` and the item is not a set item: the game data has no per-unique LP flag, so confirm in game before planning a legendary craft, **U**); `weavers_will` is derived (1 when `legendary_type = 1`). `can_drop_as_legendary` is a different raw flag (4 uniques only). The old column name `is_legendary_capable` no longer exists. Filter LP targets with `lp_eligible = 1`, not `legendary_type` alone.
+- **Fixed-value unique mods.** A unique mod that does not roll has `value_min = value_max` (the raw `canRoll = 0` lines are loaded as fixed at their `value`; the raw `maxValue` of those is a leftover). Do not read `value_max` of such a line as a ceiling; "fixed" is `value_min = value_max`. Culnivar's Claim lines 0 and 1 (+90% increased damage / crit chance) are examples.
 - **Weaver nodes** are not a separate table: they are `tree_nodes` rows with `tree_id = 'weaver'` (`tree_kind = 'weaver'`, 80 rows); `get` kind `weaver_node` and `passive_tree({"class_id":"weaver"})` read them.
-- **`requires` edges** (`v_skill_node_summary.requires`, `tree_node_requirements`, `requires_text` in `skill_tree`/`passive_tree`): `"3>=1"`-style text means this node needs at least N points in prerequisite node M (`2>=1` on node 3: node 2 needs 1 point; `2>=2,6>=2` needs both). The tree tools also return `requires` as `[{node_id, node_name, points}]`.
+- **`unlocked_by` edges** (`v_skill_node_summary.unlocked_by`, `tree_node_requirements`, `unlocked_by_text` in `skill_tree`/`passive_tree`; the old `requires` names are deprecated aliases): `"3>=1"`-style text means node M holding at least N points unlocks this node. Several entries are alternatives, joined by a vertical bar: `2>=2|6>=2` means node 2 with 2 points OR node 6 with 2 points (adjacency, any one; the raw data lists mutual edges, so AND could never be satisfied). The tree tools also return `requires` as `[{node_id, node_name, points}]`.
 - **Ailment ids in components** (`$.ailments[].ailment`) are `ailments.ailment_id`: join to `ailments` for the name (for example 1 is Ignite).
 - **Base type names**: body armour is `item_base_types.name = 'Body Armor'` (`base_type_id` 1; the engine enum spells it BodyArmor). Match by `base_type_id` when unsure: `SELECT base_type_id, name FROM item_base_types`.
 - **Ability name clashes**: minion abilities share names with player skills; filter `is_player_ability = 1` and `has_skill_tree = 1`.
@@ -330,7 +439,7 @@ Tag names or integer bits both work (`"tags_any":[8192]`). Display-only tree-nod
 4. Decode every tag and every indirect property (tables above) and say which tags the line requires.
 5. Find the combining rule in `knowledge/` (use `le-mechanics-reference` to pick the page) and quote its confidence label.
 6. Cite each fact as `table.column=id`, for example `mods source_kind=affix_tier source_id=0 tier=1` or `tree_nodes fi9:2`.
-7. State what is **not** in the data: unmodelled special effects (SP 98 or 58), 5000+ skill-local properties, node effect types.
+7. State what is **not** in the data: unmodelled special effects (SP 98 or 58), what a 5000+ tooltip category does beyond its label and `code_ref` (the category name is in `node_tooltip_properties`), `inferred` node kinds (**U**), and the in-game check of scaled affix values (`v_affix_values` follows the decompiled formula: unverified in game).
 8. Give numbers with range, unit (fraction or percent) and the label of the rule used.
 
 ## Common mistakes

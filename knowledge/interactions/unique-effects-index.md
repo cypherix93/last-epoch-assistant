@@ -501,3 +501,15 @@ Model column legend: `PP<n>` = PlayerProperty index n (key in `player`), `AP<abi
 | 211 | Throne of Ambition | 33 IDOL_2x2 | You gain a stack of Ambition when you hit a boss or rare enemy (1 second cooldown)<br>2% more Fire Damage per stack of Ambition<br>2% more Cold Damage per stack of Ambition<br>2% more Armour per stack of Ambition<br>You lose all stacks of Ambition if you go 4 seconds without gaining a stack<br>20 Maximum Stacks of Ambition | PP160:flag |  |
 | 219 | Trinity of Flames | 33 IDOL_2x2 | Every 3rd fire spell you cast is guaranteed to crit | PP170:stat |  |
 | 325 | Unvar's Hegemony | 33 IDOL_2x2 | Once you have two Runes for Runic Invocation your runes cannot change until they are consumed | AP689:22:flag, AP689:25:stat |  |
+
+## Notes added by hand (not part of the generated table)
+
+Clarifications for rows whose one-line tooltip or model column hides a rule that builds depend on. Each points to the catalogue entry that carries the evidence and its confidence label.
+
+| uid | Unique | Note | Catalogue entry |
+|---|---|---|---|
+| 288 | Harbinger of Stars | The triggered Meteor consumes Meteor's mana cost (PP247 alt text: "This consumes Meteor's Mana Cost. Does not include crits from Meteor itself."); gate is "above 0 mana" (a Meteor at 1 mana drives mana to about -51, and cost >= 1 skills cannot be used at negative mana). **A** | Harbinger of Stars: the triggered Meteor pays Meteor's mana |
+| 233 | Snowdrift | PP182 reads "Cold Penetration with Frostbite per 10% Freeze Rate Multiplier" (0.01); the model column's "stat" is Increased Ailment Effect for Frostbite = pp x FRM x 10 (**D?**). Whether the base 1.0 FRM counts and whether penetration is capped: **U** | Snowdrift turns Freeze Rate Multiplier into Cold penetration for Frostbite |
+| 45 | Morditas' Reach | "+500% chance to inflict Frostbite on Melee Hit" is a weapon ailment-chance line; Rive's Foe Cleaver (`sndr1:24`) says stats on a two-handed weapon that add an ailment chance have double effect (**A** text, **U** engine) | Rive's Foe Cleaver doubles the ailment-chance lines on a two-handed weapon |
+| 180, 84 | Shattered Chains, Heirloom of the Last Nomad | The only two sources of "Using a Potion Cleanses Stun and Freeze" in the data (PP24 flag). Shattered Chains is not a random drop (`can_drop_randomly` 0); see [endgame-systems.md](../reference/endgame-systems.md#uniques-that-do-not-drop-randomly) for its source. | `knowledge/mechanics/defenses.md#13-freeze-stun-slow-and-chill-answers` |
+| 434 | Mask of Indifference | Immune to Blind, Bleed, Slow, Chill, Shock and Stun; **not** Freeze (no freeze immunity exists in the data). Not a random drop. | `knowledge/mechanics/defenses.md#13-freeze-stun-slow-and-chill-answers` |

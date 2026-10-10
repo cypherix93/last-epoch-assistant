@@ -52,8 +52,82 @@ describe.skipIf(!hasRawData())("skills loader spot checks", () => {
       `${tree.tree_id}:2`,
     );
     expect(stats).toHaveLength(2);
+    // Pierce Chance is a Fireball mutator field (no stat); Mana Cost is FireballMutator.increasedManaCost (decompiled code)
     expect(stats[0]).toMatchObject({ property: 5002, value_min: 0.25, is_downside: 0, modifier_type: null, display: "+25%" });
-    expect(stats[1]).toMatchObject({ property: 66, value_min: 0.33, is_downside: 1, modifier_type: null });
+    expect(stats[1]).toMatchObject({ property: 66, value_min: 0.33, is_downside: 1, modifier_type: 1 });
+  });
+
+  type KindRow = { property: number; property_kind: string; stat_kind: string; modifier_type: number | null; modifier_source: string; label_mismatch: number; code_ref: string | null };
+  const kinds = (id: string, kind = "skill_node") =>
+    all<KindRow>(
+      "SELECT property, property_kind, stat_kind, modifier_type, modifier_source, label_mismatch, code_ref FROM mods WHERE source_kind = ? AND source_id = ? ORDER BY source_ord",
+      kind,
+      id,
+    );
+
+  it("tree node stat kinds come from the decompiled node code (structured) or the label (inferred)", () => {
+    // Winged Fire: '+7% Damage' is a MORE damage stat in FireballMutator, not increased
+    expect(kinds("fi9:6")[1]).toMatchObject({ property: 0, property_kind: "stat", stat_kind: "more", modifier_type: 2, modifier_source: "structured", label_mismatch: 0 });
+    // Foe Cleaver: 'Effect of Damage Stats on a 2h Weapon +100%' on SP 0 is a Rive mutator field, NOT +100% damage
+    const fc = kinds("sndr1:24");
+    expect(fc[0]).toMatchObject({ property: 0, property_kind: "stat", stat_kind: "skill_parameter", modifier_type: null, modifier_source: "structured", label_mismatch: 1 });
+    expect(fc[0]!.code_ref).toContain("twoHandedWeaponStatModifier");
+    expect(fc[1]).toMatchObject({ property: 10001, property_kind: "ailment", label_mismatch: 0 });
+    // Iron Reach 'Strike Two Damage' is scoped to the second strike: more, and not a plain Damage line
+    expect(kinds("sndr1:26")[0]).toMatchObject({ stat_kind: "more", modifier_source: "structured", label_mismatch: 1 });
+    // every tree row is classified; no other source gets the tree columns
+    expect(
+      one<{ n: number }>(
+        "SELECT count(*) n FROM mods WHERE source_kind IN ('skill_node','passive_node','weaver_node') AND (modifier_source IS NULL OR property_kind IS NULL OR stat_kind IS NULL OR label_mismatch IS NULL)",
+      ).n,
+    ).toBe(0);
+    expect(
+      one<{ n: number }>(
+        "SELECT count(*) n FROM mods WHERE source_kind NOT IN ('skill_node','passive_node','weaver_node') AND (modifier_source IS NOT NULL OR property_kind IS NOT NULL OR stat_kind IS NOT NULL OR label_mismatch IS NOT NULL OR code_ref IS NOT NULL)",
+      ).n,
+    ).toBe(0);
+    // most skill-tree lines match a code effect
+    const s = one<{ n: number; total: number }>("SELECT sum(modifier_source = 'structured') n, count(*) total FROM mods WHERE source_kind = 'skill_node'");
+    expect(s.n / s.total).toBeGreaterThan(0.55);
+  });
+
+  it("passive node properties are tooltip hints: 5000+ categories are global, label mismatches are flagged", () => {
+    // Quintessence of Triumph: 'More Spell Damage' on SP 41 Adaptive Spell Damage is a conditional MORE damage stat
+    const q = kinds("mg-1:54", "passive_node");
+    expect(q[0]).toMatchObject({ property: 5048, property_kind: "tooltip_category", stat_kind: "increased", modifier_source: "structured" });
+    expect(q[1]).toMatchObject({ property: 41, property_kind: "stat", stat_kind: "more", modifier_type: 2, label_mismatch: 1 });
+    expect(q[1]!.code_ref).toContain("ConditionalMoreDamage");
+    // Infused Weapon '+2 Melee Damage' (5110) is added melee damage; Weapons Master 'More Melee Damage With Mace' (5110) is more:
+    // 5110 is the global tooltip category 'Melee Damage' in both trees, the kind is per line
+    expect(kinds("mg-1:35", "passive_node")[0]).toMatchObject({ property: 5110, property_kind: "tooltip_category", stat_kind: "added", modifier_type: 0 });
+    expect(kinds("kn-1:65", "passive_node")[3]).toMatchObject({ property: 5110, property_kind: "tooltip_category", stat_kind: "more", modifier_type: 2 });
+    expect(one<{ name: string }>("SELECT name FROM node_tooltip_properties WHERE property = 5110").name).toBe("Melee Damage");
+    // Essence Duel: property 54 'None' is display only; the line is increased melee attack speed
+    expect(kinds("mg-1:77", "passive_node")[0]).toMatchObject({ property: 54, property_kind: "display_only", stat_kind: "increased", modifier_type: 1 });
+    // every 5000-9999 property used by a node has a category name
+    expect(
+      one<{ n: number }>(
+        "SELECT count(*) n FROM mods m LEFT JOIN node_tooltip_properties p ON p.property = m.property WHERE m.property_kind = 'tooltip_category' AND p.property IS NULL",
+      ).n,
+    ).toBe(0);
+  });
+
+  it("node stats carry noScaling (per point unless 1) and requirements are an any-one-of adjacency", () => {
+    const rows = all<{ no_scaling: number }>("SELECT no_scaling FROM mods WHERE source_kind = 'skill_node' AND source_id = 'av75ch:3' ORDER BY source_ord");
+    expect(rows.map((r) => r.no_scaling)).toEqual([0, 1]);
+    expect(one<{ n: number }>("SELECT count(*) n FROM mods WHERE source_kind NOT IN ('skill_node','passive_node','weaver_node') AND no_scaling IS NOT NULL").n).toBe(0);
+    // es6ai nodes 8 and 11 list each other, so the requirements cannot be an AND
+    const a = one<{ n: number }>("SELECT count(*) n FROM tree_node_requirements WHERE tree_id = 'es6ai' AND node_id = 8 AND required_node_id = 11").n;
+    const b = one<{ n: number }>("SELECT count(*) n FROM tree_node_requirements WHERE tree_id = 'es6ai' AND node_id = 11 AND required_node_id = 8").n;
+    expect([a, b]).toEqual([1, 1]);
+  });
+
+  it("abilities.kind separates player skills from their sub-abilities", () => {
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai'")).toEqual({ kind: "player", parent_ability_id: null });
+    expect(one<{ kind: string; parent_ability_id: string | null }>("SELECT kind, parent_ability_id FROM abilities WHERE ability_id = 'es6ai_1'")).toEqual({ kind: "player_sub", parent_ability_id: "es6ai" });
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind = 'player'").n).toBe(182);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE kind <> 'player' AND is_player_ability = 1").n).toBe(0);
+    expect(one<{ n: number }>("SELECT count(*) n FROM abilities WHERE (kind = 'player_sub') <> (parent_ability_id IS NOT NULL)").n).toBe(0);
   });
 
   it("Ignite ailment", () => {

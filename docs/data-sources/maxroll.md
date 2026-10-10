@@ -1765,7 +1765,7 @@ Example (record #2, trimmed):
 | `isCocoonedItem` | boolean | always | values false,true | `false` | Cocooned item. |
 | `overrideLevelRequirement` | boolean | always | values false,true | `false` | Level requirement overridden. |
 | `levelRequirement` | number | always | 0..87 (>12 distinct) | `0` | Level required to equip/use. |
-| `legendaryType` | number | always | values 0,1 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `legendaryType` | number | always | values 0,1 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `overrideEffectiveLevelForLegendaryPotential` | boolean | always | values true,false | `true` | Flag. |
 | `effectiveLevelForLegendaryPotential` | number | always | 0..200 (>12 distinct) | `40` | Effective level used for legendary potential. |
 | `hideFromPlayers` | boolean | always | values false,true | `false` | Hidden from players (internal). |
@@ -2061,7 +2061,7 @@ Example (record #1, trimmed):
 | `itemsInSet[].isCocoonedItem` | boolean | 61 occurrences | values false | `false` | Cocooned item. |
 | `itemsInSet[].overrideLevelRequirement` | boolean | 61 occurrences | values false,true | `false` | Level requirement overridden. |
 | `itemsInSet[].levelRequirement` | number | 61 occurrences | 0..80 (>12 distinct) | `0` | Level required to equip/use. |
-| `itemsInSet[].legendaryType` | number | 61 occurrences | values 0 | `0` | 0 normal unique, 1 legendary-capable (see enums.md). |
+| `itemsInSet[].legendaryType` | number | 61 occurrences | values 0 | `0` | Enum: 0 LegendaryPotential, 1 WeaversWill (which upgrade system the unique uses; not a can-roll-LP flag). See enums.md. |
 | `itemsInSet[].overrideEffectiveLevelForLegendaryPotential` | boolean | 61 occurrences | values false | `false` | Flag. |
 | `itemsInSet[].effectiveLevelForLegendaryPotential` | number | 61 occurrences | values 0 | `0` | Effective level used for legendary potential. |
 | `itemsInSet[].hideFromPlayers` | boolean | 61 occurrences | values false | `false` | Hidden from players (internal). |
@@ -2536,3 +2536,59 @@ Example (record #0, trimmed):
   "moreRoundingOverrides": []
 }
 ```
+
+## Guides and planner profiles
+
+`yarn fetch --only maxroll-guides` (alias `--source maxroll-guides`; part of the default `yarn fetch`) downloads Maxroll's Last Epoch build guides into `data/raw/<version>/maxroll-guides/`. Code: `packages/fetch/src/maxroll-guides.ts`; HTML parsing is covered by `maxroll-guides.test.ts` with fixtures cut from the live pages.
+
+Sources (all plain GETs with the repo's browser-like User-Agent, sequential with a ~350 ms pause, 3 retries):
+
+| what | URL |
+|---|---|
+| guide list (server-rendered) | `https://maxroll.gg/last-epoch/build-guides` |
+| guide page | `https://maxroll.gg/last-epoch/build-guides/<slug>` |
+| planner profile | `https://planners.maxroll.gg/profiles/le/<profileId>` |
+| tier lists | `https://maxroll.gg/last-epoch/tierlists/{corruption,speed-farming,bossing}-tier-list` |
+
+Layout:
+
+- `maxroll-guides/index.json`: `{fetched_at, list_url, guides[], tier_lists{}}`. Each guide: `slug, title, url, author, updated` (as shown, e.g. `October 8, 2026`), `updated_iso`, `season` (`Season 5 Rage Of The Frostborn` or `Season 4`), `playstyle` (Endgame/Leveling), `style_tags` (Caster/Melee/Range/Minions), `class`, `mastery` (lowercase slugs such as `void-knight`), `planner_id`, `profile_ids[]`, `tiers{corruption,speed,bossing}` (letter, absent when the build is not on that list). Each tier list: `{url, title, updated, entries[{name, tier, slug}]}`; `slug` is the guide the entry links to (exact mapping), `null` for entries without a guide link.
+- `maxroll-guides/profiles/<profileId>.json`: the planner response saved verbatim, `{id, date, name, class, data}`. `data` is a JSON-encoded string whose `profiles[]` are the Starter/Endgame/Aspirational planner profiles, plus `items`, `lootFilters`, `options`, `globalNotes`, and so on. Guide pages themselves are not stored.
+- `sources.lock.json` gets a `maxrollGuides` section: `{listUrl, files[{url, sha256, bytes, fetched_at}]}` with one entry per fetched URL (list, tier lists, guide pages, profiles). `fetched_at` is kept when the hash is unchanged.
+
+How it works and caveats:
+
+- Cards on the list page carry the title, author, `Last Updated` date and tags in a fixed order (season, playstyle, style tags, base class, mastery). The card's skill-bar embed (`data-le-profile`) is the guide's own profile and becomes `planner_id`.
+- A guide page embeds planner widgets as `data-le-profile="<id>" data-le-type="plannerEquipment|plannerSkills|plannerPassives"`; `profile_ids` are the distinct ids in page order (the card's `planner_id` is prepended if the page lacks it). Do not use the `"plannerId"` string found in the page's JSON: on guide pages it belongs to a related post in the sidebar, not to the guide itself.
+- Pagination: the list page shows only current (non-archived) guides, 73 on 2026-10-08 (70 Season 5, 3 Season 4), well under the 100-per-page size of its "See more results" control, so the server render is complete. That control queries Maxroll's Meilisearch proxy (`https://meilisearch-proxy.maxroll.gg`, index `wp_posts_8`); with archived posts included it holds 136 Last Epoch build guides (63 older, untagged with a season). The fetch step does not use that API; archived guides are out of scope. `?page=2` returns the same page.
+- Profiles are large (about 140 KB each, 10 MB for 74); guide pages are only parsed and discarded. Guides are community-authored and edited frequently, so re-running the step changes profile files and hashes; commit the result with the matching game data version.
+- The shown date is the guide's last edit, not the game version. Season 4 guides may still be listed; filter on `season`.
+
+## Planner profiles (community build guides)
+
+How the community-builds loader (`packages/db/src/loaders/community.ts`) reads the guide data; the download itself (`data/raw/<v>/maxroll-guides/index.json` + `profiles/<id>.json`, the guide list and tier list scraping) is described in the guides fetch section of this file. Tables: [schema.md section 3.9](../schema.md#39-community-builds). Verified against profile `0g5ta0n3` (Erasing Strike Void Knight, Volca, 2026-09-28): every id resolves against the LE Tools tables of 1.5.2.
+
+A profile file is the verbatim `https://planners.maxroll.gg/profiles/le/<id>` response: `{id, date, name, class (mastery name), mainset (Maxroll ability key of the main skill, or a numeric unique_id when the build is centred on an item: `426` Thicket of Blinding Light in reflect-shaman, `430` Chorus of the Anurok in anurok-frogs; stored as `community_builds.main_unique_id`), metadata (JSON string), search_metadata, season, user, ..., data}`, where `data` is a JSON **string** (`PD` below) with keys `profiles[]` (the tabs), `items` (item map), `activeProfile` (index of the tab the planner opens on), `globalNotes` ({intro, faqs, summary, changelog}, Lexical rich text), `strAndWeak` ({strengths[], weaknesses[]}), `lootFilters`, `embeds`, `options`, `activeEmbed`.
+
+| profile field | meaning | our id / table |
+|---|---|---|
+| `PD.profiles[i].name` | tab name: Starter / Endgame / Aspirational | `community_build_profiles.name` |
+| `.class`, `.mastery`, `.level`, `.season` | class id, mastery index (0 base class, 1..3), level, season | `classes.class_id`, `masteries (class_id, mastery_index)` |
+| `.items` | `{slot: key}`, slots `weapon, offhand, head, body, waist, hands, feet, neck, finger1, finger2, relic, altar`; the key indexes `PD.items`. A slot can also hold the item **object** itself (same shape as `PD.items[k]`): 212 such inline items (gear and idols) in 12 of the 74 1.5.2 profiles | `community_build_items.slot` / `item_key` (`inline` for an inline item) |
+| `.idols[25]` | item keys (or inline item objects) on the 5x5 altar grid, index = y * 5 + x of the idol's top-left cell (`null` = empty / covered) | `grid_x`, `grid_y` |
+| `PD.items[k].itemType`, `.subType` | base type id, sub type id (game ids, as LE Tools) | `item_subtypes (base_type_id, sub_type_id)` |
+| `.uniqueID`, `.uniqueRolls[rollID]` | unique id; 0..1 roll per unique mod `rollID` | `uniques.unique_id` |
+| `.implicits[i]` | 0..1 roll of implicit i | mods `implicit` `'<base>:<sub>'` source_ord i |
+| `.affixes[]`, `.sealedAffix`, `.corruptedAffixes[]` | `{id, tier, roll}`: affix id, **1-based** tier (tier N = `tiers[N-1]`), roll 0..1 with 1 = max of the tier range (value = min + (max - min) * roll); affixes of a unique are its extra (legendary potential / Weaver's Will) affixes; the data does not say which | `affixes.affix_id`, `affix_tiers.tier` = mods `affix_tier`.tier; prefix/suffix from `affixes.affix_type` |
+| `.corrupted` | item is corrupted | `is_corrupted` |
+| `.blessings[i]` | `{itemType 34, subType, implicits[0] = roll}`; slot i = timeline i + 1 (each blessing is in that timeline's lists) | `blessings.sub_type_id`, `timelines.timeline_id` |
+| `.passives` | `{history[], position}`: one class-tree node id per point (tree = the class `treeID`, e.g. `kn-1`); only `history[0:position]` applies | `tree_nodes (tree_id, node_id)` |
+| `.weaver`, `.weaverItems` | the same for the Weaver tree (`weaver`); Weaver items (empty in the sample, kept in `raw_json`) | `tree_nodes ('weaver', node_id)` |
+| `.skillTrees` | `{<tree id>: {history[], position}}`; the tree id is the ability id (Maxroll `abilities[*].playerAbilityID`, LE Tools `LESkillTrees` key). Trees can exist for skills that are not specialized (planner leftovers). A history can name a node that no longer exists (1.5.2: `vr53sl:3`, a hole in the Volatile Reversal numbering in LE Tools, Maxroll and the 1.5.0 lastepochbuilder trees): such points are dropped and reported as warning `removed_node` | `trees.tree_id` = `abilities.ability_id` |
+| `.activeSkills[5]`, `.specializedSkills[5]` | Maxroll ability **keys** (`ErasingStrike`), mapped with data.json `abilities[key].playerAbilityID` (`es6ai`) | `abilities.ability_id` |
+| `.widgetNotes` | per-section notes of the tab ({skills, passives, equipment}), Lexical rich text (`embed` nodes carry `text` and a planner id) | `community_build_profiles.notes_json` (plain text) |
+| `.quests` | completed quest ids | `maxroll_quests.quest_id` (kept in `raw_json`) |
+
+Guide card vs profile: the card's mastery (`index.json` `mastery`) is the guide's target mastery, but a leveling guide's planner opens on a base-class `Starting Setup` tab (mastery 0), so the profile's default tab says e.g. Acolyte for `necromancer-leveling-guide` (8 such guides in 1.5.2). The loader keeps the profile's class / mastery on the build row and the card's in `guide_mastery_index` (warning `guide_mastery`); a card whose CLASS differs from the profile is still reported as unresolved `guide_class`.
+
+Not in the data: legendary potential / Weaver's Will values, the forging potential, and per-item notes. Stat property 120 (`EffectOfAilmentOnYou`, used by affix 951 and some uniques) has no display rule in either source; the build report lists it under `community.unnamed_properties`.

@@ -16,9 +16,11 @@
 | Defense layers | <layer 1>, <layer 2>; resistances capped from <sources> |
 | Sustain | <source> |
 | Other required uniques | <names + uids> (count: N) |
+| Community baseline | <item used in N of 74 guides; closest guide <slug> or none; differs by ...> (X) |
 | Rate check | <enabler throughput> vs <plain benchmark> (<label>) |
 | Scores (Dmg/Def/Sus/Gear/Nov) | <a/b/c/d/e = total> |
-| Riskiest assumption | <one line> -> test #1 |
+| Riskiest assumption | <the weakest-labelled link of the chain, with its label> -> test #1 |
+| Acquisition | <each unique with can_drop_randomly 0: source, or "farm unknown (U)"> |
 
 ## 1. The item
 
@@ -28,7 +30,7 @@
 |---|---|---|---|---|---|
 
 - Tooltip lines (quoted):
-- Coded model (`unique_effects.json`): trigger, condition, formula, confidence:
+- Coded model (`unique-effects-index.md` row: model kinds and class; `get` mods and relations; the knowledge-page rule with its label; "coded detail not read (U)" where none; `vendor/` is not opened):
 - Catalogue entries that mention it (headings):
 - Restrictions: class, level (unique vs base), slot consequences, LP/WW/primordial/set, legendary plan:
 
@@ -39,7 +41,29 @@
 - Benchmark against a plain alternative (affix id / unique uid, tier, value):
 - Verdict: <enabler worth it because ... | enabler weak, build justified by ...>
 
-## 3. Candidates (divergent phase)
+## 3. Community baseline (Phase C2; Maxroll guides, 1.5.2, label X; "N of 74 guides", not game truth)
+
+- Item usage (`item_usage` / Q18): total builds <N of 74>; by slot <...>; by mastery <...>; extra affixes guides add <...>. Required partner uniques: <name: N of 74>.
+- Existing builds for the chosen mastery and main skill (`builds` / Q19): <slug, tiers> or "none; nearest <slug>".
+- How this proposal differs from the existing build (required when one exists): <mastery, skills and nodes, defense layer, the item's role, gear>.
+- Community-standard picks per slot (`slot_meta`; <matched_builds> guides matched; widened to <class/skill> if thin):
+
+| Slot | Top community picks (count of matched) | Typical affixes (tier) | This proposal | Reason for any difference |
+|---|---|---|---|---|
+| Helmet | | | | |
+| Body | | | | |
+| Gloves | | | | |
+| Belt | | | | |
+| Boots | | | | |
+| Weapon / off-hand | | | | |
+| Amulet | | | | |
+| Ring x2 | | | | |
+| Relic | | | | |
+| Idols | | | | |
+
+- Counts cited by the scores: Gear <...>; Novelty <...>.
+
+## 4. Candidates (divergent phase)
 
 | # | Archetype | Class / mastery | Core skill(s) | Key pairing (ids) | Query / entry that supports it | Dmg | Def | Sus | Gear | Nov | Total |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -51,13 +75,13 @@
 
 Gate result: <dropped candidates and why>. Novelty pairing: <#>. Chosen: <#, #>.
 
-## 4. Build skeleton: <candidate name>
+## 5. Build skeleton: <candidate name>
 
-(For a second skeleton, repeat sections 4-8 as "4b. Build skeleton: <name>" and so on, before section 9.)
+(For a second skeleton, repeat sections 5-9 as "5b. Build skeleton: <name>" and so on, before section 10.)
 
-### 4.1 Class, mastery, bonuses
+### 5.1 Class, mastery, bonuses
 
-### 4.2 Skills
+### 5.2 Skills
 
 | Slot | Skill (`ability_id`) | Role | Key nodes (`tree:node` Name, points) | Why |
 |---|---|---|---|---|
@@ -67,14 +91,14 @@ Gate result: <dropped candidates and why>. Novelty pairing: <#>. Chosen: <#, #>.
 | 4 | | | | |
 | 5 | | | | |
 
-Nodes whose stats are skill-local (5000+) or display-only: <list>. Their modifier type is not known from data.
+Nodes whose stat kind is `inferred` (**U**), `unknown`, a `skill_parameter` or a `label_mismatch` line (5000+ ids are named by `property_hint`, from `node_tooltip_properties`; the effect itself is in `code_ref` and the label): <list>. Quote the kind and `modifier_source` for each.
 
-### 4.3 Passives (priority order)
+### 5.3 Passives (priority order)
 
 | Order | Node (`tree:node` Name) | Points | Mastery gate | Why |
 |---|---|---|---|---|
 
-### 4.4 Gear
+### 5.4 Gear
 
 | Slot | Item | Required affixes (name, id, tier target) | Resistances carried | Notes |
 |---|---|---|---|---|
@@ -92,17 +116,17 @@ Nodes whose stats are skill-local (5000+) or display-only: <list>. Their modifie
 
 Legendary / LP plan for the item:
 
-### 4.5 Idols
+### 5.5 Idols
 
 | Shape | Prefix (name, id) | Suffix (name, id) | Count |
 |---|---|---|---|
 
-### 4.6 Blessings
+### 5.6 Blessings
 
 | Timeline | Blessing (normal / Grand) | Stat, range | Why |
 |---|---|---|---|
 
-## 5. Damage path (le-damage-reasoning)
+## 6. Damage path (le-damage-reasoning)
 
 - Damage source tags:
 - Added (x ADE) / increased / more per bucket, with each source id:
@@ -110,7 +134,7 @@ Legendary / LP plan for the item:
 - Penetration and shred:
 - Estimate: <value> vs dummy, <value> vs level-100 boss (labels, inputs):
 
-## 6. Defense plan (le-defense-reasoning)
+## 7. Defense plan (le-defense-reasoning)
 
 | Resistance | Target | Sources | Label |
 |---|---|---|---|
@@ -128,38 +152,38 @@ Legendary / LP plan for the item:
 - DoT handling:
 - Sustain:
 
-## 7. Mana plan
+## 8. Mana plan
 
 - Costs per second vs regeneration:
 - Interaction with the enabling effect:
 - Mana before health / negative mana:
 
-## 8. Leveling to endgame
+## 9. Leveling to endgame
 
 | Level band | Skills | Gear | Switch trigger |
 |---|---|---|---|
 
-## 9. What to test in game first
+## 10. What to test in game first
 
 | # | Test | How to observe | Expected | If it fails |
 |---|---|---|---|---|
 | 1 | <riskiest assumption> | | | |
 
-## 10. Assumptions
+## 11. Assumptions
 
-## 11. What could make this fail
+## 12. What could make this fail
 
-## 12. Interaction check
+## 13. Interaction check
 
 | Catalogue entry (heading) | Relevance | Synergy / anti-synergy | Handled how |
 |---|---|---|---|
 
 Q14 drawback sweep result:
 
-## 13. Data citations
+## 14. Data citations
 
 | Claim | Source kind | Id / path | Label |
 |---|---|---|---|
-| | unique / affix / ability / node / blessing / knowledge page | | |
+| | unique / affix / ability / node / blessing / knowledge page / community view (v_item_usage, v_build_summary, ...) | | |
 
 Queries run (tool + arguments):
