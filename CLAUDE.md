@@ -93,5 +93,5 @@ yarn probes:verify    # ground truth still holds; then yarn test
 - Commit `data/le.build-report.json` and `data/crosscheck-report.json` only from a full `yarn db:build` (no `--only`, no `--out`); after a partial build, `git checkout -- data/le.build-report.json data/crosscheck-report.json`.
 - Raw data lives in one folder per game version (`data/raw/<ver>/`); commit a refresh as its own commit.
 - Determinism: the same raw data gives the same database contents and byte-identical reports, and `tests/probes/questions.json` regenerates byte-identically. Keep it that way (stable ordering, no timestamps in committed outputs).
-- Parallel work goes in git worktrees (one branch per unit, merged into the integration branch); each worktree needs its own `yarn install` and `yarn db:build`.
+- Parallel work goes in git worktrees under `.claude/worktrees/<name>/` inside this repo (gitignored; `git worktree add .claude/worktrees/<name> -b <branch>`), one branch per unit, merged into the integration branch. Never create worktrees outside the repo. Each worktree needs its own `yarn install` and `yarn db:build`; remove it with `git worktree remove --force .claude/worktrees/<name>` once its branch is merged.
 - Skills and knowledge pages cite sources as `table + id` or `page#section`; every example query or tool call in a skill must run against the current database.
