@@ -1,0 +1,182 @@
+[
+ {
+  "id": "Q17",
+  "answer": "10 unique items grant Ward per Second (SP 92 WardRegen, unique_mod): Shroud of Obscurity (13-19), Strands of Souls (7-18), Chronostasis (50-80), Liath's Machinations (20-28), Stygian Coal (6-84), Wall of Nothing (60-70), Celestial Doom (11-23), Mana Guide (25-50), Abandoned Chitin of the Weaver (20-30), Keplahan's Pyrolith (20-40)",
+  "reasoning": "sql on v_mods_named property_name='Ward per Second' source_kind unique_mod -> 10 distinct; confirmed count by property=92: 10 rows/10 sources. Excluded similarly named 'Missing Health gained as Ward per second' (different property).",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "v_mods_named property_name='Ward per Second' unique_mod",
+    "result_summary": "10 rows"
+   },
+   {
+    "tool": "sql",
+    "args": "stat_properties name LIKE %Ward%",
+    "result_summary": "Ward per Second = property 92"
+   },
+   {
+    "tool": "sql",
+    "args": "count mods unique_mod property=92",
+    "result_summary": "10 rows, 10 distinct sources"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "yarn -s unsupported (yarn berry); output is verbose pretty JSON; shell chars like & and parentheses in JSON break cmd.exe wrapper (yarn.cmd)"
+  ]
+ },
+ {
+  "id": "Q18",
+  "answer": "Affix 26 'Minion Damage' (title Commander's, prefix, single stat, Damage increased with Minion tag 8192). Tier 7 roll: 96% to 120% (0.96-1.2)",
+  "reasoning": "Searched affix_tier mods property 0, modifier_type 1, tags=8192 at tier 7; only affix 26 has exactly one stat line (others are 2-stat 'Level of X'/champion/etc). Tier list: T1 6-12%, T2 13-21, T3 22-30, T4 31-39, T5 40-60, T6 75-95, T7 96-120, T8 192-240%. Tier 7 is 1-based as asked.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "affix_tier tier=7 property=0 mod_type=1 tags=8192",
+    "result_summary": "22 affixes, only id 26 with 1 stat line"
+   },
+   {
+    "tool": "sql",
+    "args": "tiers of affix 26",
+    "result_summary": "T7 0.96-1.2"
+   },
+   {
+    "tool": "get",
+    "args": {
+     "kind": "affix",
+     "id": 26
+    },
+    "result_summary": "kind single, rolls_on 0, stat_count 1"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "tier 7 value looks high vs T1-T5 (T6-T8 appear to be exalted/special tiers) but data is as stored"
+  ]
+ },
+ {
+  "id": "Q19",
+  "answer": "Resonance of the Sea (17-25 Ward per Second) and Grand Resonance of the Sea (30-42 Ward per Second); both drop in the timeline Ending the Storm",
+  "reasoning": "v_blessings property 92; 2 blessing mods with property 92 total.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "v_blessings property=92",
+    "result_summary": "2 rows, timeline Ending the Storm"
+   },
+   {
+    "tool": "sql",
+    "args": "count blessing mods property=92",
+    "result_summary": "2"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q20",
+  "answer": "3 uniques: Soulfire (+6-10% more Spell damage... special_tag 5 'to Ignited Enemies'), Swaddling of the Erased (12-17% more Spell damage, special_tag 1 'to Low Health Enemies'), Mad Alchemist's Ladle (6% more Spell damage, special_tag 26 conditional)",
+  "reasoning": "find_mods modifier_type 2, tags_any Spell, unique_mod, include_untagged false. Genuine Spell-tagged damage rows are property 117 (Global Conditional Damage) tags=256, from Soulfire (id 70, 0.06-0.10), Swaddling of the Erased (293, 0.12-0.17), Mad Alchemist's Ladle (321, 0.06). Other hits were indirect properties (98/58) where tags is an index, not a mask, and Bluefeather Band is Mana Cost (property 66) more with Spell tag, not damage. No property 0 'more' with Spell tag exists on uniques. All three are conditional (to X enemies).",
+  "tool_calls": [
+   {
+    "tool": "find_mods",
+    "args": {
+     "filters": {
+      "modifier_type": 2,
+      "tags_any": [
+       "Spell"
+      ],
+      "source_kinds": [
+       "unique_mod"
+      ],
+      "include_untagged": false
+     }
+    },
+    "result_summary": "20 rows; 3 are property 117 tags=256"
+   },
+   {
+    "tool": "sql",
+    "args": "conditional_properties idx 1,5,26",
+    "result_summary": "1 Low Health, 5 Ignited Enemies, 26 not read (truncated)"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "find_mods tags_any matches indirect-property rows (98/58) because tags is an index; needs manual filtering",
+   "Did not verify conditional description for idx 26"
+  ]
+ },
+ {
+  "id": "Q21",
+  "answer": "Sentinel passive nodes with Endurance Threshold stat line (property 76): Void Aegis (id 24, 3% max health -> ET with buff), Defiance (id 71, +1 ET per 2% uncapped elemental resistance), Prayer Aegis (id 91, +5 Endurance Threshold). Also referencing ET only in conditional label: Penance (id 81, Bleed Duration per 20 ET), plus Prayer Aegis has an extra line labeled 'Endurance Threshold Per 2 Attunement' (property 75 Endurance)",
+  "reasoning": "passive_tree class 2 (Sentinel, 110 nodes), filtered mods mentioning endurance; Valor (69) only grants Endurance (not threshold).",
+  "tool_calls": [
+   {
+    "tool": "passive_tree",
+    "args": {
+     "class_id": 2
+    },
+    "result_summary": "110 nodes; filtered mods by /endurance/"
+   },
+   {
+    "tool": "sql",
+    "args": "stat_properties %Endurance%",
+    "result_summary": "75 Endurance, 76 Endurance Threshold, 96 MaxHealth as ET"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "passive_tree output is huge, needed external node filtering",
+   "ambiguity of 'stat line about' for Penance/Valor"
+  ]
+ },
+ {
+  "id": "Q22",
+  "answer": "Normal: area level 78, corruption 0-50. Empowered: area level 100, corruption 100+ (minimum 100, no maximum)",
+  "reasoning": "timeline 5 difficulties index 0 and 1.",
+  "tool_calls": [
+   {
+    "tool": "lookup",
+    "args": "Ending the Storm",
+    "result_summary": "timeline id 5"
+   },
+   {
+    "tool": "get",
+    "args": {
+     "kind": "timeline",
+     "id": 5
+    },
+    "result_summary": "diff0 level 78 corr 0-50; diff1 level 100 corr min100 max null"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q23",
+  "answer": "Patient (monster_mod 84): 'Deadly if Not Damaged Recently'; minimum level 14",
+  "reasoning": "get monster_mod 84 minimum_level 14.",
+  "tool_calls": [
+   {
+    "tool": "lookup",
+    "args": {
+     "name": "Patient",
+     "kinds": [
+      "monster_mod"
+     ]
+    },
+    "result_summary": "id 84"
+   },
+   {
+    "tool": "get",
+    "args": {
+     "kind": "monster_mod",
+     "id": 84
+    },
+    "result_summary": "description Deadly if Not Damaged Recently, minimum_level 14"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ }
+]

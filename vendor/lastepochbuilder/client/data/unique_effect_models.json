@@ -1,0 +1,6121 @@
+{
+ "gameVersion": "1.5.0",
+ "source": "Hand-written client planner models (not extracted data; lives in client/data) for unique special effects (PlayerProperty / AbilityProperty), derived from unique_effects.json formulas (research/07i_unique_formulas.md). Only effects that reduce to a stat of the character or of one skill are modelled.",
+ "schema": {
+  "player": "ppIndex -> model; the mod value pp comes from the unique's mod with property 98 (PlayerProperty) and tags == ppIndex",
+  "ability": "'abilityIndex:propertyIndex' -> model; pp comes from the mod with property 58 (AbilityProperty), tags == abilityIndex, specialTag == propertyIndex; applied only to the skill whose abilityIDEnum.value == abilityIndex",
+  "model.stat": "SP name (sp_enum.json); mod: added|increased|more; tags: AT names joined by '|'; ailment: AilmentID name used as specialTag",
+  "model.value": "pp * clamp(source, 0, src_max) - offset ... exactly: x = pp * (source - offset) * factor, then clamped to [min, max]; without 'per' x = pp * factor",
+  "model.per": "attr:str|vit|int|dex|att, total_attr, added:<SP>, value:<SP>, increased:<SP>, added_exact:<SP>:<AT mask>, res:<damage type 0..6> (uncapped), ele_res, total_res, max_health, max_mana, endurance_threshold, enemy_stacks:<Ailment>, player:<number key>, complete_sets",
+  "model.at_least / below": "{per, value}: the model applies only if the source is >= value (at_least) or < value (below)",
+  "model.when": "all must hold: enemy:<Ailment> (has stacks), enemy_any:<A>|<B>, enemy_flag:<flag>, enemy:boss_or_rare, player:<flag>, player:!<flag>, gear:dual_wield, gear:two_handed_melee, slot:<slot>",
+  "model.skill_any": "skill-local: applies only to skills having any of these tags",
+  "model.kind": "stat (default) | mana_added (skill mana cost) | overcap_taken (Null Portent: per damage type, needs cap_pp)",
+  "model.note": "assumption shown to the user"
+ },
+ "player": {
+  "45": {
+   "stat": "HealthRegen",
+   "mod": "increased",
+   "per": "attr:str"
+  },
+  "144": {
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Shock",
+   "per": "attr:int"
+  },
+  "145": {
+   "stat": "IncreasedAilmentDuration",
+   "mod": "added",
+   "ailment": "Shock",
+   "per": "attr:int"
+  },
+  "141": {
+   "stat": "IncreasedAilmentEffect",
+   "mod": "added",
+   "ailment": "Bleed",
+   "per": "added:CriticalMultiplier",
+   "note": "conversion coefficient not allowed in code, taken as 1"
+  },
+  "142": {
+   "stat": "IncreasedAilmentEffect",
+   "mod": "added",
+   "ailment": "Poison",
+   "per": "added:CriticalMultiplier",
+   "note": "conversion coefficient not allowed in code, taken as 1"
+  },
+  "154": {
+   "stat": "Movespeed",
+   "mod": "increased",
+   "per": "added_exact:Damage:528",
+   "factor": 0.1
+  },
+  "165": {
+   "stat": "WardRetention",
+   "mod": "added",
+   "per": "res:2",
+   "factor": 0.5
+  },
+  "175": {
+   "stat": "CriticalChance",
+   "mod": "added",
+   "tags": "Totem",
+   "per": "attr:int"
+  },
+  "180": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Physical|Bow",
+   "at_least": {
+    "per": "attr:dex",
+    "value": 40
+   }
+  },
+  "182": {
+   "stat": "IncreasedAilmentEffect",
+   "mod": "added",
+   "ailment": "Frostbite",
+   "per": "value:FreezeRateMultiplier",
+   "factor": 10
+  },
+  "183": {
+   "stat": "Movespeed",
+   "mod": "increased",
+   "per": "attr:dex",
+   "factor": 0.5,
+   "max": 0.2
+  },
+  "185": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Physical|Spell",
+   "per": "attr:att",
+   "factor": 0.3333333333
+  },
+  "200": {
+   "stat": "WardRegen",
+   "mod": "added",
+   "per": "value:HealthRegen"
+  },
+  "202": {
+   "stat": "CriticalChance",
+   "mod": "added",
+   "tags": "Melee",
+   "below": {
+    "per": "value:DodgeRating",
+    "value": 100
+   }
+  },
+  "220": {
+   "stat": "BlockChance",
+   "mod": "added",
+   "per": "added:Endurance",
+   "offset": 0.6,
+   "factor": 50,
+   "min": 0
+  },
+  "272": {
+   "stat": "BlockEffectiveness",
+   "mod": "added",
+   "per": "total_res",
+   "factor": 100
+  },
+  "285": {
+   "stat": "Health",
+   "mod": "added",
+   "per": "attr:vit"
+  },
+  "288": {
+   "stat": "WardRegen",
+   "mod": "added",
+   "per": "res:4",
+   "factor": 33.3333333333
+  },
+  "324": {
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Spell",
+   "per": "increased:Movespeed",
+   "factor": 100
+  },
+  "325": {
+   "stat": "EnduranceThreshold",
+   "mod": "added",
+   "per": "max_mana"
+  },
+  "341": {
+   "stat": "IncreasedAreaForAreaSkills",
+   "mod": "added",
+   "per": "attr:dex",
+   "factor": 0.3333333333
+  },
+  "342": {
+   "stat": "CastSpeed",
+   "mod": "increased",
+   "per": "attr:int",
+   "factor": 0.5
+  },
+  "413": {
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Lightning",
+   "per": "attr:dex",
+   "factor": 0.2
+  },
+  "414": {
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Void",
+   "per": "attr:dex",
+   "factor": 0.2
+  },
+  "431": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "per": "attr:str",
+   "factor": 0.5
+  },
+  "446": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "attr:att",
+   "factor": 0.5
+  },
+  "447": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "attr:str",
+   "factor": 0.5
+  },
+  "463": {
+   "stat": "WardDecayThreshold",
+   "mod": "added",
+   "per": "endurance_threshold"
+  },
+  "473": {
+   "stat": "WardDecayThreshold",
+   "mod": "added",
+   "per": "max_health"
+  },
+  "474": {
+   "stat": "WardRegen",
+   "mod": "added",
+   "per": "max_health"
+  },
+  "478": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "max_mana",
+   "factor": 0.1
+  },
+  "501": {
+   "stat": "WardRegen",
+   "mod": "added",
+   "per": "player:curses"
+  },
+  "566": {
+   "stat": "AllAttributes",
+   "mod": "added",
+   "per": "complete_sets"
+  },
+  "567": {
+   "stat": "AllResistances",
+   "mod": "added",
+   "per": "complete_sets"
+  },
+  "569": {
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Ignite",
+   "per": "res:1",
+   "factor": 10,
+   "min": 0
+  },
+  "576": {
+   "stat": "Thorns",
+   "mod": "added",
+   "per": "res:0",
+   "factor": 10
+  },
+  "592": {
+   "stat": "Movespeed",
+   "mod": "increased",
+   "per": "attr:dex",
+   "factor": 0.1
+  },
+  "596": {
+   "stat": "Health",
+   "mod": "added",
+   "per": "attr:att"
+  },
+  "597": {
+   "stat": "Mana",
+   "mod": "added",
+   "per": "attr:att"
+  },
+  "610": {
+   "stat": "WardDecayThreshold",
+   "mod": "added",
+   "per": "max_health"
+  },
+  "620": {
+   "stat": "CriticalChance",
+   "mod": "added",
+   "per": "total_attr",
+   "factor": 0.025
+  },
+  "624": {
+   "stat": "BlockEffectiveness",
+   "mod": "added",
+   "per": "increased:Movespeed",
+   "factor": 100
+  },
+  "663": {
+   "stat": "Mana",
+   "mod": "increased",
+   "per": "attr:vit",
+   "factor": 0.5
+  },
+  "684": {
+   "stat": "WardRegen",
+   "mod": "added",
+   "per": "res:2",
+   "factor": 100
+  },
+  "93": {
+   "stat": "Damage",
+   "mod": "increased",
+   "per": "increased:Movespeed"
+  },
+  "454": {
+   "stat": "Armour",
+   "mod": "more",
+   "when": [
+    "enemy:Chill"
+   ],
+   "note": "attacker - opponent from Conditions tab"
+  },
+  "455": {
+   "stat": "Armour",
+   "mod": "more",
+   "when": [
+    "enemy:Blind"
+   ],
+   "note": "attacker - opponent from Conditions tab"
+  },
+  "286": {
+   "stat": "Armour",
+   "mod": "more",
+   "when": [
+    "enemy:Shock"
+   ],
+   "note": "attacker - opponent from Conditions tab"
+  },
+  "129": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "factor": -1,
+   "when": [
+    "gear:two_handed_melee"
+   ]
+  },
+  "234": {
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Elemental|Melee",
+   "per": "player:ward",
+   "factor": 0.005
+  },
+  "513": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "when": [
+    "enemy_flag:frozen"
+   ]
+  },
+  "287": {
+   "stat": "BlockChance",
+   "mod": "added",
+   "per": "enemy_stacks:Shock"
+  },
+  "250": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "enemy:Chill"
+   ]
+  },
+  "419": {
+   "stat": "CriticalChance",
+   "mod": "added",
+   "when": [
+    "player:!crit_recently"
+   ],
+   "note": "except supported (channelled) abilities"
+  },
+  "89": {
+   "stat": "CriticalChance",
+   "mod": "more",
+   "factor": -1,
+   "when": [
+    "player:crit_recently"
+   ]
+  },
+  "119": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "when": [
+    "gear:dual_wield"
+   ]
+  },
+  "243": {
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Physical",
+   "when": [
+    "gear:dual_wield"
+   ]
+  },
+  "259": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "at_least": {
+    "per": "player:ward",
+    "value": 1000
+   }
+  },
+  "222": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "player:ignite_stacks",
+   "src_max": 40,
+   "skill_any": "Fire|Necrotic"
+  },
+  "225": {
+   "stat": "IncreasedAilmentEffect",
+   "mod": "added",
+   "ailment": "Damned",
+   "per": "player:damned_stacks",
+   "src_max": 40,
+   "skill_any": "Spell"
+  },
+  "240": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "at_least": {
+    "per": "total_attr",
+    "value": 180
+   }
+  },
+  "275": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "DoT",
+   "min": -0.75,
+   "when": [
+    "player:haste"
+   ],
+   "note": "without accounting for increased Haste effect"
+  },
+  "282": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "DoT",
+   "when": [
+    "enemy:Slow"
+   ]
+  },
+  "291": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "enemy_any:Ignite|Shock|Chill"
+   ]
+  },
+  "340": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "when": [
+    "player:leeching"
+   ]
+  },
+  "417": {
+   "stat": "ParryChance",
+   "mod": "added",
+   "when": [
+    "slot:weapon"
+   ]
+  },
+  "462": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "Hit",
+   "factor": -1,
+   "note": "chance to take 0 damage counted as average damage reduction from hits"
+  },
+  "254": {
+   "kind": "overcap_taken",
+   "cap_pp": 255
+  },
+  "598": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "when": [
+    "enemy:boss_or_rare",
+    "player:low_mana"
+   ]
+  },
+  "602": {
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Melee",
+   "when": [
+    "player:frenzy"
+   ]
+  },
+  "603": {
+   "stat": "DamageTaken",
+   "mod": "increased",
+   "when": [
+    "player:frenzy"
+   ]
+  },
+  "625": {
+   "stat": "BlockChance",
+   "mod": "added",
+   "when": [
+    "player:moving"
+   ]
+  },
+  "631": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "per": "enemy_stacks:Bleed",
+   "src_max": 200,
+   "factor": 0.1
+  },
+  "682": {
+   "stat": "DamageTaken",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "enemy:boss_or_rare"
+   ]
+  },
+  "43": {
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Necrotic",
+   "when": [
+    "player:hit_recently"
+   ]
+  },
+  "103": {
+   "stat": "DodgeRating",
+   "mod": "added",
+   "when": [
+    "player:hit_recently"
+   ]
+  },
+  "471": {
+   "kind": "flag",
+   "text": "No ward",
+   "confidence": "D"
+  },
+  "452": {
+   "kind": "flag",
+   "text": "Immunity to Blind",
+   "confidence": "D"
+  },
+  "453": {
+   "kind": "flag",
+   "text": "Immunity to Chill",
+   "confidence": "D"
+  },
+  "70": {
+   "kind": "stat",
+   "stat": "CurrentHealthDrain",
+   "mod": "added",
+   "confidence": "D"
+  },
+  "69": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward/sec = v × missing health",
+   "confidence": "D",
+   "amount": "missing_health"
+  },
+  "451": {
+   "kind": "flag",
+   "text": "Immunity to Bleed at low health",
+   "confidence": "D"
+  },
+  "143": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "dodge",
+   "label": "Ward on dodge (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "186": {
+   "kind": "trigger",
+   "ability": "SprigganSummonVines",
+   "on": "second",
+   "chance": "v",
+   "when": [
+    "player:moving"
+   ],
+   "confidence": "D?"
+  },
+  "156": {
+   "kind": "trigger",
+   "ability": "AxeThrow",
+   "on": "hit",
+   "chance": "v",
+   "icd": 1,
+   "confidence": "D"
+  },
+  "661": {
+   "kind": "trigger",
+   "ability": "SummonStormSprite",
+   "on": "totem_summon",
+   "chance": 1,
+   "count": 4,
+   "icd": 3,
+   "note": "on totem summon; up to 2 times per 6 sec",
+   "confidence": "D?"
+  },
+  "233": {
+   "kind": "flag",
+   "text": "Chance to get Haste for 2 sec on melee hit: v per 20 ward",
+   "confidence": "D?"
+  },
+  "117": {
+   "kind": "flag",
+   "text": "Chance v to get Rin's Wrath stack for 5 sec on melee crit (up to 30 times per 5 sec)",
+   "confidence": "D?"
+  },
+  "500": {
+   "kind": "flag",
+   "text": "Chance v to get Storm stack on melee hit landing vs enemy",
+   "confidence": "D"
+  },
+  "614": {
+   "kind": "flag",
+   "text": "Max block chance limited to value v (75%)",
+   "confidence": "D"
+  },
+  "118": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "dodge",
+   "label": "Health on dodge (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "130": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "crit",
+   "label": "Ward on crit (flat, v), 30% chance, up to 4 times/sec",
+   "confidence": "D",
+   "amount": "flat",
+   "amount_chance": 0.3,
+   "per_second_cap": 4.0
+  },
+  "232": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward 75 on hit vs shocked enemy, chance v (3 times per 2 sec)",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "131": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "kill",
+   "label": "Health on kill × Bleed stacks on target",
+   "confidence": "D"
+  },
+  "4": {
+   "kind": "trigger",
+   "ability": "SummonBee",
+   "on": "second",
+   "chance": 1,
+   "count": "v",
+   "icd": 10,
+   "note": "v bees per 10 sec",
+   "confidence": "D"
+  },
+  "633": {
+   "kind": "stat",
+   "stat": "HealthRegen",
+   "mod": "added",
+   "per": "input:bees",
+   "input": {
+    "key": "bees",
+    "label": "Summoned bees",
+    "default": 3
+   },
+   "confidence": "D"
+  },
+  "28": {
+   "kind": "trigger",
+   "ability": "WaterOrb",
+   "on": "hit",
+   "chance": "v",
+   "icd": 3,
+   "when": [
+    "enemy:boss_or_rare"
+   ],
+   "confidence": "D"
+  },
+  "30": {
+   "kind": "trigger",
+   "ability": "SummonAreksFlesh",
+   "on": "hit_taken",
+   "chance": 1,
+   "icd": 20,
+   "note": "if after hit health is below 50%",
+   "confidence": "D"
+  },
+  "24": {
+   "kind": "flag",
+   "text": "Potion removes stun and freeze",
+   "confidence": "D"
+  },
+  "514": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Fire|Melee",
+   "per": "input:forged",
+   "input": {
+    "key": "forged",
+    "label": "Forged weapons",
+    "default": 3
+   },
+   "confidence": "D"
+  },
+  "37": {
+   "kind": "trigger",
+   "ability": "SummonWeapon",
+   "on": "hit_taken",
+   "chance": "v",
+   "icd": 2,
+   "confidence": "D"
+  },
+  "39": {
+   "kind": "flag",
+   "text": "Chance v to apply Time Rot on attacker on hit received",
+   "confidence": "D"
+  },
+  "40": {
+   "kind": "trigger",
+   "ability": "VoidRift",
+   "on": "hit",
+   "chance": "v",
+   "icd": 3,
+   "note": "tooltip says 2 sec cooldown, code says 3 sec",
+   "confidence": "D"
+  },
+  "42": {
+   "kind": "trigger",
+   "ability": "FireTrail",
+   "on": "hit_taken",
+   "chance": "v",
+   "icd": 5,
+   "note": "only on crit received",
+   "confidence": "D"
+  },
+  "239": {
+   "kind": "stat",
+   "stat": "DodgeRating",
+   "mod": "more",
+   "when": [
+    "input:potion_recent"
+   ],
+   "input": {
+    "key": "potion_recent",
+    "label": "Recently used potion",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "46": {
+   "kind": "stat",
+   "stat": "HealthRegen",
+   "mod": "added",
+   "when": [
+    "input:stunned_recently"
+   ],
+   "input": {
+    "key": "stunned_recently",
+    "label": "Stunned enemy recently",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "48": {
+   "kind": "flag",
+   "text": "Chance v to pull enemies (taunt for 2 sec) on enemy stun",
+   "confidence": "D"
+  },
+  "56": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Physical|Spell",
+   "when": [
+    "input:cold_spell_recent"
+   ],
+   "input": {
+    "key": "cold_spell_recent",
+    "label": "Recently cast cold spell",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "64": {
+   "kind": "flag",
+   "text": "Chance v to get Haste on kill with spell",
+   "confidence": "D"
+  },
+  "53": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Cold|Spell",
+   "when": [
+    "input:phys_spell_recent"
+   ],
+   "input": {
+    "key": "phys_spell_recent",
+    "label": "Recently cast physical spell",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "75": {
+   "kind": "trigger",
+   "ability": "SummonMercenary",
+   "on": "second",
+   "chance": 1,
+   "count": "v",
+   "icd": 15,
+   "note": "merc update every 15 sec",
+   "confidence": "D?"
+  },
+  "77": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "factor": 0.2,
+   "when": [
+    "input:deicide"
+   ],
+   "input": {
+    "key": "deicide",
+    "label": "Has Godslayer",
+    "default": false
+   },
+   "note": "15 sec after kill of rare/boss; multiplier 0.2 from code constant, modifier type not confirmed",
+   "confidence": "D?"
+  },
+  "79": {
+   "kind": "flag",
+   "text": "You are chilled every 3 sec (7 sec)",
+   "confidence": "D"
+  },
+  "32": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "hit_taken",
+   "chance": "v",
+   "icd": 0.3333,
+   "confidence": "D"
+  },
+  "80": {
+   "kind": "flag",
+   "text": "Every 3 sec at high health: -25% current health and Apocalypse for 3 sec",
+   "confidence": "D"
+  },
+  "81": {
+   "kind": "trigger",
+   "ability": "AbyssalEchoes",
+   "on": "hit",
+   "chance": "v",
+   "icd": 3,
+   "when": [
+    "enemy:boss_or_rare"
+   ],
+   "note": "also on melee kill",
+   "confidence": "D?"
+  },
+  "76": {
+   "kind": "trigger",
+   "ability": "AlluvionWave",
+   "on": "use",
+   "chance": "v",
+   "icd": 1,
+   "note": "melee hits only",
+   "confidence": "D"
+  },
+  "82": {
+   "kind": "flag",
+   "text": "Every 3 sec ward is spent, giving Doom stack per 13 ward",
+   "confidence": "D"
+  },
+  "83": {
+   "kind": "trigger",
+   "ability": "DragonfireNova",
+   "on": "minion_use",
+   "chance": "v",
+   "icd": 0.3333,
+   "note": "on minion ability use, up to 3 times per second",
+   "confidence": "D"
+  },
+  "33": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit_taken",
+   "label": "Ward (flat, v), when hit leaves you at low health, 5 sec cooldown",
+   "confidence": "D",
+   "amount": "flat",
+   "per_second_cap": 0.2
+  },
+  "90": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward = v × current mana on stop (2 sec cooldown)",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "96": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "hit_taken",
+   "label": "Health on sliding hit (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "133": {
+   "kind": "trigger",
+   "ability": "Anchor of Oblivion Wave",
+   "on": "hit_taken",
+   "chance": 1,
+   "icd": 2,
+   "note": "if hit leaves you below endurance threshold; you are slowed",
+   "confidence": "D?"
+  },
+  "134": {
+   "kind": "trigger",
+   "ability": "HeorotUniqueBowIcicle",
+   "on": "hit",
+   "chance": "v",
+   "note": "bow hits only",
+   "confidence": "D"
+  },
+  "135": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "block",
+   "label": "Ward = v × current mana on block",
+   "confidence": "D",
+   "amount": "current_mana"
+  },
+  "139": {
+   "kind": "flag",
+   "text": "Ancient Flight for v sec on move after attack",
+   "confidence": "D"
+  },
+  "136": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward = v × current mana on fire spell cast",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "137": {
+   "kind": "flag",
+   "text": "Chance v to get Ruby Poison stack for 12 sec on block",
+   "confidence": "D"
+  },
+  "138": {
+   "kind": "trigger",
+   "ability": "Aurora Amulet Spell",
+   "on": "hit_taken",
+   "chance": 1,
+   "icd": 20,
+   "note": "if hit leaves health below 30%; Haste for v sec and full recovery",
+   "confidence": "D?"
+  },
+  "140": {
+   "kind": "flag",
+   "text": "You get Curse on spell cast",
+   "confidence": "D"
+  },
+  "147": {
+   "kind": "flag",
+   "text": "After potion: False Water Rage until mana depleted",
+   "confidence": "D"
+  },
+  "148": {
+   "kind": "flag",
+   "text": "Incandescent Blades stack (fire damage: +2, ignite chance 20%) on melee hit",
+   "confidence": "D"
+  },
+  "150": {
+   "kind": "flag",
+   "text": "Direct cast of cold spell gives Cold Saturation (20 sec cooldown)",
+   "confidence": "D"
+  },
+  "151": {
+   "kind": "flag",
+   "text": "Direct cast of fire spell gives Fire Saturation (20 sec cooldown)",
+   "confidence": "D"
+  },
+  "152": {
+   "kind": "flag",
+   "text": "Direct cast of lightning spell gives Lightning Saturation (20 sec cooldown)",
+   "confidence": "D"
+  },
+  "284": {
+   "kind": "stat",
+   "stat": "BlockChance",
+   "mod": "added",
+   "per": "attr:str",
+   "when": [
+    "input:enemy_within_4m"
+   ],
+   "input": {
+    "key": "enemy_within_4m",
+    "label": "Enemy within 4 m",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "153": {
+   "kind": "trigger",
+   "ability": "Tornado",
+   "on": "hit",
+   "chance": "v",
+   "icd": 1.5,
+   "note": "stationary fire tornado; up to 2 times per 3 sec",
+   "confidence": "D?"
+  },
+  "155": {
+   "kind": "trigger",
+   "ability": "LightningBlast",
+   "on": "hit",
+   "chance": "v",
+   "note": "after melee hit with hit; +2 chains",
+   "confidence": "D?"
+  },
+  "157": {
+   "kind": "flag",
+   "text": "Void Barrier stack every 3 sec above endurance threshold",
+   "confidence": "D"
+  },
+  "160": {
+   "kind": "flag",
+   "text": "Chance v to get Ambition stack on hit vs boss/rare",
+   "confidence": "D"
+  },
+  "161": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Fire|Melee",
+   "when": [
+    "input:void_melee_ready"
+   ],
+   "input": {
+    "key": "void_melee_ready",
+    "label": "Next void melee attack enhanced (every 2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "162": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Ignite",
+   "when": [
+    "input:void_melee_ready"
+   ],
+   "input": {
+    "key": "void_melee_ready",
+    "label": "Next void melee attack enhanced (every 2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "163": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Void|Melee",
+   "when": [
+    "input:fire_melee_ready"
+   ],
+   "input": {
+    "key": "fire_melee_ready",
+    "label": "Next fire melee attack enhanced (every 2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "164": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "TimeRot",
+   "when": [
+    "input:fire_melee_ready"
+   ],
+   "input": {
+    "key": "fire_melee_ready",
+    "label": "Next fire melee attack enhanced (every 2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "166": {
+   "kind": "trigger",
+   "ability": "SummonStormTotem",
+   "on": "hit",
+   "chance": "v",
+   "icd": 8,
+   "confidence": "D"
+  },
+  "167": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Current health (fraction v) converts to ward on necrotic spell cast",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "168": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Current health (fraction v) converts to ward on elemental spell cast",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "169": {
+   "kind": "flag",
+   "text": "Chance v to get Abyssal Ritual stack on crit",
+   "confidence": "D"
+  },
+  "170": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "tags": "Fire|Spell",
+   "factor": 0.3333,
+   "note": "every 3rd fire spell guaranteed crit; averaged to 1 of 3",
+   "confidence": "D?"
+  },
+  "173": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "input:ward_consumed",
+   "factor": 0.1,
+   "v_caps_source": true,
+   "input": {
+    "key": "ward_consumed",
+    "label": "Ward spent per attack",
+    "default": 500,
+    "max": 2000
+   },
+   "note": "+1 melee damage per 10 ward spent; max v ward per attack",
+   "confidence": "D"
+  },
+  "174": {
+   "kind": "trigger",
+   "ability": "Smite",
+   "on": "kill",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "178": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "minion_hit",
+   "label": "Health 50 on minion hit, chance v",
+   "confidence": "D"
+  },
+  "179": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "minion_death",
+   "label": "Health 50 on minion death, chance v",
+   "confidence": "D"
+  },
+  "181": {
+   "kind": "flag",
+   "text": "Fallen companion resurrects in 2 sec (6 sec cooldown)",
+   "confidence": "D"
+  },
+  "184": {
+   "kind": "trigger",
+   "ability": "ThornShield",
+   "on": "use",
+   "chance": "v",
+   "note": "on direct use of physical ability",
+   "confidence": "D"
+  },
+  "190": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "potion",
+   "label": "Missing health (fraction v) recovered on potion use",
+   "confidence": "D"
+  },
+  "193": {
+   "kind": "stat",
+   "stat": "Thorns",
+   "mod": "increased",
+   "per": "attr:att",
+   "factor": 0.01,
+   "note": "SP10/SP11 coefficient not allowed in code",
+   "confidence": "D?"
+  },
+  "197": {
+   "kind": "flag",
+   "text": "Star Disc stats tripled for 4 sec on movement ability (12 sec cooldown)",
+   "confidence": "D"
+  },
+  "198": {
+   "kind": "flag",
+   "text": "Killing stunned enemy stuns another nearby for 2 sec",
+   "confidence": "D"
+  },
+  "199": {
+   "kind": "flag",
+   "text": "Glove stats also apply to minions",
+   "confidence": "D"
+  },
+  "203": {
+   "kind": "trigger",
+   "ability": "DragonSongExplosion",
+   "on": "crit",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "204": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "minion_hit",
+   "label": "Health on companion hit (flat, v)",
+   "confidence": "D"
+  },
+  "126": {
+   "kind": "param",
+   "param": "revive_range",
+   "mod": "increased",
+   "label": "Companion resurrection range",
+   "scope": "global",
+   "confidence": "D"
+  },
+  "127": {
+   "kind": "param",
+   "param": "revive_speed",
+   "mod": "increased",
+   "label": "Companion resurrection speed",
+   "scope": "global",
+   "confidence": "D"
+  },
+  "206": {
+   "kind": "flag",
+   "text": "Singularities installed: more melee damage; crits impossible",
+   "confidence": "D?"
+  },
+  "207": {
+   "kind": "flag",
+   "text": "Chance v to open Wandering Spirit on kill (1 sec cooldown)",
+   "confidence": "D"
+  },
+  "208": {
+   "kind": "flag",
+   "text": "Health not above endurance threshold",
+   "confidence": "D"
+  },
+  "209": {
+   "kind": "flag",
+   "text": "Entrails stack every 2 sec (up to 3)",
+   "confidence": "D"
+  },
+  "210": {
+   "kind": "flag",
+   "text": "Chance v to get Entrails stack on kill or hit vs boss/rare",
+   "confidence": "D"
+  },
+  "229": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Lightning|Throwing",
+   "when": [
+    "input:bow_lightning_used"
+   ],
+   "input": {
+    "key": "bow_lightning_used",
+    "label": "Recently used lightning bow attack (2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "230": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Lightning|Bow",
+   "when": [
+    "input:throw_lightning_used"
+   ],
+   "input": {
+    "key": "throw_lightning_used",
+    "label": "Recently used thrown lightning attack (2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "231": {
+   "kind": "flag",
+   "text": "Haste for v sec on both effects trigger within 2 sec",
+   "confidence": "D"
+  },
+  "212": {
+   "kind": "trigger",
+   "ability": "Sacrifice",
+   "on": "minion_death",
+   "chance": "v",
+   "icd": 0.5,
+   "note": "on minion with lowest health",
+   "confidence": "D"
+  },
+  "213": {
+   "kind": "flag",
+   "text": "Mountain Endurance stack every second without move (up to 3)",
+   "confidence": "D"
+  },
+  "217": {
+   "kind": "flag",
+   "text": "Invulnerability for v sec after hit received (15 sec cooldown)",
+   "confidence": "D"
+  },
+  "214": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward on hit: 2 per Ignite/Curse on target, 30 to you (up to 2000, 2 sec cooldown), chance v",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "221": {
+   "kind": "flag",
+   "text": "Chance to ignite self on fire or necrotic ability use",
+   "confidence": "D?"
+  },
+  "159": {
+   "kind": "flag",
+   "text": "Chance to remove all ailments on potion use",
+   "confidence": "D?"
+  },
+  "223": {
+   "kind": "flag",
+   "text": "Chance to get Frenzy for 2 sec on fire/necrotic ability use (per Ignite stack on you, up to 40)",
+   "note": "Frenzy not modelled as number",
+   "confidence": "D?"
+  },
+  "224": {
+   "kind": "flag",
+   "text": "Chance to ignite self on kill",
+   "confidence": "D?"
+  },
+  "226": {
+   "kind": "flag",
+   "text": "On potion use all totems heal and get invulnerability for 2 sec",
+   "confidence": "D?"
+  },
+  "227": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning|Spell",
+   "scope": "global",
+   "when": [
+    "input:storm_totem_cast"
+   ],
+   "input": {
+    "key": "storm_totem_cast",
+    "label": "Just summoned Storm Totem (20 sec)",
+    "default": true
+   },
+   "note": "all existing totems for 20 sec",
+   "confidence": "D?"
+  },
+  "228": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "scope": "global",
+   "when": [
+    "input:next_move_skill"
+   ],
+   "input": {
+    "key": "next_move_skill",
+    "label": "Next movement ability (every 3 sec)",
+    "default": true
+   },
+   "note": "movement abilities only, every 3 sec",
+   "confidence": "D?"
+  },
+  "235": {
+   "kind": "param",
+   "param": "hits",
+   "mod": "added",
+   "label": "Bow ability repeat (chance)",
+   "scope": "global",
+   "note": "1 sec cooldown, 0.3 sec delay",
+   "confidence": "D?"
+  },
+  "236": {
+   "kind": "stat",
+   "stat": "AttackSpeed",
+   "mod": "increased",
+   "scope": "global",
+   "per": "input:gf_stacks",
+   "src_max": 10,
+   "input": {
+    "key": "gf_stacks",
+    "label": "Gathering Fury stacks",
+    "default": 10,
+    "max": 10
+   },
+   "note": "3 sec per stack, up to 10",
+   "confidence": "D"
+  },
+  "211": {
+   "kind": "flag",
+   "text": "Melee hit returns fraction of remaining Volcanic Orb cooldown",
+   "note": "fraction 18-30%",
+   "confidence": "D?"
+  },
+  "237": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward on transformation",
+   "scope": "global",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "238": {
+   "kind": "stat",
+   "stat": "WardRetention",
+   "mod": "added",
+   "scope": "global",
+   "when": [
+    "input:transformed"
+   ],
+   "input": {
+    "key": "transformed",
+    "label": "After transformation (6 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "241": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "dodge",
+   "label": "Ward on dodge while channelling",
+   "scope": "global",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "242": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "dodge",
+   "label": "Mana on dodge while channelling",
+   "scope": "global",
+   "confidence": "D?"
+  },
+  "246": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "scope": "global",
+   "per": "input:meteors",
+   "src_max": 18,
+   "input": {
+    "key": "meteors",
+    "label": "Meteors recently",
+    "default": 5,
+    "max": 18
+   },
+   "confidence": "D"
+  },
+  "247": {
+   "kind": "trigger",
+   "ability": "Meteor",
+   "on": "crit",
+   "chance": "v",
+   "scope": "global",
+   "note": "only if mana > 0",
+   "confidence": "D"
+  },
+  "248": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "potion",
+   "label": "Mana on potion use per meteor",
+   "scope": "global",
+   "per": "input:meteors",
+   "max": 200,
+   "input": {
+    "key": "meteors",
+    "label": "Meteors recently",
+    "default": 5,
+    "max": 18
+   },
+   "confidence": "D?"
+  },
+  "249": {
+   "kind": "stat",
+   "stat": "PotionSlots",
+   "mod": "added",
+   "scope": "global",
+   "at_least": {
+    "per": "max_mana",
+    "value": 900
+   },
+   "confidence": "D"
+  },
+  "253": {
+   "kind": "trigger",
+   "ability": "Shurikens",
+   "on": "block",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "263": {
+   "kind": "flag",
+   "text": "On direct spell use lose fraction of current health and ward",
+   "confidence": "D?"
+  },
+  "269": {
+   "kind": "flag",
+   "text": "After direct spell cast health leech disabled for 4 sec",
+   "confidence": "D?"
+  },
+  "264": {
+   "kind": "trigger",
+   "ability": "Burning Dagger",
+   "on": "hit",
+   "chance": "v",
+   "icd": 0.5,
+   "confidence": "D"
+  },
+  "265": {
+   "kind": "trigger",
+   "ability": "Burning Dagger",
+   "on": "potion",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "266": {
+   "kind": "flag",
+   "text": "Chance to get Frozen Vengeance (8 sec) on minion death",
+   "confidence": "D?"
+  },
+  "268": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward per hit per 10 missing mana",
+   "scope": "global",
+   "per": "input:missing_mana_tens",
+   "input": {
+    "key": "missing_mana_tens",
+    "label": "Missing mana (in tens)",
+    "default": 10
+   },
+   "note": "only if current ward < missing health",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "270": {
+   "kind": "flag",
+   "text": "+1 Golden Aegis stack every second",
+   "confidence": "D?"
+  },
+  "271": {
+   "kind": "stat",
+   "stat": "BlockChance",
+   "mod": "added",
+   "scope": "global",
+   "per": "input:aegis_stacks",
+   "input": {
+    "key": "aegis_stacks",
+    "label": "Golden Aegis stacks",
+    "default": 5
+   },
+   "confidence": "D"
+  },
+  "274": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward on get/refresh Haste (not more than 1 sec)",
+   "scope": "global",
+   "when": [
+    "player:haste"
+   ],
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "273": {
+   "kind": "flag",
+   "text": "Chance to get Haste for 3 sec on nearby melee enemy death",
+   "confidence": "D?"
+  },
+  "276": {
+   "kind": "flag",
+   "text": "On get/refresh Haste minions get Haste and Frenzy for 3 sec",
+   "confidence": "D?"
+  },
+  "277": {
+   "kind": "flag",
+   "text": "Chance on hit to give minion Aspect of the Spider (2 sec cooldown)",
+   "confidence": "D?"
+  },
+  "278": {
+   "kind": "stat",
+   "stat": "EnduranceThreshold",
+   "mod": "added",
+   "per": "input:missing_mana_tens",
+   "input": {
+    "key": "missing_mana_tens",
+    "label": "Missing mana (in tens)",
+    "default": 10
+   },
+   "confidence": "D"
+  },
+  "279": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "kill",
+   "label": "Healing on nearby enemy/ally death (minimum)",
+   "factor": 0.5,
+   "note": "average between minimum and maximum; 2 sec cooldown",
+   "confidence": "D?"
+  },
+  "280": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "kill",
+   "label": "Healing on nearby enemy/ally death (maximum)",
+   "factor": 0.5,
+   "note": "average between minimum and maximum; 2 sec cooldown",
+   "confidence": "D?"
+  },
+  "281": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "per": "player:shadows",
+   "factor": 0.1666667,
+   "note": "Chance 1 in 6 per hit, counted as average",
+   "confidence": "D?"
+  },
+  "283": {
+   "kind": "flag",
+   "text": "Chance on lightning hit to give wolves additional melee lightning damage (Tempest Paws)",
+   "confidence": "D?"
+  },
+  "329": {
+   "kind": "flag",
+   "text": "Chance to trigger Hydrahedron on kill with fire ability (9 sec cooldown)",
+   "note": "9-18%",
+   "confidence": "D?"
+  },
+  "328": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward per Hydrahedron hit (max 2000)",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "339": {
+   "kind": "flag",
+   "text": "Intelligence equals Strength",
+   "confidence": "D?"
+  },
+  "343": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "potion",
+   "label": "Mana on potion use per 4 Intelligence",
+   "per": "attr:int",
+   "factor": 0.25,
+   "confidence": "D"
+  },
+  "344": {
+   "kind": "flag",
+   "text": "Cuckoo can transform into random exalted item on nearby enemy death",
+   "confidence": "D?"
+  },
+  "382": {
+   "kind": "flag",
+   "text": "Belt characteristic multiplier for 1 sec on potion use",
+   "confidence": "D?"
+  },
+  "383": {
+   "kind": "stat",
+   "stat": "PotionSlots",
+   "mod": "added",
+   "per": "input:weaver_items",
+   "input": {
+    "key": "weaver_items",
+    "label": "Equipped Weaver items",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "398": {
+   "kind": "trigger",
+   "ability": "ShieldThrow",
+   "on": "block",
+   "chance": "v",
+   "icd": 0.5,
+   "confidence": "D"
+  },
+  "401": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "scope": "component:CinderStrike",
+   "per": "input:falcon_hits",
+   "input": {
+    "key": "falcon_hits",
+    "label": "Hawk hits per 6 sec",
+    "default": 3
+   },
+   "note": "barehanded only",
+   "confidence": "D?"
+  },
+  "402": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Cinder Strike per hawk hit",
+   "scope": "component:CinderStrike",
+   "per": "input:falcon_hits",
+   "input": {
+    "key": "falcon_hits",
+    "label": "Hawk hits per 6 sec",
+    "default": 3
+   },
+   "note": "barehanded only",
+   "confidence": "D?"
+  },
+  "403": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "scope": "global",
+   "when": [
+    "input:falcon_crit"
+   ],
+   "input": {
+    "key": "falcon_crit",
+    "label": "Recently was crit (4 sec)",
+    "default": true
+   },
+   "note": "1 sec cooldown",
+   "confidence": "D?"
+  },
+  "404": {
+   "kind": "flag",
+   "text": "Crit returns 25% per remaining hawk cooldown (1 sec cooldown)",
+   "confidence": "D?"
+  },
+  "409": {
+   "kind": "flag",
+   "text": "Chance on thrown hit to return 8% per Aerial Assault cooldown (up to 3 times)",
+   "note": "13-20%",
+   "confidence": "D?"
+  },
+  "410": {
+   "kind": "flag",
+   "text": "Chance on parry to fully heal you and minion and give Frenzy for 5 sec",
+   "confidence": "D?"
+  },
+  "411": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "when": [
+    "player:frenzy"
+   ],
+   "note": "value 20-30 taken as flat added damage",
+   "confidence": "D?"
+  },
+  "412": {
+   "kind": "flag",
+   "text": "Melee hit returns fraction of Lethal Mirage cooldown (up to 12 times)",
+   "note": "6-24%",
+   "confidence": "D?"
+  },
+  "415": {
+   "kind": "flag",
+   "text": "Every 6 sec at mana above half automatically use Sigils of Hope for mana",
+   "confidence": "D?"
+  },
+  "416": {
+   "kind": "flag",
+   "text": "After 2 sec of minion summon automatically sacrifice (Sacrifice)",
+   "confidence": "D?"
+  },
+  "418": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "note": "only with Traitors Tongue in left hand; applies to Spirit Plague hits",
+   "confidence": "D?"
+  },
+  "444": {
+   "kind": "trigger",
+   "ability": "VoidwinterBolt",
+   "on": "hit",
+   "chance": "v",
+   "icd": 0.25,
+   "note": "by Javelin or melee hit; up to 8 times per 2 sec",
+   "confidence": "D"
+  },
+  "445": {
+   "kind": "flag",
+   "text": "Fraction of added melee damage applied as added spell damage to Cold/Void spells",
+   "note": "25-42%",
+   "confidence": "D?"
+  },
+  "448": {
+   "kind": "trigger",
+   "ability": "Smite",
+   "on": "hit",
+   "chance": "v",
+   "icd": 0.3333,
+   "note": "by melee hit; up to 3 times per second",
+   "confidence": "D"
+  },
+  "450": {
+   "kind": "flag",
+   "text": "Immunity to Slow and Chill",
+   "confidence": "D?"
+  },
+  "330": {
+   "kind": "flag",
+   "text": "Haste after movement ability use (1.4-1.9 sec)",
+   "confidence": "D?"
+  },
+  "449": {
+   "kind": "flag",
+   "text": "Haste after Evade use (1.4-1.9 sec)",
+   "confidence": "D?"
+  },
+  "456": {
+   "kind": "flag",
+   "text": "Chance to transfer all Shock stacks from you to nearby enemies on Evade use",
+   "confidence": "D?"
+  },
+  "457": {
+   "kind": "trigger",
+   "ability": "StaticOrb",
+   "on": "evade",
+   "chance": "v",
+   "note": "on Evade use, costs 90% ability mana",
+   "confidence": "D?"
+  },
+  "458": {
+   "kind": "flag",
+   "text": "On Evade use lose fraction of current health and ward",
+   "confidence": "D?"
+  },
+  "459": {
+   "kind": "flag",
+   "text": "Frenzy after Evade use (1.2-4 sec)",
+   "confidence": "D?"
+  },
+  "465": {
+   "kind": "flag",
+   "text": "Less threat generation",
+   "note": "-30%",
+   "confidence": "D?"
+  },
+  "309": {
+   "kind": "flag",
+   "text": "Endurance applies to all mana damage",
+   "note": "40-56%",
+   "confidence": "D?"
+  },
+  "255": {
+   "kind": "flag",
+   "text": "Max less damage taken per 2% resistance above normal limit",
+   "note": "up to 20%",
+   "confidence": "D?"
+  },
+  "467": {
+   "kind": "flag",
+   "text": "Immunity to Slow",
+   "confidence": "D?"
+  },
+  "469": {
+   "kind": "flag",
+   "text": "Swiftness mechanic enabled",
+   "confidence": "D?"
+  },
+  "470": {
+   "kind": "flag",
+   "text": "Chance to get Dusk Shroud on dodge",
+   "confidence": "D?"
+  },
+  "472": {
+   "kind": "flag",
+   "text": "No ward gain in combat",
+   "confidence": "D?"
+  },
+  "475": {
+   "kind": "flag",
+   "text": "Chance to get Dilation on melee hit",
+   "confidence": "D?"
+  },
+  "476": {
+   "kind": "stat",
+   "stat": "IncreasedAreaForAreaSkills",
+   "mod": "added",
+   "per": "input:mana_cost",
+   "input": {
+    "key": "mana_cost",
+    "label": "Ability cost in mana",
+    "default": 10
+   },
+   "note": "melee abilities with area only",
+   "confidence": "D?"
+  },
+  "477": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "input:mana_cost",
+   "input": {
+    "key": "mana_cost",
+    "label": "Ability cost in mana",
+    "default": 10
+   },
+   "confidence": "D?"
+  },
+  "479": {
+   "kind": "flag",
+   "text": "Creates Wandering Spirit on direct use of fire, necrotic or void ability",
+   "confidence": "D?"
+  },
+  "480": {
+   "kind": "trigger",
+   "ability": "Doom Pulse",
+   "on": "cast",
+   "chance": 1,
+   "note": "on direct casting of Fire/Cold/Lightning/Necrotic/Void spell",
+   "confidence": "D"
+  },
+  "481": {
+   "kind": "stat",
+   "stat": "Mana",
+   "mod": "added",
+   "per": "input:mana_spent",
+   "max": 500,
+   "input": {
+    "key": "mana_spent",
+    "label": "Mana spent per 5 sec",
+    "default": 300
+   },
+   "note": "for 5 sec, max 500",
+   "confidence": "D?"
+  },
+  "495": {
+   "kind": "flag",
+   "text": "Historical minions Tolmat",
+   "confidence": "D?"
+  },
+  "496": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "factor": -1,
+   "max": 0.75,
+   "note": "fraction of damage redirected to minion with highest health (max 75%)",
+   "confidence": "D?"
+  },
+  "498": {
+   "kind": "flag",
+   "text": "Hit from boss or rare enemy stretched over 4 sec",
+   "note": "20-25%",
+   "confidence": "D?"
+  },
+  "499": {
+   "kind": "flag",
+   "text": "Spent mana returned to you as damage",
+   "confidence": "D?"
+  },
+  "502": {
+   "kind": "flag",
+   "text": "Crystalwind stacks per second on move",
+   "confidence": "D?"
+  },
+  "503": {
+   "kind": "flag",
+   "text": "Crystalwind stacks on Evade use",
+   "confidence": "D?"
+  },
+  "504": {
+   "kind": "flag",
+   "text": "Chance to slow bosses and rare enemies per spent Crystalwind stack",
+   "confidence": "D?"
+  },
+  "505": {
+   "kind": "flag",
+   "text": "Chance to petrify other enemies per spent Crystalwind stack",
+   "confidence": "D?"
+  },
+  "506": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "input:cw_stacks",
+   "src_max": 4,
+   "input": {
+    "key": "cw_stacks",
+    "label": "Spent Crystalwind stacks",
+    "default": 4,
+    "max": 4
+   },
+   "note": "ranged abilities",
+   "confidence": "D"
+  },
+  "507": {
+   "kind": "flag",
+   "text": "Crit chance applies to potion use",
+   "confidence": "D?"
+  },
+  "528": {
+   "kind": "flag",
+   "text": "Crit damage multiplier applies to potions",
+   "confidence": "D?"
+  },
+  "508": {
+   "kind": "trigger",
+   "ability": "Smite",
+   "on": "hit",
+   "chance": "v",
+   "icd": 1.6667,
+   "note": "up to 6 times per 10 sec; resets on potion use",
+   "confidence": "D"
+  },
+  "336": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "potion",
+   "label": "Mana on potion use",
+   "confidence": "D"
+  },
+  "509": {
+   "kind": "flag",
+   "text": "Potion use resets Volatile Reversal cooldown",
+   "confidence": "D?"
+  },
+  "510": {
+   "kind": "flag",
+   "text": "Item stats doubled for 5 sec after hit vs boss/rare at low health",
+   "confidence": "D?"
+  },
+  "512": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "tags": "Melee",
+   "ailment": "Spiders",
+   "per": "input:weaver_items",
+   "input": {
+    "key": "weaver_items",
+    "label": "Equipped Weaver's Will items",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "517": {
+   "kind": "flag",
+   "text": "Weapon characteristic multiplier for castings with Elemental Essence",
+   "confidence": "D?"
+  },
+  "516": {
+   "kind": "stat",
+   "stat": "IncreasedAilmentDuration",
+   "mod": "added",
+   "ailment": "Bleed",
+   "per": "input:weaver_items",
+   "src_max": 5,
+   "input": {
+    "key": "weaver_items",
+    "label": "Equipped Weaver's Will items",
+    "default": 1,
+    "max": 5
+   },
+   "note": "also Poison and Electrify; modelled as Bleed",
+   "confidence": "D?"
+  },
+  "518": {
+   "kind": "flag",
+   "text": "Amulet characteristic multiplier for chosen minion (every 10 sec)",
+   "confidence": "D?"
+  },
+  "522": {
+   "kind": "flag",
+   "text": "Every second 20% chance to petrify each enemy looking at you for 2 sec",
+   "confidence": "D"
+  },
+  "523": {
+   "kind": "flag",
+   "text": "20% chance to petrify attacker on block for 2 sec",
+   "confidence": "D"
+  },
+  "524": {
+   "kind": "flag",
+   "text": "Block effectiveness also applies to damage over time (×v)",
+   "confidence": "D?",
+   "note": "No stat in calculator; multiplier 1-block×v to DoT"
+  },
+  "526": {
+   "kind": "trigger",
+   "ability": "Glacier",
+   "on": "evade",
+   "chance": "v",
+   "confidence": "D?",
+   "note": "Evade creates Glacier along path"
+  },
+  "519": {
+   "kind": "flag",
+   "text": "Permanent Haste",
+   "confidence": "D"
+  },
+  "520": {
+   "kind": "flag",
+   "text": "While Ignite Overload and Damned Overload exist: Witchfire to enemies in 10 m every second",
+   "confidence": "D"
+  },
+  "521": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "confidence": "D?",
+   "tags": "Ailment",
+   "per": "increased:Damage",
+   "note": "Witchfire: more damage = v × curse damage increase; counted from all damage increase (approximation)"
+  },
+  "525": {
+   "kind": "stat",
+   "stat": "Endurance",
+   "mod": "added",
+   "confidence": "D",
+   "when": [
+    "input:delayed_dmg"
+   ],
+   "input": {
+    "key": "delayed_dmg",
+    "label": "Delayed damage more than 10% max health",
+    "default": true
+   },
+   "note": "Damage reduction below endurance threshold"
+  },
+  "527": {
+   "kind": "stat",
+   "stat": "MaximumHealthGainedAsEnduranceThreshold",
+   "mod": "added",
+   "confidence": "D",
+   "when": [
+    "input:potion_buff"
+   ],
+   "input": {
+    "key": "potion_buff",
+    "label": "Potion used (4 sec)",
+    "default": true
+   },
+   "note": "For 4 sec after potion use"
+  },
+  "530": {
+   "kind": "stat",
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "confidence": "D",
+   "tags": "Melee",
+   "per": "input:target_dist",
+   "src_max": 5,
+   "input": {
+    "key": "target_dist",
+    "label": "Distance to target, m",
+    "default": 5,
+    "max": 5
+   },
+   "note": "Per meter to target, up to 5 m"
+  },
+  "531": {
+   "kind": "flag",
+   "text": "Block chance converts to parry chance without shield",
+   "confidence": "D"
+  },
+  "529": {
+   "kind": "flag",
+   "text": "Kismet stack per melee hit (consumed by thrown hit: +8% crit and +8 phys damage per stack)",
+   "confidence": "D?"
+  },
+  "565": {
+   "kind": "stat",
+   "stat": "Mana",
+   "mod": "increased",
+   "confidence": "D",
+   "per": "input:spirit_battery",
+   "input": {
+    "key": "spirit_battery",
+    "label": "Spirit Battery stacks",
+    "default": 3,
+    "max": 3
+   }
+  },
+  "615": {
+   "kind": "flag",
+   "text": "Spirit Battery stacks per trigger (kill / hit vs rare or boss)",
+   "confidence": "D"
+  },
+  "553": {
+   "kind": "flag",
+   "text": "Not more than one companion of each type",
+   "confidence": "D"
+  },
+  "555": {
+   "kind": "flag",
+   "text": "Immunity to Shock",
+   "confidence": "D"
+  },
+  "557": {
+   "kind": "flag",
+   "text": "Dodge charges on potion use",
+   "confidence": "D"
+  },
+  "558": {
+   "kind": "trigger",
+   "ability": "GatheringStormMelee",
+   "on": "evade",
+   "chance": 1,
+   "confidence": "D?",
+   "note": "After Dodge near enemy"
+  },
+  "568": {
+   "kind": "stat",
+   "stat": "LevelOfSkills",
+   "mod": "added",
+   "confidence": "D",
+   "per": "complete_sets"
+  },
+  "616": {
+   "kind": "flag",
+   "text": "Summons Tyrannosaurus",
+   "confidence": "D"
+  },
+  "570": {
+   "kind": "trigger",
+   "ability": "Wildfire Wisp",
+   "on": "second",
+   "chance": "v",
+   "confidence": "D?",
+   "count": 1,
+   "note": "Chance every second to create fire spirit near burning enemy"
+  },
+  "571": {
+   "kind": "param",
+   "param": "hits",
+   "mod": "added",
+   "label": "Fire spirit ability repeat",
+   "confidence": "D?",
+   "note": "Chance to repeat continuous fire abilities by spirits in 12 m"
+  },
+  "572": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "confidence": "D",
+   "tags": "Fire",
+   "when": [
+    "enemy:Ignite",
+    "input:wisp_cast"
+   ],
+   "input": {
+    "key": "wisp_cast",
+    "label": "Ability used by spirit",
+    "default": true
+   },
+   "note": "Only abilities used by fire spirits"
+  },
+  "573": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "confidence": "D",
+   "ailment": "Ignite",
+   "when": [
+    "input:wisp_cast"
+   ],
+   "input": {
+    "key": "wisp_cast",
+    "label": "Ability used by spirit",
+    "default": true
+   },
+   "note": "Only ability repeats by spirits"
+  },
+  "574": {
+   "kind": "flag",
+   "text": "Every 0.5 sec damage to enemies before you = v × reflection damage",
+   "confidence": "D?"
+  },
+  "575": {
+   "kind": "stat",
+   "stat": "Thorns",
+   "mod": "more",
+   "confidence": "D",
+   "when": [
+    "enemy:boss_or_rare"
+   ]
+  },
+  "582": {
+   "kind": "flag",
+   "text": "Weapon stat multiplier in main hand per magic item (except idols)",
+   "confidence": "D?"
+  },
+  "577": {
+   "kind": "trigger",
+   "ability": "Vengeance",
+   "on": "movement",
+   "chance": 1,
+   "confidence": "D?",
+   "count": "v",
+   "icd": 6,
+   "note": "After movement skill, up to 2 times per 12 sec"
+  },
+  "578": {
+   "kind": "flag",
+   "text": "Summons Anurok up to companion limit",
+   "confidence": "D"
+  },
+  "579": {
+   "kind": "trigger",
+   "ability": "PrimordialBloodSplatter",
+   "on": "kill",
+   "chance": "v",
+   "confidence": "D",
+   "icd": 0.4,
+   "note": "Up to 5 times per 2 sec"
+  },
+  "580": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "confidence": "D",
+   "ailment": "Bleed",
+   "scope": "component:PrimordialBloodSplatter",
+   "per": "enemy_stacks:Bleed",
+   "src_max": 20,
+   "note": "Per Bleed stack on killed enemy"
+  },
+  "581": {
+   "kind": "trigger",
+   "ability": "FlameWard",
+   "on": "movement",
+   "chance": "v",
+   "confidence": "D?",
+   "icd": 8,
+   "note": "After movement skill in 16 m from boss/rare, up to 2 times per 16 sec"
+  },
+  "583": {
+   "kind": "flag",
+   "text": "Non-unique idol stat multiplier",
+   "confidence": "D?"
+  },
+  "584": {
+   "kind": "flag",
+   "text": "Immunity to Bleed",
+   "confidence": "D"
+  },
+  "585": {
+   "kind": "flag",
+   "text": "Enhancement of skill level modifier effects on legendary affixes",
+   "confidence": "D?"
+  },
+  "586": {
+   "kind": "flag",
+   "text": "Enhancement of non-unique idol stats with unique form",
+   "confidence": "D?"
+  },
+  "587": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "confidence": "D?",
+   "tags": "Hit",
+   "when": [
+    "input:first_hit"
+   ],
+   "input": {
+    "key": "first_hit",
+    "label": "First hit from this enemy",
+    "default": false
+   },
+   "note": "Only first hit per enemy"
+  },
+  "588": {
+   "kind": "flag",
+   "text": "Overkill damage dealt as direct damage to enemies in 8 m",
+   "confidence": "D?"
+  },
+  "589": {
+   "kind": "flag",
+   "text": "Enhanced stats on exalted weapon in left hand",
+   "confidence": "D?"
+  },
+  "590": {
+   "kind": "flag",
+   "text": "Can perform super-crits",
+   "confidence": "D"
+  },
+  "289": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "use",
+   "label": "Mana per 3 free abilities in a row (3 sec cooldown)",
+   "confidence": "D"
+  },
+  "290": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward per 3 free abilities in a row (3 sec cooldown)",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "591": {
+   "kind": "flag",
+   "text": "Chance to repeat last bow attack after Dodge",
+   "confidence": "D"
+  },
+  "593": {
+   "kind": "flag",
+   "text": "Excoriation stack on kill/Flay hit vs boss or rare",
+   "confidence": "D"
+  },
+  "594": {
+   "kind": "flag",
+   "text": "Rift Beast summon on hit leaving boss below 40% health (40 sec cooldown)",
+   "confidence": "D"
+  },
+  "599": {
+   "kind": "flag",
+   "text": "Leech also drains health of nearest enemy in 6 m (v × leech)",
+   "confidence": "D?"
+  },
+  "600": {
+   "kind": "flag",
+   "text": "Leech drains health of nearest enemy in 6 m on Frenzy",
+   "confidence": "D?"
+  },
+  "601": {
+   "kind": "stat",
+   "stat": "HealthLeech",
+   "mod": "added",
+   "confidence": "D",
+   "tags": "Melee",
+   "when": [
+    "player:frenzy"
+   ],
+   "note": "While Frenzy is active"
+  },
+  "604": {
+   "kind": "flag",
+   "text": "Frenzy for v seconds on potion use",
+   "confidence": "D"
+  },
+  "605": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Frenzy",
+   "when": [
+    "gear:dual_wield"
+   ]
+  },
+  "606": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Frenzy",
+   "per": "attr:str"
+  },
+  "607": {
+   "kind": "flag",
+   "text": "Chance to get Ancestral Pack on minion hit (1 sec cooldown)",
+   "confidence": "D"
+  },
+  "608": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward = endurance threshold × v on Ancestral Pack stack receive",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "609": {
+   "kind": "flag",
+   "text": "Ward limit = v × max health",
+   "confidence": "D?"
+  },
+  "611": {
+   "kind": "stat",
+   "stat": "ManaRegen",
+   "mod": "more",
+   "confidence": "D",
+   "factor": -1,
+   "note": "Mana regen disabled"
+  },
+  "612": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "hit",
+   "label": "Mana (and 12 health) per hit per 12% mana regen speed",
+   "confidence": "D?"
+  },
+  "613": {
+   "kind": "flag",
+   "text": "Permanent Frenzy",
+   "confidence": "D"
+  },
+  "215": {
+   "kind": "flag",
+   "text": "Cannot stun blocked hits",
+   "confidence": "D"
+  },
+  "626": {
+   "kind": "flag",
+   "text": "Chance to get Haste for 5 sec after block",
+   "confidence": "D"
+  },
+  "621": {
+   "kind": "stat",
+   "stat": "LevelOfSkills",
+   "mod": "added",
+   "confidence": "D?",
+   "per": "total_attr",
+   "factor": 0.008333333333333333,
+   "note": "Per 120 total attributes (continuous, no rounding)"
+  },
+  "622": {
+   "kind": "stat",
+   "stat": "ArmourMitigationAppliesToDamageOverTime",
+   "mod": "added",
+   "confidence": "D",
+   "per": "total_attr",
+   "factor": 0.1
+  },
+  "629": {
+   "kind": "stat",
+   "stat": "CurrentHealthDrain",
+   "mod": "added",
+   "confidence": "D?",
+   "when": [
+    "input:hp_above_80"
+   ],
+   "input": {
+    "key": "hp_above_80",
+    "label": "Health above 80%",
+    "default": true
+   },
+   "note": "Lose v current health per second"
+  },
+  "630": {
+   "kind": "flag",
+   "text": "Chance not to spend potion recovering at least 20% max health",
+   "confidence": "D"
+  },
+  "638": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "confidence": "A",
+   "when": [
+    "player:!frenzy"
+   ],
+   "note": "Rampancy: more damage taken while you don't have Frenzy"
+  },
+  "656": {
+   "kind": "stat",
+   "stat": "IncreasedAreaForAreaSkills",
+   "mod": "added",
+   "confidence": "D",
+   "tags": "Spell",
+   "per": "converted_attr:int",
+   "factor": 0.1,
+   "note": "Per 10 Madness"
+  },
+  "657": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "confidence": "D?",
+   "tags": "Hit",
+   "per": "converted_attr:dex",
+   "factor": -0.1,
+   "note": "Chance to take 0 damage counted as average damage reduction from hits; per 10 Guile"
+  },
+  "658": {
+   "kind": "stat",
+   "stat": "Health",
+   "mod": "increased",
+   "confidence": "D",
+   "per": "converted_attr:str",
+   "factor": 0.1,
+   "note": "Per 10 Brutality"
+  },
+  "659": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Haste",
+   "per": "converted_attr:vit",
+   "factor": 0.1,
+   "note": "Per 10 Rampancy"
+  },
+  "660": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "confidence": "D",
+   "tags": "Necrotic|Void|Poison",
+   "per": "converted_attr:att",
+   "factor": 0.1,
+   "note": "Per 10 Apathy"
+  },
+  "666": {
+   "kind": "flag",
+   "text": "Cannot have specializable minions except skeletons",
+   "confidence": "D"
+  },
+  "664": {
+   "kind": "flag",
+   "text": "Uses potion every second, even without potions",
+   "confidence": "D"
+  },
+  "551": {
+   "kind": "flag",
+   "text": "Chance not to spend potion on use",
+   "confidence": "D"
+  },
+  "665": {
+   "kind": "flag",
+   "text": "Current health loss on potion use per recently used potion",
+   "confidence": "D?"
+  },
+  "345": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward = v × current mana per second",
+   "confidence": "D?",
+   "amount": "current_mana"
+  },
+  "669": {
+   "kind": "stat",
+   "stat": "IncreasedAreaForAreaSkills",
+   "mod": "added",
+   "confidence": "D",
+   "when": [
+    "player:frenzy"
+   ],
+   "note": "Multiplied by (Frenzy effect + 1)"
+  },
+  "667": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Frenzy",
+   "per": "input:highest_attr",
+   "input": {
+    "key": "highest_attr",
+    "label": "Highest attribute",
+    "default": 100
+   },
+   "note": "Per point of highest attribute"
+  },
+  "668": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Haste",
+   "per": "input:lowest_attr",
+   "input": {
+    "key": "lowest_attr",
+    "label": "Lowest attribute",
+    "default": 50
+   },
+   "note": "Per point of lowest attribute"
+  },
+  "680": {
+   "kind": "flag",
+   "text": "On minion ability use you and companions get Aspect of the Grole",
+   "confidence": "D"
+  },
+  "681": {
+   "kind": "flag",
+   "text": "Cooldown reduction of all companion abilities v sec on companion ability use",
+   "confidence": "D"
+  },
+  "13": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D?",
+   "ailment": "AspectOfTheSharkVisuals",
+   "note": "Enhancement of Aspect of the Shark effect"
+  },
+  "17": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D?",
+   "ailment": "AspectOfTheViperVisuals",
+   "note": "Enhancement of Aspect of the Viper effect"
+  },
+  "19": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D?",
+   "ailment": "AspectOfTheLynxVisuals",
+   "note": "Enhancement of Aspect of the Lynx effect"
+  },
+  "683": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "confidence": "D?",
+   "ailment": "Bleed",
+   "per": "input:mana_cost",
+   "input": {
+    "key": "mana_cost",
+    "label": "Skill mana cost",
+    "default": 10
+   },
+   "note": "Per 1 mana; possible limit 50%"
+  },
+  "686": {
+   "kind": "minion_stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Fire",
+   "per": "res:1",
+   "offset": 0.75,
+   "factor": 33.333333333333336,
+   "min": 0,
+   "note": "Per 3% above fire resistance limit",
+   "confidence": "D"
+  },
+  "685": {
+   "kind": "flag",
+   "text": "All hit damage taken bypasses ward",
+   "confidence": "D"
+  },
+  "687": {
+   "kind": "flag",
+   "text": "Leech does not stop at full health",
+   "confidence": "D"
+  },
+  "688": {
+   "kind": "stat",
+   "stat": "HealthLeech",
+   "mod": "added",
+   "confidence": "D",
+   "tags": "DoT",
+   "per": "res:2",
+   "factor": 5,
+   "note": "Per 20% cold resistance (no limit)"
+  },
+  "11": {
+   "kind": "trigger",
+   "ability": "AvalancheSnowballAoE",
+   "on": "use",
+   "chance": "v",
+   "icd": 0.3333,
+   "skill_any": "Spell",
+   "note": "Avalanche Boulder on spell cast, up to 3 per second",
+   "confidence": "D?"
+  },
+  "12": {
+   "kind": "trigger",
+   "ability": "AvalancheSnowballAoE",
+   "on": "use",
+   "chance": "v",
+   "icd": 0.3333,
+   "skill_any": "Melee",
+   "note": "Avalanche Boulder on melee attack, up to 3 per second",
+   "confidence": "D?"
+  },
+  "26": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "crit",
+   "chance": "v",
+   "icd": 0.3333,
+   "note": "Fire Aura on crit, up to 3 per second",
+   "confidence": "D"
+  },
+  "31": {
+   "kind": "trigger",
+   "ability": "ElementalNova",
+   "on": "hit_taken",
+   "chance": "v",
+   "note": "Elemental Nova when hit",
+   "confidence": "D"
+  },
+  "44": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "kill",
+   "chance": "v",
+   "icd": 0.3333,
+   "skill_any": "Fire",
+   "note": "Fire Aura on kill with fire skills, up to 3 per second",
+   "confidence": "D"
+  },
+  "49": {
+   "kind": "trigger",
+   "ability": "VoidRift",
+   "on": "kill",
+   "chance": "v",
+   "note": "Void Rift on kill",
+   "confidence": "D"
+  },
+  "54": {
+   "kind": "trigger",
+   "ability": "Smite",
+   "on": "hit",
+   "chance": "v",
+   "icd": 0.2,
+   "skill_any": "Throwing",
+   "note": "Smite on throwing hit, up to 10 per 2 seconds",
+   "confidence": "D"
+  },
+  "73": {
+   "kind": "trigger",
+   "ability": "PoisonNova",
+   "on": "hit_taken",
+   "chance": "v",
+   "note": "Poison Nova when hit",
+   "confidence": "D"
+  }
+ },
+ "ability": {
+  "19:0": {
+   "stat": "CriticalChance",
+   "mod": "added"
+  },
+  "78:0": {
+   "stat": "Damage",
+   "mod": "increased"
+  },
+  "263:2": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning"
+  },
+  "468:4": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning|Melee"
+  },
+  "140:2": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Physical|Spell"
+  },
+  "536:0": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning|Throwing"
+  },
+  "403:0": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee"
+  },
+  "101:0": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee"
+  },
+  "66:1": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning",
+   "per": "attr:int"
+  },
+  "807:2": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Throwing",
+   "per": "attr:dex",
+   "factor": 0.2
+  },
+  "797:0": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "max_mana",
+   "factor": 0.1
+  },
+  "797:1": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "per": "increased:ManaRegen",
+   "factor": 100
+  },
+  "12:5": {
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Elemental",
+   "per": "ele_res",
+   "factor": 10
+  },
+  "743:0": {
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "per": "res:4",
+   "factor": 10
+  },
+  "107:2": {
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "enemy:boss_or_rare"
+   ]
+  },
+  "107:3": {
+   "stat": "Damage",
+   "mod": "more",
+   "per": "value:BlockChance",
+   "factor": 10
+  },
+  "153:6": {
+   "stat": "Damage",
+   "mod": "more"
+  },
+  "267:3": {
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Throwing",
+   "per": "value:Thorns",
+   "factor": 0.1
+  },
+  "156:1": {
+   "kind": "mana_added"
+  },
+  "479:5": {
+   "kind": "mana_added"
+  },
+  "370:3": {
+   "kind": "mana_added"
+  },
+  "411:5": {
+   "kind": "mana_added"
+  },
+  "114:1": {
+   "kind": "mana_added"
+  },
+  "341:1": {
+   "kind": "mana_added"
+  },
+  "24:0": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Thorn Shield",
+   "confidence": "D"
+  },
+  "61:0": {
+   "kind": "trigger",
+   "ability": "SummonPrimalSerpent",
+   "on": "kill",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "1:1": {
+   "kind": "param",
+   "param": "projectiles",
+   "mod": "added",
+   "label": "Projectiles of Fire Ball",
+   "confidence": "D"
+  },
+  "8:3": {
+   "kind": "flag",
+   "text": "Can summon wolves up to companion limit",
+   "confidence": "D"
+  },
+  "120:4": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max skeletons",
+   "confidence": "D"
+  },
+  "153:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "162:1": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Fire Aura",
+   "confidence": "D"
+  },
+  "220:4": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Ignite",
+   "per": "input:forged",
+   "input": {
+    "key": "forged",
+    "label": "Forged weapons",
+    "default": 3
+   },
+   "confidence": "D"
+  },
+  "220:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Fire",
+   "per": "input:forged",
+   "input": {
+    "key": "forged",
+    "label": "Forged weapons",
+    "default": 3
+   },
+   "confidence": "D"
+  },
+  "220:2": {
+   "kind": "stat",
+   "stat": "Armour",
+   "mod": "increased",
+   "per": "input:forged",
+   "input": {
+    "key": "forged",
+    "label": "Forged weapons",
+    "default": 3
+   },
+   "scope": "global",
+   "confidence": "D"
+  },
+  "220:3": {
+   "kind": "stat",
+   "stat": "HealthRegen",
+   "mod": "added",
+   "per": "input:forged",
+   "input": {
+    "key": "forged",
+    "label": "Forged weapons",
+    "default": 3
+   },
+   "scope": "global",
+   "confidence": "D"
+  },
+  "215:3": {
+   "kind": "resource",
+   "resource": "rage",
+   "on": "kill",
+   "label": "Rage on kill in Werebear form",
+   "confidence": "D"
+  },
+  "215:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Cold|Melee",
+   "confidence": "D"
+  },
+  "215:2": {
+   "kind": "flag",
+   "text": "White fur in Werebear form",
+   "confidence": "D"
+  },
+  "223:1": {
+   "kind": "resource",
+   "resource": "rage",
+   "on": "second",
+   "label": "Rage every 3 sec in Spriggan form (v per 3 sec)",
+   "confidence": "D"
+  },
+  "12:1": {
+   "kind": "flag",
+   "text": "Elemental nova applied at target location",
+   "confidence": "D"
+  },
+  "185:0": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "use",
+   "label": "Mana on Harvest use",
+   "confidence": "D"
+  },
+  "162:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Void",
+   "per": "input:fire_auras",
+   "input": {
+    "key": "fire_auras",
+    "label": "Active Fire Auras",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "270:1": {
+   "kind": "trigger",
+   "ability": "SummonStormTotem",
+   "on": "hit",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "195:8": {
+   "kind": "flag",
+   "text": "Companions go Berserk from Storm Totem hit",
+   "confidence": "D"
+  },
+  "195:9": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning",
+   "per": "input:totem_stacks",
+   "src_max": 3,
+   "scope": "global",
+   "input": {
+    "key": "totem_stacks",
+    "label": "Stacks of lightning damage from totem",
+    "default": 3,
+    "max": 3
+   },
+   "note": "4 sec, up to 3 stacks",
+   "confidence": "D"
+  },
+  "195:4": {
+   "kind": "stat",
+   "stat": "PhysicalResistance",
+   "mod": "added",
+   "scope": "global",
+   "when": [
+    "input:near_totem"
+   ],
+   "input": {
+    "key": "near_totem",
+    "label": "Near Storm Totem",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "195:2": {
+   "kind": "stat",
+   "stat": "ColdResistance",
+   "mod": "added",
+   "scope": "global",
+   "when": [
+    "input:near_totem"
+   ],
+   "input": {
+    "key": "near_totem",
+    "label": "Near Storm Totem",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "195:6": {
+   "kind": "flag",
+   "text": "You get Berserk for 3 sec on your Storm Totem hit",
+   "confidence": "D"
+  },
+  "195:5": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Storm Totem aura",
+   "confidence": "D"
+  },
+  "195:3": {
+   "kind": "stat",
+   "stat": "LightningResistance",
+   "mod": "added",
+   "scope": "global",
+   "when": [
+    "input:near_totem"
+   ],
+   "input": {
+    "key": "near_totem",
+    "label": "Near Storm Totem",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "195:7": {
+   "kind": "flag",
+   "text": "You get Haste for 3 sec on your Storm Totem hit",
+   "confidence": "D"
+  },
+  "263:0": {
+   "kind": "param",
+   "param": "projectiles",
+   "mod": "added",
+   "label": "Additional Shuriken projectiles",
+   "confidence": "D"
+  },
+  "224:0": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "factor": 0.3333,
+   "note": "only 3rd Whirlwind hit; averaged to 1 of 3 hits",
+   "confidence": "D?"
+  },
+  "340:0": {
+   "kind": "param",
+   "param": "range",
+   "mod": "more",
+   "label": "Range of Shift",
+   "factor": -1,
+   "confidence": "D"
+  },
+  "340:1": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "379:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max ballistas",
+   "confidence": "D"
+  },
+  "377:0": {
+   "kind": "param",
+   "param": "projectiles",
+   "mod": "added",
+   "label": "Additional Multi-shot arrows",
+   "confidence": "D"
+  },
+  "450:0": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Dancing Strikes",
+   "confidence": "D"
+  },
+  "450:1": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "tags": "Melee",
+   "when": [
+    "input:in_arena"
+   ],
+   "input": {
+    "key": "in_arena",
+    "label": "You are on Dancing Strikes arena",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "479:3": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "479:2": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "increased",
+   "label": "Duration of Arrow Rain",
+   "confidence": "D"
+  },
+  "440:2": {
+   "kind": "conversion",
+   "confidence": "D?"
+  },
+  "156:2": {
+   "kind": "flag",
+   "text": "Fire Harvest hits in circle around you",
+   "confidence": "D"
+  },
+  "137:1": {
+   "kind": "trigger",
+   "ability": "RipBlood",
+   "on": "hit",
+   "chance": "v",
+   "icd": 2,
+   "note": "melee hit only; on 5 nearest targets",
+   "confidence": "D"
+  },
+  "137:2": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "use",
+   "label": "Health from Blood Burst (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "318:0": {
+   "kind": "trigger",
+   "ability": "Maelstrom",
+   "on": "second",
+   "chance": "v",
+   "icd": 3,
+   "confidence": "D"
+  },
+  "318:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Lightning",
+   "per": "input:maelstroms",
+   "input": {
+    "key": "maelstroms",
+    "label": "Active Maelstroms",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "517:1": {
+   "kind": "trigger",
+   "ability": "GasparSetSwipe",
+   "on": "cast",
+   "chance": "v",
+   "icd": 3,
+   "note": "on direct fire spell cast",
+   "confidence": "D"
+  },
+  "517:3": {
+   "kind": "trigger",
+   "ability": "GasparSetSwipe",
+   "on": "cast",
+   "chance": "v",
+   "icd": 3,
+   "note": "on direct lightning spell cast",
+   "confidence": "D"
+  },
+  "517:2": {
+   "kind": "trigger",
+   "ability": "GasparSetSwipe",
+   "on": "cast",
+   "chance": "v",
+   "icd": 3,
+   "note": "on direct cold spell cast",
+   "confidence": "D"
+  },
+  "505:0": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "339:0": {
+   "kind": "trigger",
+   "ability": "EarthquakeSlam",
+   "on": "movement",
+   "chance": "v",
+   "icd": 2.5,
+   "note": "after non-channelled movement ability, up to 2 times per 5 sec",
+   "confidence": "D?"
+  },
+  "339:1": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "162:4": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "potion",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "336:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward on Fire Ward cast (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "120:5": {
+   "kind": "trigger",
+   "ability": "SummonSkeleton",
+   "on": "minion_death",
+   "chance": "v",
+   "note": "skeleton re-summon after 3 sec",
+   "confidence": "D?"
+  },
+  "8:0": {
+   "kind": "minion_stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Bleed",
+   "scope": "minion",
+   "confidence": "D"
+  },
+  "8:1": {
+   "kind": "minion_stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "PhysicalResShred",
+   "scope": "minion",
+   "confidence": "D"
+  },
+  "8:2": {
+   "kind": "flag",
+   "text": "Summons 2 squirrels instead of each wolf",
+   "confidence": "D"
+  },
+  "179:0": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "17:0": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "154:0": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "253:0": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "153:3": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Necrotic",
+   "per": "input:damned",
+   "src_max": 7,
+   "input": {
+    "key": "damned",
+    "label": "Curse stacks on you",
+    "default": 3,
+    "max": 7
+   },
+   "confidence": "D"
+  },
+  "78:3": {
+   "kind": "param",
+   "param": "speed",
+   "mod": "increased",
+   "label": "Speed of Volcanic Orb",
+   "confidence": "D"
+  },
+  "78:4": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "78:5": {
+   "kind": "param",
+   "param": "speed",
+   "mod": "increased",
+   "label": "Speed of Volcanic Orb shrapnel",
+   "confidence": "D"
+  },
+  "185:2": {
+   "kind": "trigger",
+   "ability": "JadeDust",
+   "on": "hit",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "120:6": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Poison",
+   "per": "increased:Damage",
+   "scope": "minion",
+   "note": "multiplier v to your poison damage modifiers for Rogue Skeletons; all % increased damage is counted",
+   "confidence": "D?"
+  },
+  "727:17": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Poison",
+   "per": "increased:Damage",
+   "scope": "minion",
+   "note": "multiplier v to your poison damage modifiers for the Falcon; all % increased damage is counted",
+   "confidence": "D?"
+  },
+  "7:0": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "479:4": {
+   "kind": "conversion",
+   "confidence": "D?"
+  },
+  "216:3": {
+   "kind": "stat",
+   "stat": "CastSpeed",
+   "mod": "increased",
+   "per": "input:missing_mana",
+   "factor": 0.5,
+   "input": {
+    "key": "missing_mana",
+    "label": "Missing mana, %",
+    "default": 50,
+    "max": 100
+   },
+   "note": "v per 2% missing mana",
+   "confidence": "D"
+  },
+  "216:4": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "input:missing_mana",
+   "factor": 0.2,
+   "input": {
+    "key": "missing_mana",
+    "label": "Missing mana",
+    "default": 50
+   },
+   "note": "v per 5 missing mana",
+   "confidence": "D"
+  },
+  "468:5": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "263:3": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "468:7": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "468:3": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of mirage attacks",
+   "confidence": "D"
+  },
+  "22:0": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "FireResShred",
+   "note": "chance every second",
+   "confidence": "D"
+  },
+  "19:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning|Melee",
+   "when": [
+    "input:swipe_ready"
+   ],
+   "input": {
+    "key": "swipe_ready",
+    "label": "Hit enhanced (every 3 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "19:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "402:1": {
+   "kind": "cooldown",
+   "cooldown": "charges",
+   "confidence": "D"
+  },
+  "153:4": {
+   "kind": "flag",
+   "text": "Projectiles of Hungry Spirits fly sequentially and all can hit one target",
+   "confidence": "D"
+  },
+  "445:1": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "increased",
+   "label": "Duration of Bait",
+   "confidence": "D"
+  },
+  "445:2": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "146:2": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max ghosts",
+   "confidence": "D"
+  },
+  "253:2": {
+   "kind": "param",
+   "param": "health_cost",
+   "mod": "more",
+   "label": "Health cost of spells",
+   "factor": -1,
+   "confidence": "D?"
+  },
+  "377:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "enemy:Blind"
+   ],
+   "confidence": "D?"
+  },
+  "318:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "318:3": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee|Necrotic",
+   "scope": "minion",
+   "when": [
+    "input:maelstrom_active"
+   ],
+   "input": {
+    "key": "maelstrom_active",
+    "label": "Maelstrom active",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "185:3": {
+   "kind": "flag",
+   "text": "Harvest gives Sinister Grasp stacks; on 2 stacks perform Grim Harvest",
+   "confidence": "D"
+  },
+  "185:4": {
+   "kind": "mana",
+   "mana": "added",
+   "note": "only Grim Harvest",
+   "confidence": "D?"
+  },
+  "185:5": {
+   "kind": "param",
+   "param": "health_cost",
+   "mod": "added",
+   "label": "Current health cost of Grim Harvest",
+   "confidence": "D?"
+  },
+  "154:2": {
+   "kind": "flag",
+   "text": "Lunge does not require target",
+   "confidence": "D"
+  },
+  "565:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max prismatic shards",
+   "confidence": "D"
+  },
+  "197:1": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "536:1": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "533:2": {
+   "kind": "trigger",
+   "ability": "Smite",
+   "on": "hit",
+   "chance": "v",
+   "when": [
+    "enemy:boss_or_rare"
+   ],
+   "note": "after Multi-hit",
+   "confidence": "D"
+  },
+  "536:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "536:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Lightning|Spell",
+   "per": "input:thunder_stacks",
+   "input": {
+    "key": "thunder_stacks",
+    "label": "Turan's Thunder stacks",
+    "default": 1
+   },
+   "note": "4 sec after Spear use",
+   "confidence": "D"
+  },
+  "223:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "confidence": "D"
+  },
+  "223:13": {
+   "kind": "stat",
+   "stat": "HealthRegen",
+   "mod": "added",
+   "per": "input:germination",
+   "scope": "global",
+   "input": {
+    "key": "germination",
+    "label": "Growth stacks",
+    "default": 4,
+    "max": 4
+   },
+   "confidence": "D"
+  },
+  "223:12": {
+   "kind": "param",
+   "param": "projectiles",
+   "mod": "added",
+   "label": "Spirit Thorns projectiles per Growth stack",
+   "confidence": "D"
+  },
+  "223:11": {
+   "kind": "flag",
+   "text": "Growth stacks in Spriggan form",
+   "confidence": "D"
+  },
+  "440:3": {
+   "kind": "flag",
+   "text": "Puncture cannot dodge",
+   "confidence": "D"
+  },
+  "440:4": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Hit",
+   "when": [
+    "input:distant_enemy"
+   ],
+   "input": {
+    "key": "distant_enemy",
+    "label": "Target at max range",
+    "default": true
+   },
+   "note": "up to v vs distant enemies",
+   "confidence": "D"
+  },
+  "782:2": {
+   "kind": "stat",
+   "stat": "DodgeRating",
+   "mod": "added",
+   "scope": "global",
+   "when": [
+    "input:evading"
+   ],
+   "input": {
+    "key": "evading",
+    "label": "You use Evade",
+    "default": false
+   },
+   "confidence": "D"
+  },
+  "227:0": {
+   "kind": "flag",
+   "text": "Direct cast of Summoned Vines teleports you to target point",
+   "confidence": "D"
+  },
+  "227:1": {
+   "kind": "cooldown",
+   "cooldown": "length_added",
+   "confidence": "D"
+  },
+  "227:2": {
+   "kind": "minion_stat",
+   "stat": "AttackSpeed",
+   "mod": "increased",
+   "scope": "minion",
+   "note": "also casting speed",
+   "confidence": "D?"
+  },
+  "227:3": {
+   "kind": "flag",
+   "text": "Summoned vines immune to poison",
+   "confidence": "D"
+  },
+  "227:4": {
+   "kind": "param",
+   "param": "count",
+   "mod": "increased",
+   "label": "Number of summoned vines",
+   "confidence": "D"
+  },
+  "50:0": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Acid Flask",
+   "confidence": "D"
+  },
+  "340:2": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward on Shift use (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "340:3": {
+   "kind": "cooldown",
+   "cooldown": "charges",
+   "confidence": "D"
+  },
+  "473:1": {
+   "kind": "cooldown",
+   "cooldown": "charges",
+   "note": "in code reader not found",
+   "confidence": "D?"
+  },
+  "473:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward on Smoke Bomb use (flat, v)",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "153:5": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Damned",
+   "per": "input:spirits",
+   "input": {
+    "key": "spirits",
+    "label": "Active Wandering Spirits",
+    "default": 2
+   },
+   "confidence": "D"
+  },
+  "152:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward/sec per Wandering Spirit",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "199:0": {
+   "kind": "flag",
+   "text": "Cleaving Blow hit applies Bleed to you",
+   "confidence": "D"
+  },
+  "199:1": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Cold",
+   "per": "input:bleed_on_you",
+   "input": {
+    "key": "bleed_on_you",
+    "label": "Bleed stacks on you",
+    "default": 3
+   },
+   "confidence": "D"
+  },
+  "140:3": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Sacrifice",
+   "confidence": "D"
+  },
+  "253:3": {
+   "kind": "flag",
+   "text": "Transplant converts each Ignite stack on you into Damned (duration: +160%)",
+   "confidence": "D?"
+  },
+  "253:4": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward on Transplant use",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "370:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Fire|Spell",
+   "per": "input:dread_shades",
+   "input": {
+    "key": "dread_shades",
+    "label": "Active Dread Shades",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "370:2": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Infernal Shade per Dread Shade",
+   "per": "input:dread_shades",
+   "input": {
+    "key": "dread_shades",
+    "label": "Active Dread Shades",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "411:0": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "411:1": {
+   "kind": "minion_stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Frostbite",
+   "note": "minions under Dread Shade",
+   "confidence": "D?"
+  },
+  "411:2": {
+   "kind": "minion_stat",
+   "stat": "FreezeRateMultiplier",
+   "mod": "added",
+   "note": "minions under Dread Shade",
+   "confidence": "D?"
+  },
+  "411:3": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Cold",
+   "per": "input:attached_shades",
+   "input": {
+    "key": "attached_shades",
+    "label": "Attached Infernal Shades",
+    "default": 1
+   },
+   "note": "spells and attacks",
+   "confidence": "D?"
+  },
+  "411:4": {
+   "kind": "minion_stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Cold",
+   "per": "attr:int",
+   "confidence": "D?"
+  },
+  "469:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "note": "Skills used by Shadows (counted by the shadow components)",
+   "confidence": "D"
+  },
+  "468:6": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "ShadowDaggers",
+   "confidence": "D"
+  },
+  "195:10": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "353:0": {
+   "kind": "minion_stat",
+   "stat": "Health",
+   "mod": "added",
+   "per": "attr:att",
+   "confidence": "D"
+  },
+  "353:1": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "per": "attr:att",
+   "confidence": "D"
+  },
+  "353:2": {
+   "kind": "minion_stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Physical|DoT",
+   "per": "attr:str",
+   "note": "only for Bleed from bees",
+   "confidence": "D?"
+  },
+  "353:4": {
+   "kind": "flag",
+   "text": "On Thorn Shield use two nearest bees also get Thorn Shield",
+   "confidence": "D?"
+  },
+  "353:3": {
+   "kind": "minion_stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Frailty",
+   "confidence": "D"
+  },
+  "411:6": {
+   "kind": "flag",
+   "text": "Can control only one Shade",
+   "confidence": "D?"
+  },
+  "411:7": {
+   "kind": "param",
+   "param": "buff_effect",
+   "mod": "increased",
+   "label": "Effect of Dread Shade auras",
+   "confidence": "D"
+  },
+  "411:8": {
+   "kind": "param",
+   "param": "decay",
+   "mod": "increased",
+   "label": "Dread Shade decay speed",
+   "confidence": "D"
+  },
+  "370:4": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Frailty",
+   "note": "also applies Slow; every second to nearest enemies",
+   "confidence": "D?"
+  },
+  "370:5": {
+   "kind": "flag",
+   "text": "Infernal Shade use gives minions temporary invulnerability",
+   "confidence": "D?"
+  },
+  "445:3": {
+   "kind": "param",
+   "param": "count",
+   "mod": "set",
+   "label": "Bees on Decoy burst",
+   "confidence": "D"
+  },
+  "445:0": {
+   "kind": "stat",
+   "stat": "ManaEfficiency",
+   "mod": "increased",
+   "confidence": "D"
+  },
+  "50:2": {
+   "kind": "flag",
+   "text": "Acid Flask hit on bee gives it Toxic Coating",
+   "confidence": "D?"
+  },
+  "353:8": {
+   "kind": "minion_stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Elemental",
+   "per": "attr:dex",
+   "note": "Poison and Elemental; modelled as Elemental",
+   "confidence": "D?"
+  },
+  "157:4": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max bone golems per 4 max skeletons",
+   "confidence": "D?"
+  },
+  "120:9": {
+   "kind": "flag",
+   "text": "Cannot summon skeletons",
+   "confidence": "D?"
+  },
+  "157:5": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "hit",
+   "label": "Ward from golem missing health (6% chance, 1 sec cooldown)",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "157:6": {
+   "kind": "cooldown",
+   "cooldown": "length_added",
+   "scope": "component:BoneShatter",
+   "note": "Bone Shatter gets 1 sec cooldown",
+   "confidence": "D"
+  },
+  "78:6": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "78:7": {
+   "kind": "flag",
+   "text": "Chance to get Corrupted Heraldry on Volcanic Orb use",
+   "confidence": "D?"
+  },
+  "78:8": {
+   "kind": "flag",
+   "text": "Chance to get Corrupted Heraldry on Volcanic Orb shrapnel hit",
+   "confidence": "D?"
+  },
+  "318:4": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward per second per Maelstrom stack",
+   "per": "input:maelstrom",
+   "input": {
+    "key": "maelstrom",
+    "label": "Maelstrom stacks",
+    "default": 1
+   },
+   "confidence": "D",
+   "amount": "none"
+  },
+  "12:2": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of 6th Elemental Nova cast",
+   "when": [
+    "input:supernova"
+   ],
+   "input": {
+    "key": "supernova",
+    "label": "6th cast (Supernova)",
+    "default": false
+   },
+   "confidence": "D?"
+  },
+  "12:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "when": [
+    "input:supernova"
+   ],
+   "input": {
+    "key": "supernova",
+    "label": "6th cast (Supernova)",
+    "default": false
+   },
+   "confidence": "D?"
+  },
+  "1:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "1:3": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "SparkCharge",
+   "confidence": "D"
+  },
+  "1:4": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "227:5": {
+   "kind": "resource",
+   "resource": "rage",
+   "on": "second",
+   "label": "Rage per second per vine",
+   "per": "input:vines",
+   "input": {
+    "key": "vines",
+    "label": "Summoned vines",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "114:0": {
+   "kind": "flag",
+   "text": "Chance to move Devouring Orbs to target on Erasing Strike use",
+   "confidence": "D?"
+  },
+  "97:2": {
+   "kind": "trigger",
+   "ability": "AxeThrow",
+   "on": "second",
+   "chance": 1,
+   "note": "while Warpath is channelled",
+   "confidence": "D"
+  },
+  "97:3": {
+   "kind": "speed",
+   "speed": "increased",
+   "scope": "component:AxeThrow",
+   "per": "increased:Damage",
+   "factor": 10,
+   "note": "per 10% more physical",
+   "confidence": "D?"
+  },
+  "146:6": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Wraith melee attacks",
+   "confidence": "D"
+  },
+  "370:8": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Infernal Shade",
+   "confidence": "D"
+  },
+  "146:3": {
+   "kind": "trigger",
+   "ability": "SummonWraith",
+   "on": "kill",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "146:4": {
+   "kind": "trigger",
+   "ability": "SummonWraith",
+   "on": "kill",
+   "chance": "v",
+   "note": "kill dealt by Wraith",
+   "confidence": "D?"
+  },
+  "370:6": {
+   "kind": "trigger",
+   "ability": "InfernalShade",
+   "on": "kill",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "146:5": {
+   "kind": "trigger",
+   "ability": "InfernalShade",
+   "on": "kill",
+   "chance": "v",
+   "note": "kill dealt by Wraith",
+   "confidence": "D?"
+  },
+  "370:7": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "when": [
+    "enemy:boss_or_rare"
+   ],
+   "per": "input:wraiths",
+   "input": {
+    "key": "wraiths",
+    "label": "Active Wraiths",
+    "default": 1
+   },
+   "confidence": "D?"
+  },
+  "341:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "confidence": "D"
+  },
+  "341:2": {
+   "kind": "flag",
+   "text": "Detonating Arrow becomes melee attack",
+   "confidence": "D"
+  },
+  "66:0": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Spark Charge burst",
+   "confidence": "D"
+  },
+  "179:1": {
+   "kind": "flag",
+   "text": "Teleport applies Spark Charge to all enemies at destination",
+   "confidence": "D?"
+  },
+  "197:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "attr:att",
+   "when": [
+    "input:unarmed"
+   ],
+   "input": {
+    "key": "unarmed",
+    "label": "Barehanded",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "197:3": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Judgement per Attunement",
+   "per": "attr:att",
+   "when": [
+    "input:unarmed"
+   ],
+   "input": {
+    "key": "unarmed",
+    "label": "Barehanded",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "197:5": {
+   "kind": "mana",
+   "mana": "added",
+   "when": [
+    "input:unarmed"
+   ],
+   "input": {
+    "key": "unarmed",
+    "label": "Barehanded",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "7:1": {
+   "kind": "param",
+   "param": "speed",
+   "mod": "increased",
+   "label": "Speed of meteor fall",
+   "confidence": "D"
+  },
+  "263:4": {
+   "kind": "param",
+   "param": "chains",
+   "mod": "added",
+   "label": "Additional Shurikens ricochet (chance)",
+   "factor": 3,
+   "confidence": "D?"
+  },
+  "173:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward per second per 1% unlimited phys resistance",
+   "per": "res:0",
+   "factor": 100,
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "489:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Fire|Throwing",
+   "per": "increased:IncreasedPotionDropRate",
+   "factor": 50,
+   "confidence": "D"
+  },
+  "8:4": {
+   "kind": "flag",
+   "text": "Chance to counter-attack Lightning Strike when wolves are hit",
+   "confidence": "D?"
+  },
+  "8:5": {
+   "kind": "flag",
+   "text": "Wolves cannot stun",
+   "confidence": "D?"
+  },
+  "408:3": {
+   "kind": "flag",
+   "text": "Chance for unstable zombies to resurrect in 1 sec",
+   "confidence": "D?"
+  },
+  "294:1": {
+   "kind": "flag",
+   "text": "Chance to get 15 Static Charges on hit received",
+   "confidence": "D?"
+  },
+  "294:2": {
+   "kind": "trigger",
+   "ability": "Static",
+   "on": "hit_taken",
+   "chance": "v",
+   "confidence": "D"
+  },
+  "689:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "input:runes",
+   "input": {
+    "key": "runes",
+    "label": "Active runes",
+    "default": 3,
+    "max": 3
+   },
+   "confidence": "D"
+  },
+  "689:1": {
+   "kind": "stat",
+   "stat": "Armour",
+   "mod": "added",
+   "per": "input:rah_runes",
+   "input": {
+    "key": "rah_runes",
+    "label": "Runes Rah",
+    "default": 1,
+    "max": 3
+   },
+   "confidence": "D"
+  },
+  "689:2": {
+   "kind": "stat",
+   "stat": "DodgeRating",
+   "mod": "added",
+   "per": "input:heo_runes",
+   "input": {
+    "key": "heo_runes",
+    "label": "Runes Heo",
+    "default": 1,
+    "max": 3
+   },
+   "confidence": "D"
+  },
+  "689:3": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward per second per Gon rune",
+   "per": "input:gon_runes",
+   "input": {
+    "key": "gon_runes",
+    "label": "Runes Gon",
+    "default": 1,
+    "max": 3
+   },
+   "confidence": "D",
+   "amount": "none"
+  },
+  "689:4": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "input:min_def_tens",
+   "input": {
+    "key": "min_def_tens",
+    "label": "Least of armor/dodge/ward (in tens)",
+    "default": 20
+   },
+   "note": "minimum of three values entered manually",
+   "confidence": "D?"
+  },
+  "12:0": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Elemental Nova",
+   "confidence": "D"
+  },
+  "12:4": {
+   "kind": "flag",
+   "text": "Elemental Nova always tri-element",
+   "confidence": "D"
+  },
+  "690:0": {
+   "kind": "flag",
+   "text": "Runebolt element matches last single-element ability",
+   "confidence": "D?"
+  },
+  "690:1": {
+   "kind": "flag",
+   "text": "Runebolt different element gives Numeromancy stack (up to 5)",
+   "confidence": "D?"
+  },
+  "50:3": {
+   "kind": "flag",
+   "text": "Acid Flask spends potion for additional throw with increased damage",
+   "confidence": "D?"
+  },
+  "50:4": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "when": [
+    "input:potion_flask"
+   ],
+   "input": {
+    "key": "potion_flask",
+    "label": "Throw from potion",
+    "default": true
+   },
+   "note": "only additional throw",
+   "confidence": "D?"
+  },
+  "179:2": {
+   "kind": "flag",
+   "text": "Wrongwarp on Teleport or Transplant use",
+   "confidence": "D?"
+  },
+  "696:1": {
+   "kind": "flag",
+   "text": "Volcanic Orb speed modifiers apply to Flame Rush speed and range",
+   "note": "coefficient 60-64%",
+   "confidence": "D?"
+  },
+  "694:1": {
+   "kind": "flag",
+   "text": "Fire Aura area increase also affects Glyph of Dominion",
+   "confidence": "D"
+  },
+  "694:2": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "second",
+   "chance": "v",
+   "note": "while you stand on Glyph of Dominion",
+   "confidence": "D?"
+  },
+  "696:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "input:fire_aura_stacks",
+   "input": {
+    "key": "fire_aura_stacks",
+    "label": "Fire Aura stacks",
+    "default": 1
+   },
+   "confidence": "D"
+  },
+  "689:9": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Fire",
+   "confidence": "D"
+  },
+  "689:12": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Hydrahedron",
+   "confidence": "D?"
+  },
+  "689:13": {
+   "kind": "param",
+   "param": "cast_rate",
+   "mod": "increased",
+   "label": "Speed of Hydrahedron use",
+   "confidence": "D?"
+  },
+  "689:14": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "when": [
+    "input:wand_heo_first"
+   ],
+   "input": {
+    "key": "wand_heo_first",
+    "label": "Staff, first rune Heo",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "689:15": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "when": [
+    "input:staff_gon_first"
+   ],
+   "input": {
+    "key": "staff_gon_first",
+    "label": "Staff, first rune Gon",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "689:16": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "when": [
+    "input:sceptre_rah_first"
+   ],
+   "input": {
+    "key": "sceptre_rah_first",
+    "label": "Scepter, first rune Rah",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "689:17": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "attr:str",
+   "when": [
+    "input:heo_second"
+   ],
+   "input": {
+    "key": "heo_second",
+    "label": "Second rune Heo",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "689:18": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "attr:dex",
+   "when": [
+    "input:gon_second"
+   ],
+   "input": {
+    "key": "gon_second",
+    "label": "Second rune Gon",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "689:19": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "attr:att",
+   "when": [
+    "input:rah_second"
+   ],
+   "input": {
+    "key": "rah_second",
+    "label": "Second rune Rah",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "708:0": {
+   "kind": "trigger",
+   "ability": "LightningBlast",
+   "on": "crit",
+   "chance": "v",
+   "icd": 0.3333,
+   "note": "not more than 3 times per second",
+   "confidence": "D"
+  },
+  "708:1": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "crit",
+   "label": "Ward on Frost Claw crit",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "694:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "second",
+   "label": "Ward per second on Glyph of Dominion",
+   "when": [
+    "input:on_glyph"
+   ],
+   "input": {
+    "key": "on_glyph",
+    "label": "Stand on Glyph of Dominion",
+    "default": true
+   },
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "694:3": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "703:0": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "increased",
+   "label": "Duration of Frost Wall",
+   "confidence": "D"
+  },
+  "703:4": {
+   "kind": "flag",
+   "text": "Frost Wall is placed before you, you jump back and trigger Blizzard",
+   "confidence": "D?"
+  },
+  "689:20": {
+   "kind": "flag",
+   "text": "Runic Invocation gives Dawn to Dusk and Dusk to Midnight",
+   "confidence": "D?"
+  },
+  "536:4": {
+   "kind": "flag",
+   "text": "Javelin splits on hit into 2 piercing spears and 1 additional per 12 Dexterity",
+   "confidence": "D?"
+  },
+  "261:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Enemies under Torment per 10 Intelligence",
+   "per": "attr:int",
+   "factor": 0.1,
+   "confidence": "D"
+  },
+  "261:1": {
+   "kind": "flag",
+   "text": "You apply Torment to yourself on Soul Feast use",
+   "confidence": "D?"
+  },
+  "261:2": {
+   "kind": "flag",
+   "text": "Haste for 3 sec on Soul Feast use",
+   "confidence": "D?"
+  },
+  "261:3": {
+   "kind": "trigger",
+   "ability": "Warlock 04 Chthonic Fissure",
+   "on": "hit",
+   "chance": "v",
+   "note": "vs boss/rare, if no active Fissure",
+   "confidence": "D?"
+  },
+  "689:21": {
+   "kind": "flag",
+   "text": "Runic Invocation runes do not change while not consumed (one rune)",
+   "confidence": "D?"
+  },
+  "689:24": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Elemental",
+   "per": "attr:int",
+   "factor": 0.11,
+   "max": 0.11,
+   "when": [
+    "input:one_rune"
+   ],
+   "input": {
+    "key": "one_rune",
+    "label": "Invocation with one rune",
+    "default": true
+   },
+   "note": "chance per Intelligence × 11% (average)",
+   "confidence": "D?"
+  },
+  "689:22": {
+   "kind": "flag",
+   "text": "Runic Invocation runes do not change while not consumed (two runes)",
+   "confidence": "D?"
+  },
+  "689:25": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Elemental",
+   "per": "attr:int",
+   "factor": 0.22,
+   "max": 0.22,
+   "when": [
+    "input:two_runes"
+   ],
+   "input": {
+    "key": "two_runes",
+    "label": "Invocation with two runes",
+    "default": true
+   },
+   "note": "chance per Intelligence × 22% (average)",
+   "confidence": "D?"
+  },
+  "689:23": {
+   "kind": "flag",
+   "text": "Runic Invocation runes do not change while not consumed (three runes)",
+   "confidence": "D?"
+  },
+  "689:26": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Elemental",
+   "per": "attr:int",
+   "factor": 0.33,
+   "max": 0.33,
+   "when": [
+    "input:three_runes"
+   ],
+   "input": {
+    "key": "three_runes",
+    "label": "Invocation with three runes",
+    "default": true
+   },
+   "note": "chance per Intelligence × 33% (average)",
+   "confidence": "D?"
+  },
+  "373:0": {
+   "kind": "flag",
+   "text": "Drain Life instead uses Stygian Beam",
+   "confidence": "D"
+  },
+  "373:1": {
+   "kind": "speed",
+   "speed": "increased",
+   "scope": "component:Drain Life Stygian Beam",
+   "per": "attr:int",
+   "note": "Stygian Beam frequency",
+   "confidence": "D?"
+  },
+  "373:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "scope": "component:Drain Life Stygian Beam",
+   "per": "max_mana",
+   "factor": 0.1,
+   "note": "per 10 current mana; full mana taken",
+   "confidence": "D?"
+  },
+  "722:0": {
+   "kind": "trigger",
+   "ability": "Flame Whip",
+   "on": "use",
+   "chance": "v",
+   "note": "instead of releasing Fissure spirits",
+   "confidence": "D?"
+  },
+  "722:1": {
+   "kind": "flag",
+   "text": "Chthonic Fissure tree applies to Flame Whip",
+   "confidence": "D?"
+  },
+  "50:5": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "727:3": {
+   "kind": "minion_stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Bleed",
+   "per": "value:AilmentChance",
+   "note": "fraction of your Bleed chance",
+   "confidence": "D?"
+  },
+  "727:5": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "hit",
+   "label": "Health per Dexterity on falcon hit",
+   "per": "attr:dex",
+   "note": "falcon hit",
+   "confidence": "D?",
+   "amount": "none"
+  },
+  "481:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Melee",
+   "per": "input:falconry_level",
+   "input": {
+    "key": "falconry_level",
+    "label": "Falconry level",
+    "default": 1
+   },
+   "note": "barehanded only",
+   "confidence": "D?"
+  },
+  "481:5": {
+   "kind": "param",
+   "param": "area",
+   "mod": "increased",
+   "label": "Area of Cinder Strike per Falconry level",
+   "per": "input:falconry_level",
+   "input": {
+    "key": "falconry_level",
+    "label": "Falconry level",
+    "default": 1
+   },
+   "note": "barehanded only",
+   "confidence": "D"
+  },
+  "146:7": {
+   "kind": "flag",
+   "text": "Chance Wraith summons Wraithlord instead of itself",
+   "confidence": "D?"
+  },
+  "321:0": {
+   "kind": "flag",
+   "text": "Can summon Raptors up to companion limit",
+   "confidence": "D"
+  },
+  "321:1": {
+   "kind": "flag",
+   "text": "Reduced Raptor size",
+   "confidence": "D?"
+  },
+  "321:2": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "more",
+   "confidence": "D"
+  },
+  "731:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Umbral Blades per 20 Dexterity (Aerial Assault)",
+   "per": "attr:dex",
+   "factor": 0.05,
+   "confidence": "D?"
+  },
+  "731:1": {
+   "kind": "stat",
+   "stat": "AttackSpeed",
+   "mod": "increased",
+   "tags": "Throwing",
+   "when": [
+    "input:after_aerial"
+   ],
+   "input": {
+    "key": "after_aerial",
+    "label": "After Aerial Assault (2 sec)",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "731:2": {
+   "kind": "flag",
+   "text": "Haste for 2 sec after Aerial Assault use",
+   "confidence": "D?"
+  },
+  "468:8": {
+   "kind": "flag",
+   "text": "Lethal Mirage - fast attack without invulnerability",
+   "confidence": "D"
+  },
+  "186:3": {
+   "kind": "flag",
+   "text": "Increased speed of Sigils of Hope symbol accumulation",
+   "confidence": "D?"
+  },
+  "793:0": {
+   "kind": "stat",
+   "stat": "CriticalMultiplier",
+   "mod": "added",
+   "per": "input:chill_chance_tens",
+   "input": {
+    "key": "chill_chance_tens",
+    "label": "Chance for melee Chill without limit (in tens %)",
+    "default": 5
+   },
+   "note": "per 10% chance",
+   "confidence": "D?"
+  },
+  "793:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "input:time_rot_tens",
+   "input": {
+    "key": "time_rot_tens",
+    "label": "Chance for melee Time Rot without limit (in tens %)",
+    "default": 5
+   },
+   "note": "per 10% chance",
+   "confidence": "D?"
+  },
+  "216:6": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Additional Smite targets (chance for 2 targets)",
+   "factor": 2,
+   "confidence": "D?"
+  },
+  "114:2": {
+   "kind": "flag",
+   "text": "Stun immunity during Erasing Strike",
+   "confidence": "D?"
+  },
+  "114:3": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "note": "while using Erasing Strike",
+   "confidence": "D"
+  },
+  "220:7": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Necrotic|Melee",
+   "confidence": "D"
+  },
+  "220:6": {
+   "kind": "flag",
+   "text": "Glove stats apply to Forged Weapons",
+   "note": "fraction 64-100%",
+   "confidence": "D?"
+  },
+  "220:5": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "increased",
+   "label": "Duration of Forged Weapon",
+   "confidence": "D"
+  },
+  "29:0": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "17:1": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "782:0": {
+   "kind": "cooldown",
+   "cooldown": "charges",
+   "confidence": "D"
+  },
+  "782:1": {
+   "kind": "cooldown",
+   "cooldown": "recovery_increased",
+   "confidence": "D"
+  },
+  "65:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Tentacles of Static Orb",
+   "confidence": "D"
+  },
+  "61:1": {
+   "kind": "trigger",
+   "ability": "SummonLocust",
+   "on": "hit",
+   "chance": "v",
+   "icd": 0.6667,
+   "note": "not more than 3 times per 2 sec",
+   "confidence": "D"
+  },
+  "582:0": {
+   "kind": "minion_stat",
+   "stat": "AttackSpeed",
+   "mod": "increased",
+   "note": "also casting speed and movement speed",
+   "confidence": "D?"
+  },
+  "582:4": {
+   "kind": "param",
+   "param": "count",
+   "mod": "set",
+   "label": "Max locusts",
+   "confidence": "D"
+  },
+  "582:2": {
+   "kind": "minion_stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Physical|Melee",
+   "confidence": "D"
+  },
+  "402:3": {
+   "kind": "flag",
+   "text": "Void Cleave applies instantly",
+   "confidence": "D"
+  },
+  "402:4": {
+   "kind": "flag",
+   "text": "Void Cleave without weapon requirement",
+   "confidence": "D"
+  },
+  "402:5": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "added",
+   "label": "Duration of Ravaging Aura (sec)",
+   "confidence": "D"
+  },
+  "402:6": {
+   "kind": "stat",
+   "stat": "Penetration",
+   "mod": "added",
+   "tags": "Void",
+   "when": [
+    "input:ravaging_aura"
+   ],
+   "input": {
+    "key": "ravaging_aura",
+    "label": "Ravaging Aura active",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "782:3": {
+   "kind": "flag",
+   "text": "Evade replaced by Terrify",
+   "confidence": "D?"
+  },
+  "782:4": {
+   "kind": "flag",
+   "text": "Evade turns into Crab",
+   "confidence": "D?"
+  },
+  "405:2": {
+   "kind": "flag",
+   "text": "Chance to get Black Arrow on dodge",
+   "confidence": "D?"
+  },
+  "405:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Void|Bow",
+   "per": "buff:DuskShroud",
+   "confidence": "D"
+  },
+  "782:5": {
+   "kind": "flag",
+   "text": "Evade replaced by Spirit Step",
+   "confidence": "D?"
+  },
+  "152:1": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "175:0": {
+   "kind": "flag",
+   "text": "While channelling Focus you move toward the target at 80% speed",
+   "confidence": "D?"
+  },
+  "107:4": {
+   "kind": "param",
+   "param": "range",
+   "mod": "increased",
+   "label": "Range of Vengeance",
+   "confidence": "D"
+  },
+  "108:1": {
+   "kind": "trigger",
+   "ability": "Javelin",
+   "on": "use",
+   "chance": "v",
+   "note": "on Riposte",
+   "confidence": "D"
+  },
+  "108:2": {
+   "kind": "stat",
+   "stat": "BlockChance",
+   "mod": "added",
+   "when": [
+    "input:preparing_riposte"
+   ],
+   "input": {
+    "key": "preparing_riposte",
+    "label": "Preparing Riposte",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "108:3": {
+   "kind": "stat",
+   "stat": "BlockEffectiveness",
+   "mod": "added",
+   "when": [
+    "input:preparing_riposte"
+   ],
+   "input": {
+    "key": "preparing_riposte",
+    "label": "Preparing Riposte",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "807:0": {
+   "kind": "param",
+   "param": "recurve",
+   "mod": "added",
+   "label": "Chance of Heartseeker return",
+   "confidence": "D"
+  },
+  "807:1": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "369:0": {
+   "kind": "flag",
+   "text": "Bone Curse also applies Decrepify",
+   "confidence": "D"
+  },
+  "369:1": {
+   "kind": "flag",
+   "text": "Bone Curse also applies Penance",
+   "confidence": "D"
+  },
+  "369:2": {
+   "kind": "flag",
+   "text": "Bone Curse also applies Acid Skin",
+   "confidence": "D"
+  },
+  "689:27": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "ailment": "Ignite",
+   "per": "input:runes",
+   "input": {
+    "key": "runes",
+    "label": "Runes",
+    "default": 3,
+    "max": 3
+   },
+   "note": "Ignite, Shock or Chill; modelled as Ignite",
+   "confidence": "D?"
+  },
+  "689:28": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "689:29": {
+   "kind": "flag",
+   "text": "Chance not to spend runes on Invoke per unique rune",
+   "confidence": "D?"
+  },
+  "689:30": {
+   "kind": "flag",
+   "text": "Invocation with three runes always applies Grand Nova Prism",
+   "confidence": "D"
+  },
+  "560:1": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max Vale spirits per 12 Attunement",
+   "per": "attr:att",
+   "factor": 0.0833333,
+   "confidence": "D"
+  },
+  "100:0": {
+   "kind": "flag",
+   "text": "Volatile Reversal: more Void damage or Fire conversion from Int",
+   "confidence": "D?"
+  },
+  "152:2": {
+   "kind": "flag",
+   "text": "Wandering Spirits applies from tombstone",
+   "confidence": "D?"
+  },
+  "152:3": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "tags": "Necrotic|DoT",
+   "when": [
+    "input:gravestone_aura"
+   ],
+   "input": {
+    "key": "gravestone_aura",
+    "label": "In tombstone aura",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "152:4": {
+   "kind": "param",
+   "param": "reveal_rate",
+   "mod": "increased",
+   "label": "Opening speed of Wandering Spirits",
+   "confidence": "D"
+  },
+  "782:6": {
+   "kind": "param",
+   "param": "range",
+   "mod": "increased",
+   "label": "Evade distance",
+   "confidence": "D"
+  },
+  "428:0": {
+   "kind": "param",
+   "param": "range",
+   "mod": "increased",
+   "label": "Firebrand range",
+   "confidence": "D"
+  },
+  "440:6": {
+   "kind": "param",
+   "param": "range",
+   "mod": "increased",
+   "label": "Puncture range",
+   "confidence": "D"
+  },
+  "291:6": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max spell skeletons",
+   "confidence": "D"
+  },
+  "715:1": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Spell",
+   "per": "weapon_added:melee",
+   "confidence": "D?",
+   "note": "Chaos Bolts: added spell damage = 50% (the property value) of the added melee damage on the equipped weapons"
+  },
+  "185:6": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "confidence": "D?",
+   "factor": 1.5,
+   "base_cooldown": 5,
+   "when": [
+    "use:direct"
+   ],
+   "note": "Great Harvest on direct use: damage +150% and a 5 sec cooldown; area +50% (not counted)"
+  },
+  "185:9": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "kill",
+   "label": "Max mana on Great Harvest kill",
+   "confidence": "D"
+  },
+  "185:10": {
+   "kind": "resource",
+   "resource": "mana",
+   "on": "hit",
+   "label": "Max mana on Great Harvest hit vs rare/boss",
+   "confidence": "D"
+  },
+  "469:5": {
+   "kind": "param",
+   "param": "shadow_recreate_chance",
+   "mod": "added",
+   "label": "Chance to create new Shadow on absorption",
+   "confidence": "D"
+  },
+  "469:4": {
+   "kind": "stat",
+   "stat": "CriticalChance",
+   "mod": "added",
+   "confidence": "D?",
+   "note": "For abilities used by Shadows"
+  },
+  "469:0": {
+   "kind": "param",
+   "param": "count",
+   "mod": "added",
+   "label": "Max shadows",
+   "confidence": "D"
+  },
+  "469:1": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "use",
+   "label": "Health on Shadow creation",
+   "confidence": "D",
+   "amount": "flat"
+  },
+  "469:6": {
+   "kind": "flag",
+   "text": "Chance to get Dusk Shroud stack on Shadow absorption",
+   "confidence": "D"
+  },
+  "450:15": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "489:2": {
+   "kind": "trigger",
+   "ability": "Burning Dagger Throw",
+   "on": "hit",
+   "chance": "v",
+   "confidence": "D?",
+   "icd": 0.25,
+   "note": "On melee fire hit, doubled for Dancing Strikes, up to 4 times per second"
+  },
+  "214:14": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "881:1": {
+   "kind": "flag",
+   "text": "Shadow Rend no longer moves you",
+   "confidence": "D"
+  },
+  "881:0": {
+   "kind": "param",
+   "param": "hits",
+   "mod": "added",
+   "label": "Additional shadow attack with different weapon type",
+   "confidence": "D?"
+  },
+  "580:0": {
+   "kind": "param",
+   "param": "duration",
+   "mod": "increased",
+   "label": "Duration of Bladestorm",
+   "confidence": "D"
+  },
+  "580:1": {
+   "kind": "trigger",
+   "ability": "Falconer 04 Explosive Trap",
+   "on": "second",
+   "chance": 1,
+   "confidence": "D?",
+   "note": "Bladestorm throws Explosive Trap every second, spending mana at 120%"
+  },
+  "17:11": {
+   "kind": "cooldown",
+   "cooldown": "charges",
+   "confidence": "D"
+  },
+  "17:12": {
+   "kind": "flag",
+   "text": "Direct use of Fury Leap/Warcry summons max Thorn Totems (speed: +100%, 1 sec)",
+   "confidence": "D"
+  },
+  "58:0": {
+   "kind": "flag",
+   "text": "Applies Bleed stacks to you per summoned Thorn Totem",
+   "confidence": "D"
+  },
+  "256:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "256:3": {
+   "kind": "stat",
+   "stat": "EffectOfAilmentOnYou",
+   "mod": "increased",
+   "confidence": "D",
+   "ailment": "Haste",
+   "note": "While Aura of Decay is active"
+  },
+  "256:4": {
+   "kind": "param",
+   "param": "zombie_rez_chance",
+   "mod": "added",
+   "label": "Chance to resurrect Volatile Zombies in aura",
+   "confidence": "D"
+  },
+  "339:9": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "550:1": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "550:2": {
+   "kind": "trigger",
+   "ability": "EarthquakeSlam",
+   "on": "hit",
+   "chance": 1,
+   "confidence": "D?",
+   "icd": 0.5,
+   "note": "At 30+ Storm Stacks: spends 20 stacks and 50% Earthquake mana"
+  },
+  "75:3": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "510:7": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "75:4": {
+   "kind": "param",
+   "param": "projectiles",
+   "mod": "added",
+   "label": "Additional Thorn Volley projectiles per Storm Crow",
+   "confidence": "D?",
+   "per": "input:crows",
+   "input": {
+    "key": "crows",
+    "label": "Summoned Storm Crows",
+    "default": 1
+   }
+  },
+  "75:5": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "confidence": "D",
+   "per": "input:crows",
+   "input": {
+    "key": "crows",
+    "label": "Summoned Storm Crows",
+    "default": 1
+   },
+   "note": "For Thorn Volley of summoned Spriggan"
+  },
+  "78:9": {
+   "kind": "trigger",
+   "ability": "VolcanicOrb",
+   "on": "use",
+   "chance": "v",
+   "confidence": "D?",
+   "icd": 3,
+   "note": "Fire Volcanic Orb on direct fire melee hit or movement"
+  },
+  "78:10": {
+   "kind": "trigger",
+   "ability": "VolcanicOrb",
+   "on": "use",
+   "chance": "v",
+   "confidence": "D?",
+   "icd": 3,
+   "note": "Cold Volcanic Orb on direct cold melee hit or movement"
+  },
+  "120:21": {
+   "kind": "param",
+   "param": "count",
+   "mod": "more",
+   "label": "Max number of skeletons (doubled)",
+   "confidence": "D"
+  },
+  "120:22": {
+   "kind": "flag",
+   "text": "Skeletons get Frenzy and Haste for 4 sec on summon",
+   "confidence": "D"
+  },
+  "209:14": {
+   "kind": "flag",
+   "text": "Avalanche gets added spell damage equal to added melee weapon damage",
+   "confidence": "D?"
+  },
+  "209:15": {
+   "kind": "trigger",
+   "ability": "Avalanche",
+   "on": "hit",
+   "chance": 1,
+   "confidence": "D?",
+   "icd": 0.2,
+   "note": "Melee hits trigger Avalanche boulder at target, up to 5 times per second"
+  },
+  "757:6": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "757:7": {
+   "kind": "flag",
+   "text": "Storm Bolt: added spell damage per 1 melee weapon damage (phys/cold/lightning)",
+   "confidence": "D?"
+  },
+  "782:10": {
+   "kind": "cooldown",
+   "cooldown": "length_increased",
+   "factor": -1,
+   "note": "Dodge without cooldown",
+   "confidence": "D"
+  },
+  "782:11": {
+   "kind": "flag",
+   "text": "Dodge applies leftmost specializable ability",
+   "confidence": "D"
+  },
+  "782:12": {
+   "kind": "param",
+   "param": "speed",
+   "mod": "more",
+   "label": "Movement speed on Dodge",
+   "confidence": "D"
+  },
+  "143:12": {
+   "kind": "param",
+   "param": "health_cost",
+   "mod": "added",
+   "label": "Max health spent for Marrow Shards return",
+   "confidence": "D"
+  },
+  "143:13": {
+   "kind": "param",
+   "param": "speed",
+   "mod": "more",
+   "label": "Projectile speed per 2% missing health",
+   "confidence": "D?",
+   "per": "input:missing_hp",
+   "factor": 0.5,
+   "input": {
+    "key": "missing_hp",
+    "label": "Missing health, %",
+    "default": 0,
+    "max": 100
+   },
+   "note": "Does not affect return speed"
+  },
+  "71:11": {
+   "kind": "trigger",
+   "ability": "Upheaval",
+   "on": "use",
+   "chance": "v",
+   "confidence": "D?",
+   "note": "Only at mana above half; spends 100% Upheaval mana"
+  },
+  "71:12": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "confidence": "D",
+   "per": "increased:IncreasedAreaForAreaSkills",
+   "factor": 50,
+   "note": "Per 2% area increase"
+  },
+  "924:2": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "923:12": {
+   "kind": "conversion",
+   "confidence": "D"
+  },
+  "253:1": {
+   "kind": "trigger",
+   "ability": "MarrowShards",
+   "on": "use",
+   "chance": "v",
+   "note": "Marrow Shards when you cast Transplant",
+   "confidence": "D"
+  }
+ },
+ "component": {
+  "0:0": {
+   "kind": "flag",
+   "text": "Kill with fire ability: 1 fire damage to self per kill per second (≈4 per 2 sec)",
+   "confidence": "D"
+  },
+  "3:0": {
+   "kind": "flag",
+   "text": "Extra companions disappear on removal",
+   "confidence": "D"
+  },
+  "5:0": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "10:0": {
+   "kind": "stat",
+   "stat": "ManaRegen",
+   "mod": "increased",
+   "per": "res:3",
+   "factor": 0.5,
+   "scope": "global",
+   "note": "+0.5 to mana regen speed per 1.0 unlimited lightning resistance",
+   "confidence": "D"
+  },
+  "12:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Cold|Melee",
+   "factor": 30,
+   "when": [
+    "input:above65"
+   ],
+   "input": {
+    "key": "above65",
+    "label": "Health above 65%",
+    "default": true
+   },
+   "confidence": "D"
+  },
+  "12:1": {
+   "kind": "stat",
+   "stat": "HealthLeech",
+   "mod": "added",
+   "tags": "Melee",
+   "factor": 0.3,
+   "when": [
+    "input:!above65"
+   ],
+   "input": {
+    "key": "above65",
+    "label": "Health above 65%",
+    "default": true
+   },
+   "note": "+0.3 in game units (3% in the tooltip)",
+   "confidence": "D"
+  },
+  "14:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "16:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "17:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "18:0": {
+   "kind": "flag",
+   "text": "No effect in code",
+   "confidence": "D"
+  },
+  "19:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Cold",
+   "per": "attr:dex",
+   "factor": 1,
+   "note": "+1 cold damage to attacks and spells per Dexterity; also -1% phys and cold resistance per Dexterity (not counted)",
+   "confidence": "D?"
+  },
+  "20:0": {
+   "kind": "flag",
+   "text": "You are shocked for 4 sec when stop moving",
+   "confidence": "D"
+  },
+  "21:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "22:0": {
+   "kind": "trigger",
+   "ability": "SwarmOfBees",
+   "on": "hit",
+   "chance": 0.1,
+   "icd": 8,
+   "note": "melee hits only",
+   "confidence": "D"
+  },
+  "23:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "26:0": {
+   "kind": "stat",
+   "stat": "AilmentChance",
+   "mod": "added",
+   "tags": "Necrotic",
+   "ailment": "Chill",
+   "factor": 1,
+   "when": [
+    "input:killed_recently"
+   ],
+   "input": {
+    "key": "killed_recently",
+    "label": "Killed enemy recently",
+    "default": true
+   },
+   "note": "4 sec after kill",
+   "confidence": "D"
+  },
+  "28:0": {
+   "kind": "stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "factor": -0.08,
+   "when": [
+    "input:minion_killed"
+   ],
+   "input": {
+    "key": "minion_killed",
+    "label": "Minions killed enemy recently",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "28:1": {
+   "kind": "minion_stat",
+   "stat": "DamageTaken",
+   "mod": "more",
+   "factor": -0.25,
+   "when": [
+    "input:killed_recently"
+   ],
+   "input": {
+    "key": "killed_recently",
+    "label": "You killed enemy recently",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "29:0": {
+   "kind": "flag",
+   "text": "Melee hit vs bleeding enemy doubles speed of all Bleed stacks",
+   "confidence": "D"
+  },
+  "30:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Physical",
+   "factor": 0.08,
+   "per": "input:stacks",
+   "src_max": 51,
+   "when": [
+    "enemy:Bleed"
+   ],
+   "input": {
+    "key": "stacks",
+    "label": "Recent melee hits vs bleeding enemy",
+    "default": 10,
+    "max": 51
+   },
+   "note": "Each stack 4 sec, up to 51 stacks",
+   "confidence": "D"
+  },
+  "32:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Cold",
+   "per": "input:level",
+   "factor": 0.2,
+   "input": {
+    "key": "level",
+    "label": "Character level",
+    "default": 100,
+    "max": 100
+   },
+   "note": "+0.2 cold damage to spells per level; also +2% chill speed and +1% necrotic resistance per level (not counted)",
+   "confidence": "D?"
+  },
+  "32:1": {
+   "kind": "trigger",
+   "ability": "TundraNova",
+   "on": "hit",
+   "chance": 0.15,
+   "note": "chance doubled vs undead; cold abilities only",
+   "confidence": "D"
+  },
+  "33:0": {
+   "kind": "resource",
+   "resource": "ward",
+   "on": "use",
+   "label": "Ward = 100% max mana at full mana",
+   "confidence": "D",
+   "amount": "none"
+  },
+  "34:2": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "35:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "37:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "40:0": {
+   "kind": "trigger",
+   "ability": "SummonSkeletonHarvester",
+   "on": "kill",
+   "chance": 0.2,
+   "confidence": "D"
+  },
+  "41:0": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "added",
+   "tags": "Physical|Melee",
+   "per": "input:level",
+   "factor": 1,
+   "input": {
+    "key": "level",
+    "label": "Character level",
+    "default": 100,
+    "max": 100
+   },
+   "note": "also stun chance +1% when using melee per level (not counted)",
+   "confidence": "D"
+  },
+  "42:0": {
+   "kind": "trigger",
+   "ability": "PontifexCremate",
+   "on": "kill",
+   "chance": 1,
+   "confidence": "D"
+  },
+  "48:0": {
+   "kind": "trigger",
+   "ability": "FireShardNova",
+   "on": "hit",
+   "chance": 0.3,
+   "note": "Magma Shards; melee hits only",
+   "confidence": "D?"
+  },
+  "51:1": {
+   "kind": "stat",
+   "stat": "DodgeRating",
+   "mod": "increased",
+   "factor": 0.4,
+   "per": "input:blocks",
+   "input": {
+    "key": "blocks",
+    "label": "Blocks in last 4 sec",
+    "default": 1
+   },
+   "note": "4 sec, no stack limit",
+   "confidence": "D"
+  },
+  "52:0": {
+   "kind": "trigger",
+   "ability": "SoulEruption",
+   "on": "kill",
+   "chance": 0.2,
+   "note": "every 5th kill per 10 sec",
+   "confidence": "D"
+  },
+  "53:0": {
+   "kind": "flag",
+   "text": "Fire shield refreshes for 80 ward when less than 1 sec remains",
+   "confidence": "D"
+  },
+  "54:0": {
+   "kind": "stat",
+   "stat": "StunAvoidance",
+   "mod": "added",
+   "per": "max_mana",
+   "factor": 2,
+   "confidence": "D"
+  },
+  "54:1": {
+   "kind": "trigger",
+   "ability": "LightningExplosion",
+   "on": "stun",
+   "chance": 1,
+   "confidence": "D"
+  },
+  "55:0": {
+   "kind": "flag",
+   "text": "On spell cast Bleed is applied to you",
+   "confidence": "D"
+  },
+  "56:0": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "57:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "58:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "59:0": {
+   "kind": "resource",
+   "resource": "health",
+   "on": "minion_death",
+   "label": "Health on minion death (30)",
+   "confidence": "D"
+  },
+  "60:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "62:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "63:0": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "64:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "65:0": {
+   "kind": "trigger",
+   "ability": "SummonIllusoryTree",
+   "on": "hit_taken",
+   "chance": 0.1,
+   "icd": 15,
+   "confidence": "D"
+  },
+  "66:1": {
+   "kind": "flag",
+   "text": "Marker with no own effect in code",
+   "confidence": "D"
+  },
+  "70:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "increased",
+   "tags": "Fire",
+   "factor": 0.6,
+   "when": [
+    "input:killed_recently"
+   ],
+   "input": {
+    "key": "killed_recently",
+    "label": "Recently killed enemy",
+    "default": true
+   },
+   "note": "4 sec",
+   "confidence": "D"
+  },
+  "70:3": {
+   "kind": "stat",
+   "stat": "Armour",
+   "mod": "increased",
+   "factor": 1,
+   "when": [
+    "input:ignited"
+   ],
+   "input": {
+    "key": "ignited",
+    "label": "You are ignited",
+    "default": false
+   },
+   "confidence": "D"
+  },
+  "73:1": {
+   "kind": "flag",
+   "text": "20% chance to blind attackers",
+   "confidence": "D"
+  },
+  "74:1": {
+   "kind": "trigger",
+   "ability": "FireAura",
+   "on": "second",
+   "chance": 1,
+   "icd": 1,
+   "when": [
+    "input:channelling"
+   ],
+   "input": {
+    "key": "channelling",
+    "label": "You direct ability",
+    "default": true
+   },
+   "note": "per second while directing, free",
+   "confidence": "D"
+  },
+  "74:2": {
+   "kind": "stat",
+   "stat": "Damage",
+   "mod": "more",
+   "per": "value:CriticalChance",
+   "factor": 1,
+   "scope": "component:Disintegrate",
+   "note": "equals spell crit chance (with base 5%), no limit",
+   "confidence": "D"
+  },
+  "75:0": {
+   "kind": "flag",
+   "text": "Haste for 3 sec on potion use",
+   "confidence": "D"
+  }
+ }
+}

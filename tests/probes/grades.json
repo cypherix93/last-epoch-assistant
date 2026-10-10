@@ -1,0 +1,242 @@
+[
+ {
+  "id": "Q01",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "\"Gloves\"",
+  "given": "\"Gloves (sub type Gluttonous Gloves)\"",
+  "note": "Gloves stated, subtype as extra."
+ },
+ {
+  "id": "Q02",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Endurance Threshold: +60 to +100\",\"Physical Damage Taken as Void: 10% to 15%\",\"More Void Damage Taken (multiplicative): -15% to -10% (i.e. 10% to 15% less voi",
+  "given": "[\"Endurance Threshold +60 to +100 (flat)\",\"Physical Damage Taken as Void: 10% to 15%\",\"Void Damage Taken: -15% to -10% (more/multiplicative, i.e. 10-15% less vo",
+  "note": "All 3 expected mods with correct ranges; extra hidden Void Barrier line is allowed bonus."
+ },
+ {
+  "id": "Q03",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"set\":\"Isadora's\",\"bonuses\":[\"2 pieces: +100% Chance to apply Damned on hit with Necrotic Spells\",\"3 pieces: +30% Mana Efficiency with Necrotic Spells\"]}",
+  "given": "{\"set\":\"Isadora's (set_id 1, 3 pieces: Isadora's Revenge, Tomb Binding, Gravechill)\",\"bonuses\":[\"2 pieces: +100% chance to apply Damned on hit with Necrotic Spe",
+  "note": "Set and both tooltip bonuses correct; hidden 3pc ailment-effect line is allowed extra."
+ },
+ {
+  "id": "Q04",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"type\":\"prefix\",\"base_types\":[\"Amulet\",\"Belt\",\"Gloves\",\"Off-Hand Catalyst\",\"Quiver\",\"Relic\",\"Ring\"]}",
+  "given": "{\"affix\":\"Minion Damage (affix_id 26, title Commander's)\",\"type\":\"prefix\",\"rolls_on\":[\"Belt\",\"Gloves\",\"Quiver\",\"Off-Hand Catalyst\",\"Amulet\",\"Ring\",\"Relic\"]}",
+  "note": "Prefix; 7 base types match exactly."
+ },
+ {
+  "id": "Q05",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"mana_cost\":3,\"base_fire_damage\":25,\"added_damage_effectiveness\":1.25}",
+  "given": "{\"mana_cost\":3,\"base_fire_damage\":25,\"added_damage_effectiveness\":\"125% (1.25)\"}",
+  "note": "3/3 fields."
+ },
+ {
+  "id": "Q06",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"fire\":8,\"cold\":8,\"lightning\":8,\"physical\":0,\"added_damage_effectiveness\":1.2}",
+  "given": "{\"fire\":8,\"cold\":8,\"lightning\":8,\"added_damage_effectiveness\":\"120% (1.2)\"}",
+  "note": "All fields correct."
+ },
+ {
+  "id": "Q07",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"max_charges\":1,\"cooldown_seconds\":14}",
+  "given": "{\"max_charges\":1,\"cooldown_seconds\":14}",
+  "note": "1 charge, 14s derived."
+ },
+ {
+  "id": "Q08",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"ailment\":\"Poison\",\"chance_percent\":100}",
+  "given": "{\"ailment\":\"Poison\",\"chance\":\"100% (1.0)\"}",
+  "note": "Poison 100%."
+ },
+ {
+  "id": "Q09",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"node\":\"Conflagration\",\"max_points\":5}",
+  "given": "\"Conflagration (Fireball node 13, fi9:13) gives Ignite Chance +30%; max 5 points.\"",
+  "note": "Conflagration, 5."
+ },
+ {
+  "id": "Q10",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Piercing Heat: 2 points\",\"Winged Fire: 2 points\"]",
+  "given": "\"Orb of Destruction (node 4, max 2) requires 2 points in Piercing Heat (node 2) AND 2 points in Winged Fire (node 6).\"",
+  "note": "Both prereqs with points."
+ },
+ {
+  "id": "Q11",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "103",
+  "given": "\"103 nodes (Rogue class passive tree, tree_id rg-1).\"",
+  "note": "103."
+ },
+ {
+  "id": "Q12",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Bountiful Sarcophagy\",\"Call of the Firstborn\",\"Outrider Souls\",\"Regal Foes\",\"Twinned Tyrants\",\"Warden’s Echo\"]",
+  "given": "\"Weaver nodes whose description mentions Boss: Warden’s Echo (54), Twinned Tyrants (60), Outrider Souls (64), Call of the Firstborn (105), Bountiful Sarcophagy ",
+  "note": "All 6 nodes, no extras (agent filtered FTS over-matches)."
+ },
+ {
+  "id": "Q13",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"duration_seconds\":2.5,\"base_damage\":40,\"damage_type\":\"Fire\"}",
+  "given": "\"Ignite (ailment id 1): duration 2.5 s; base damage 40 Fire (damage_types Fire, DoT tag).\"",
+  "note": "2.5s, 40 fire."
+ },
+ {
+  "id": "Q14",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Acid Skin\",\"Exposed Flesh\",\"Pestilence\",\"Plague\",\"Poison\",\"Serpent Venom\",\"Snake Infection\"]",
+  "given": "\"Ailments with poison base damage: Poison (id 7, 28), Serpent Venom (15, 400), Plague (18, 150), Pestilence (40, 30), Snake Infection (101, 300), Acid Skin (120",
+  "note": "All 7, no extras."
+ },
+ {
+  "id": "Q15",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "10",
+  "given": "\"Shock max_instances = 10 stacks.\"",
+  "note": "10."
+ },
+ {
+  "id": "Q16",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Attack Speed: -12% (more/less multiplier)\",\"Cast Speed: -12% (more/less multiplier)\",\"Movement Speed: -12% (more/less multiplier)\"]",
+  "given": "\"Per Chill stack (ailment 3, buff mods): -12% more Attack Speed, -12% more Cast Speed, -12% more Movement Speed (value -0.12, modifier_type 2 more). Max 3 stack",
+  "note": "Three -12% penalties."
+ },
+ {
+  "id": "Q17",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"count\":10,\"names\":[\"Abandoned Chitin of the Weaver\",\"Celestial Doom\",\"Chronostasis\",\"Keplahan's Pyrolith\",\"Liath's Machinations\",\"Mana Guide\",\"Shroud of Obscu",
+  "given": "\"10 unique items grant Ward per Second (SP 92 WardRegen, unique_mod): Shroud of Obscurity (13-19), Strands of Souls (7-18), Chronostasis (50-80), Liath's Machin",
+  "note": "Count 10, all 10 names."
+ },
+ {
+  "id": "Q18",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"affix\":\"Minion Damage\",\"t7_min_percent\":96,\"t7_max_percent\":120}",
+  "given": "\"Affix 26 'Minion Damage' (title Commander's, prefix, single stat, Damage increased with Minion tag 8192). Tier 7 roll: 96% to 120% (0.96-1.2)\"",
+  "note": "Minion Damage T7 96-120."
+ },
+ {
+  "id": "Q19",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"blessings\":[\"Grand Resonance of the Sea\",\"Resonance of the Sea\"],\"timeline\":\"Ending the Storm\"}",
+  "given": "\"Resonance of the Sea (17-25 Ward per Second) and Grand Resonance of the Sea (30-42 Ward per Second); both drop in the timeline Ending the Storm\"",
+  "note": "Both blessings and timeline."
+ },
+ {
+  "id": "Q20",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Mad Alchemist's Ladle\",\"Soulfire\",\"Swaddling of the Erased\"]",
+  "given": "\"3 uniques: Soulfire (+6-10% more Spell damage... special_tag 5 'to Ignited Enemies'), Swaddling of the Erased (12-17% more Spell damage, special_tag 1 'to Low ",
+  "note": "Exact 3; Bluefeather correctly excluded."
+ },
+ {
+  "id": "Q21",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Defiance\",\"Penance\",\"Prayer Aegis\",\"Void Aegis\"]",
+  "given": "\"Sentinel passive nodes with Endurance Threshold stat line (property 76): Void Aegis (id 24, 3% max health -> ET with buff), Defiance (id 71, +1 ET per 2% uncap",
+  "note": "All 4 nodes named, but Penance hedged as 'only conditional' and Prayer Aegis extra line mentioned; same node set so pass. Ambiguity about 'stat line about' noted by agent."
+ },
+ {
+  "id": "Q22",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"normal\":{\"level\":78,\"corruption_min\":0,\"corruption_max\":50},\"empowered\":{\"level\":100,\"corruption_min\":100,\"corruption_max\":null}}",
+  "given": "\"Normal: area level 78, corruption 0-50. Empowered: area level 100, corruption 100+ (minimum 100, no maximum)\"",
+  "note": "All numerics correct."
+ },
+ {
+  "id": "Q23",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"description\":\"Deadly if Not Damaged Recently\",\"minimum_level\":14}",
+  "given": "\"Patient (monster_mod 84): 'Deadly if Not Damaged Recently'; minimum level 14\"",
+  "note": "Description and level 14."
+ },
+ {
+  "id": "Q24",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"base_mana\":50,\"health_per_level\":10}",
+  "given": "\"Mage base mana 50; base health 100 at level 0 and +10 health per character level (mana +0.50506 per level also stored).\"",
+  "note": "50 mana, +10/level."
+ },
+ {
+  "id": "Q25",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Aaron's Will\",\"Apiarist's Suit\",\"Architects of Astral Blood\",\"Caretaker's Regrowth\",\"Doppelganger's Deception\",\"Doublet of Onos Tull\",\"Shroud of Obscurity\",\"S",
+  "given": "\"15 Body Armor uniques with a stat mod value_max >= 100: Doublet of Onos Tull (8, Health 60-100), Yrun's Wisdom (12), Titan Heart (13, Armor 50-100), Apiarist's",
+  "note": "15/15 exact set."
+ },
+ {
+  "id": "Q26",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"tier\":8,\"min\":85,\"max\":100}",
+  "given": "\"Tier 8 (top tier, highest roll): 85-100 (stored value_min 85, value_max 100, modifier_type 0 added, tags Physical,Melee). Affix 63 'Melee Physical Damage' (Mar",
+  "note": "T8 85-100; agent correctly flagged SKILL.md claim that tier 1 is best."
+ },
+ {
+  "id": "Q27",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "[\"Acid Flask\",\"Aerial Assault\",\"Ballista\",\"Bladestorm\",\"Cinder Strike\",\"Dark Quiver\",\"Decoy\",\"Dive Bomb\",\"Dreamslash\",\"Explosive Trap\",\"Flurry\",\"Hail of Arrows\"",
+  "given": "\"24 Rogue skills with trees: Acid Flask (aacfl), Aerial Assault (aa989), Ballista (ba1574), Bladestorm (bl5st), Cinder Strike (cstri), Dark Quiver (dqv5), Decoy",
+  "note": "24/24, Jaccard 1.0."
+ },
+ {
+  "id": "Q28",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"page\":\"knowledge/mechanics/ward-health-sustain.md (section 3.1 Decay)\",\"formula\":\"decay per second = (5e-5 * d^2 + 0.2 * d) / (1 + 0.5 * R), d = max(0, ward -",
+  "given": "\"Ward decay per second = (quadraticWardDecay*(W-T)^2 + linearWardDecay*(W-T)) / (1 + 0.5*R), W ward, T ward decay threshold (SP119, no decay below T), R ward re",
+  "note": "5e-5, 0.2, divisor 1+0.5R; superseded formula not used."
+ },
+ {
+  "id": "Q29",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"page\":\"knowledge/reference/classes-and-masteries.md\",\"health_per_level\":10,\"winner\":\"asset data (A) beats guide text (which says +8 in one paragraph)\"}",
+  "given": "\"+10 base health per level (maxHealth = 100 + 10*L + ...; level 100 = 1100 base; guide Levels says +990 at L100). When guide text conflicts with asset data, ass",
+  "note": "10 per level; asset data wins; +8 guide stale."
+ },
+ {
+  "id": "Q30",
+  "verdict": "pass",
+  "score": 1,
+  "expected": "{\"page\":\"knowledge/mechanics/defenses.md (Summary rule 1, table row \\\"Enemy penetration vs players\\\")\",\"per_area_level_percent\":1,\"cap_percent\":75,\"cap_reached_",
+  "given": "\"Enemy penetration vs players = +1% per area level, capped at 75% at area level >= 75 (applied after the resistance cap; over-cap resistance does not help again",
+  "note": "1%/AL, cap 75% at AL75."
+ }
+]

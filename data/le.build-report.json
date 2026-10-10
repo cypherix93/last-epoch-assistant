@@ -1,0 +1,777 @@
+{
+  "schema_version": "1",
+  "build_tool_version": "@le/db 0.0.0",
+  "meta": {
+    "build_tool_version": "@le/db 0.0.0",
+    "data_version": "1.5.2",
+    "data_version_folder": "version152",
+    "fetched_at": "2026-10-08T22:01:15.276Z",
+    "game_version": "Version 1.5.2",
+    "game_version_number": "1.5.2",
+    "letools_i18n_url": "https://www.lastepochtools.com/data/version152/i18n/full/en.json",
+    "letools_planner_url": "https://www.lastepochtools.com/planner/",
+    "letools_sha256:checklist/5375ff60b6ceae3e33b048008f7ca0eb.js": "c0009c3acac79aa60ee331e25ede506498056a4ec630a5e1d247c24299c46e25",
+    "letools_sha256:db/8e688d145b13a6e9719c917369f90558.js": "8a0293233b168b1eb425d7a9490bf7ad26f0d33f445fe2f5a3f0704432ee4cc5",
+    "letools_sha256:db/9d545bd4db57e5107f2f89cc0caef27c.js": "be5b892aabc539b7a3046f98f3b48599d91eeed1fa75a5afaa199db39f34af13",
+    "letools_sha256:endgame/16c34242d7f7f6f084a12be298a8eb29.js": "6b1cef94180d4c00dcafc8c4197678d02aa0795d2b292bf660e1563cab0c4962",
+    "letools_sha256:factions/f5bb42e841ce979654460cd7a3f8e612.js": "d0fff28ca4000dc6bb2991d399dcc48dbc2df51276bc2ef95ce906679ceeccfb",
+    "letools_sha256:i18n/en.json": "38555002a9774ba173fbea033bc6b4cef46b60509e7b45283dc20edb0d854f8a",
+    "letools_sha256:loot-filters/5a3e67d79ddb7bd88126a54ab6f4c6c3.js": "a782182f6ced790897543756392060edb54303a9a79ae3801cd9491057b995bf",
+    "letools_sha256:planner/f7a1497b3bf199db6f5b2499da7747a2.js": "b56cc30e252857a497d8901c9d837e561fa8555d70e5c39ed8e3df9422d37959",
+    "loaded_steps": "world,items,skills,search,crosscheck",
+    "maxroll_data_hash": "1b325e38",
+    "maxroll_data_url": "https://assets-ng.maxroll.gg/leplanner/game/data.json?1b325e38",
+    "maxroll_etag": "W/\"1b325e3819f59f0f0c2b1b240cda92ec\"",
+    "maxroll_last_modified": "Wed, 30 Sep 2026 11:34:57 GMT",
+    "maxroll_sha256": "500b44e8aa4dde319a1aecda948ae30a25fbec67b8b1df3ed7b61c0dddf2f5f1",
+    "schema_version": "1",
+    "sources": "letools,maxroll"
+  },
+  "loaders": {
+    "world": "ok",
+    "items": "ok",
+    "skills": "ok",
+    "search": "ok",
+    "crosscheck": "ok"
+  },
+  "tables": {
+    "abilities": 1228,
+    "ability_components": 2516,
+    "ability_links": 129,
+    "ability_properties": 2344,
+    "affix_can_roll_on": 2539,
+    "affix_display_categories": 45,
+    "affix_reroll_chances": 218,
+    "affix_stats": 1696,
+    "affix_tiers": 6238,
+    "affixes": 1156,
+    "ailments": 148,
+    "arena_tiers": 5,
+    "arenas": 2,
+    "attributes": 5,
+    "blessings": 224,
+    "class_abilities": 156,
+    "classes": 5,
+    "compact_ids": 1306,
+    "conditional_properties": 48,
+    "dungeon_tiers": 12,
+    "dungeons": 3,
+    "endgame_mod_refs": 855,
+    "entities": 96,
+    "enums": 910,
+    "faction_ranks": 44,
+    "factions": 4,
+    "i18n": 34993,
+    "idol_altar_properties": 31,
+    "idol_altars": 13,
+    "item_base_types": 48,
+    "item_subtypes": 1558,
+    "masteries": 20,
+    "maxroll_crosscheck": 31,
+    "maxroll_quests": 145,
+    "meta": 24,
+    "mods": 23446,
+    "monolith_reward_groups": 25,
+    "monolith_rewards": 57,
+    "monster_mods": 287,
+    "player_properties": 713,
+    "prophecy_unlocks": 28,
+    "raw_globals": 34,
+    "relations": 5443,
+    "scenes": 385,
+    "search": 12893,
+    "set_tooltips": 18,
+    "sets": 25,
+    "stat_properties": 151,
+    "stat_property_alt_texts": 162,
+    "tag_bits": 30,
+    "timeline_blessings": 224,
+    "timeline_difficulties": 20,
+    "timelines": 10,
+    "tree_node_requirements": 4928,
+    "tree_nodes": 4577,
+    "trees": 142,
+    "ui_buffs": 264,
+    "unique_subtypes": 486,
+    "unique_tooltip_entries": 2459,
+    "unique_tooltips": 562,
+    "uniques": 486,
+    "woven_echoes": 47
+  },
+  "empty_tables": [],
+  "views": [
+    "v_affix_summary",
+    "v_blessings",
+    "v_mods_named",
+    "v_skill_node_summary",
+    "v_unique_summary"
+  ],
+  "index_count": 22,
+  "mods_by_source_kind": {
+    "ability_attribute_scaling": 885,
+    "ability_level_scaling": 179,
+    "affix_tier": 9711,
+    "ailment_buff": 161,
+    "attribute": 7,
+    "attribute_corrupted": 10,
+    "blessing": 234,
+    "idol_altar": 11,
+    "implicit": 1284,
+    "monster_mod": 432,
+    "passive_node": 1440,
+    "set_bonus": 54,
+    "skill_node": 6528,
+    "unique_mod": 2440,
+    "weaver_node": 70
+  },
+  "search_by_kind": {
+    "ability": 1227,
+    "ability_property": 2342,
+    "affix": 1156,
+    "ailment": 148,
+    "blessing": 224,
+    "dungeon": 3,
+    "item_subtype": 1558,
+    "monster_mod": 274,
+    "passive_node": 541,
+    "player_property": 713,
+    "set": 24,
+    "skill_node": 3956,
+    "stat_property": 151,
+    "timeline": 10,
+    "unique": 486,
+    "weaver_node": 80
+  },
+  "foreign_key_violations": {},
+  "expected": {
+    "ok": 89,
+    "failed": 0,
+    "results": [
+      {
+        "name": "world: i18n",
+        "expected": 34993,
+        "op": "=",
+        "actual": 34993,
+        "ok": true
+      },
+      {
+        "name": "world: enums",
+        "expected": 910,
+        "op": "=",
+        "actual": 910,
+        "ok": true
+      },
+      {
+        "name": "world: tag_bits",
+        "expected": 30,
+        "op": "=",
+        "actual": 30,
+        "ok": true
+      },
+      {
+        "name": "world: stat_properties",
+        "expected": 151,
+        "op": "=",
+        "actual": 151,
+        "ok": true
+      },
+      {
+        "name": "world: stat_properties[with display rule]",
+        "expected": 113,
+        "op": "=",
+        "actual": 113,
+        "ok": true
+      },
+      {
+        "name": "world: stat_property_alt_texts",
+        "expected": 162,
+        "op": "=",
+        "actual": 162,
+        "ok": true
+      },
+      {
+        "name": "world: player_properties",
+        "expected": 713,
+        "op": "=",
+        "actual": 713,
+        "ok": true
+      },
+      {
+        "name": "world: ability_properties",
+        "expected": 2344,
+        "op": "=",
+        "actual": 2344,
+        "ok": true
+      },
+      {
+        "name": "world: ability_properties[abilities]",
+        "expected": 175,
+        "op": "=",
+        "actual": 175,
+        "ok": true
+      },
+      {
+        "name": "world: idol_altar_properties",
+        "expected": 31,
+        "op": "=",
+        "actual": 31,
+        "ok": true
+      },
+      {
+        "name": "world: conditional_properties",
+        "expected": 48,
+        "op": "=",
+        "actual": 48,
+        "ok": true
+      },
+      {
+        "name": "world: attributes",
+        "expected": 5,
+        "op": "=",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "world: mods[attribute]",
+        "expected": 7,
+        "op": "=",
+        "actual": 7,
+        "ok": true
+      },
+      {
+        "name": "world: mods[attribute_corrupted]",
+        "expected": 10,
+        "op": "=",
+        "actual": 10,
+        "ok": true
+      },
+      {
+        "name": "world: classes",
+        "expected": 5,
+        "op": "=",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "world: masteries",
+        "expected": 20,
+        "op": "=",
+        "actual": 20,
+        "ok": true
+      },
+      {
+        "name": "world: class_abilities",
+        "expected": 156,
+        "op": "=",
+        "actual": 156,
+        "ok": true
+      },
+      {
+        "name": "world: monster_mods",
+        "expected": 287,
+        "op": "=",
+        "actual": 287,
+        "ok": true
+      },
+      {
+        "name": "world: mods[monster_mod]",
+        "expected": 432,
+        "op": "=",
+        "actual": 432,
+        "ok": true
+      },
+      {
+        "name": "world: compact_ids[M]",
+        "expected": 287,
+        "op": "=",
+        "actual": 287,
+        "ok": true
+      },
+      {
+        "name": "world: timelines",
+        "expected": 10,
+        "op": "=",
+        "actual": 10,
+        "ok": true
+      },
+      {
+        "name": "world: timeline_difficulties",
+        "expected": 20,
+        "op": "=",
+        "actual": 20,
+        "ok": true
+      },
+      {
+        "name": "world: timeline_blessings",
+        "expected": 224,
+        "op": "=",
+        "actual": 224,
+        "ok": true
+      },
+      {
+        "name": "world: endgame_mod_refs",
+        "expected": 855,
+        "op": "=",
+        "actual": 855,
+        "ok": true
+      },
+      {
+        "name": "world: dungeons",
+        "expected": 3,
+        "op": "=",
+        "actual": 3,
+        "ok": true
+      },
+      {
+        "name": "world: dungeon_tiers",
+        "expected": 12,
+        "op": "=",
+        "actual": 12,
+        "ok": true
+      },
+      {
+        "name": "world: arenas",
+        "expected": 2,
+        "op": "=",
+        "actual": 2,
+        "ok": true
+      },
+      {
+        "name": "world: arena_tiers",
+        "expected": 5,
+        "op": "=",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "world: monolith_rewards",
+        "expected": 57,
+        "op": "=",
+        "actual": 57,
+        "ok": true
+      },
+      {
+        "name": "world: monolith_reward_groups",
+        "expected": 25,
+        "op": "=",
+        "actual": 25,
+        "ok": true
+      },
+      {
+        "name": "world: woven_echoes",
+        "expected": 47,
+        "op": "=",
+        "actual": 47,
+        "ok": true
+      },
+      {
+        "name": "world: factions",
+        "expected": 4,
+        "op": "=",
+        "actual": 4,
+        "ok": true
+      },
+      {
+        "name": "world: faction_ranks",
+        "expected": 44,
+        "op": "=",
+        "actual": 44,
+        "ok": true
+      },
+      {
+        "name": "world: prophecy_unlocks",
+        "expected": 28,
+        "op": "=",
+        "actual": 28,
+        "ok": true
+      },
+      {
+        "name": "world: scenes",
+        "expected": 385,
+        "op": "=",
+        "actual": 385,
+        "ok": true
+      },
+      {
+        "name": "world: maxroll_quests",
+        "expected": 145,
+        "op": "=",
+        "actual": 145,
+        "ok": true
+      },
+      {
+        "name": "world: raw_globals",
+        "expected": 34,
+        "op": "=",
+        "actual": 34,
+        "ok": true
+      },
+      {
+        "name": "items: item_base_types",
+        "expected": 48,
+        "op": "=",
+        "actual": 48,
+        "ok": true
+      },
+      {
+        "name": "items: item_subtypes",
+        "expected": 1558,
+        "op": "=",
+        "actual": 1558,
+        "ok": true
+      },
+      {
+        "name": "items: affix_display_categories",
+        "expected": 45,
+        "op": "=",
+        "actual": 45,
+        "ok": true
+      },
+      {
+        "name": "items: affixes",
+        "expected": 1156,
+        "op": "=",
+        "actual": 1156,
+        "ok": true
+      },
+      {
+        "name": "items: affixes[kind = 'single']",
+        "expected": 616,
+        "op": "=",
+        "actual": 616,
+        "ok": true
+      },
+      {
+        "name": "items: affix_stats",
+        "expected": 1696,
+        "op": "=",
+        "actual": 1696,
+        "ok": true
+      },
+      {
+        "name": "items: affix_tiers",
+        "expected": 6238,
+        "op": "=",
+        "actual": 6238,
+        "ok": true
+      },
+      {
+        "name": "items: affix_can_roll_on",
+        "expected": 2539,
+        "op": "=",
+        "actual": 2539,
+        "ok": true
+      },
+      {
+        "name": "items: affix_reroll_chances",
+        "expected": 218,
+        "op": "=",
+        "actual": 218,
+        "ok": true
+      },
+      {
+        "name": "items: sets",
+        "expected": 25,
+        "op": "=",
+        "actual": 25,
+        "ok": true
+      },
+      {
+        "name": "items: set_tooltips",
+        "expected": 18,
+        "op": "=",
+        "actual": 18,
+        "ok": true
+      },
+      {
+        "name": "items: uniques",
+        "expected": 486,
+        "op": "=",
+        "actual": 486,
+        "ok": true
+      },
+      {
+        "name": "items: uniques[is_set_item = 1]",
+        "expected": 61,
+        "op": "=",
+        "actual": 61,
+        "ok": true
+      },
+      {
+        "name": "items: unique_subtypes",
+        "expected": 486,
+        "op": "=",
+        "actual": 486,
+        "ok": true
+      },
+      {
+        "name": "items: unique_tooltips",
+        "expected": 562,
+        "op": "=",
+        "actual": 562,
+        "ok": true
+      },
+      {
+        "name": "items: unique_tooltip_entries",
+        "expected": 2459,
+        "op": "=",
+        "actual": 2459,
+        "ok": true
+      },
+      {
+        "name": "items: idol_altars",
+        "expected": 13,
+        "op": "=",
+        "actual": 13,
+        "ok": true
+      },
+      {
+        "name": "items: blessings",
+        "expected": 224,
+        "op": "=",
+        "actual": 224,
+        "ok": true
+      },
+      {
+        "name": "items: blessings[with timeline]",
+        "expected": 224,
+        "op": "=",
+        "actual": 224,
+        "ok": true
+      },
+      {
+        "name": "items: mods[affix_tier]",
+        "expected": 9711,
+        "op": "=",
+        "actual": 9711,
+        "ok": true
+      },
+      {
+        "name": "items: mods[implicit]",
+        "expected": 1284,
+        "op": "=",
+        "actual": 1284,
+        "ok": true
+      },
+      {
+        "name": "items: mods[blessing]",
+        "expected": 234,
+        "op": "=",
+        "actual": 234,
+        "ok": true
+      },
+      {
+        "name": "items: mods[idol_altar]",
+        "expected": 11,
+        "op": "=",
+        "actual": 11,
+        "ok": true
+      },
+      {
+        "name": "items: implicits (all kinds)",
+        "expected": 1529,
+        "op": "=",
+        "actual": 1529,
+        "ok": true
+      },
+      {
+        "name": "items: mods[unique_mod]",
+        "expected": 2440,
+        "op": "=",
+        "actual": 2440,
+        "ok": true
+      },
+      {
+        "name": "items: mods[set_bonus]",
+        "expected": 54,
+        "op": "=",
+        "actual": 54,
+        "ok": true
+      },
+      {
+        "name": "items: relations[items]",
+        "expected": 2207,
+        "op": "=",
+        "actual": 2207,
+        "ok": true
+      },
+      {
+        "name": "items: compact_ids[A,U,S,I]",
+        "expected": 1014,
+        "op": ">=",
+        "actual": 1019,
+        "ok": true
+      },
+      {
+        "name": "skills: abilities",
+        "expected": 1228,
+        "op": "=",
+        "actual": 1228,
+        "ok": true
+      },
+      {
+        "name": "skills: abilities[player]",
+        "expected": 182,
+        "op": "=",
+        "actual": 182,
+        "ok": true
+      },
+      {
+        "name": "skills: abilities[with tree]",
+        "expected": 136,
+        "op": "=",
+        "actual": 136,
+        "ok": true
+      },
+      {
+        "name": "skills: ability_components",
+        "expected": 2516,
+        "op": "=",
+        "actual": 2516,
+        "ok": true
+      },
+      {
+        "name": "skills: ability_links",
+        "expected": 129,
+        "op": "=",
+        "actual": 129,
+        "ok": true
+      },
+      {
+        "name": "skills: ailments",
+        "expected": 148,
+        "op": "=",
+        "actual": 148,
+        "ok": true
+      },
+      {
+        "name": "skills: ui_buffs",
+        "expected": 264,
+        "op": "=",
+        "actual": 264,
+        "ok": true
+      },
+      {
+        "name": "skills: entities",
+        "expected": 96,
+        "op": "=",
+        "actual": 96,
+        "ok": true
+      },
+      {
+        "name": "skills: trees",
+        "expected": 142,
+        "op": "=",
+        "actual": 142,
+        "ok": true
+      },
+      {
+        "name": "skills: trees[tree_kind = 'skill']",
+        "expected": 136,
+        "op": "=",
+        "actual": 136,
+        "ok": true
+      },
+      {
+        "name": "skills: trees[tree_kind = 'class']",
+        "expected": 5,
+        "op": "=",
+        "actual": 5,
+        "ok": true
+      },
+      {
+        "name": "skills: trees[tree_kind = 'weaver']",
+        "expected": 1,
+        "op": "=",
+        "actual": 1,
+        "ok": true
+      },
+      {
+        "name": "skills: tree_nodes[tree_kind = 'skill']",
+        "expected": 3956,
+        "op": "=",
+        "actual": 3956,
+        "ok": true
+      },
+      {
+        "name": "skills: tree_nodes[tree_kind = 'class']",
+        "expected": 541,
+        "op": "=",
+        "actual": 541,
+        "ok": true
+      },
+      {
+        "name": "skills: tree_nodes[tree_kind = 'weaver']",
+        "expected": 80,
+        "op": "=",
+        "actual": 80,
+        "ok": true
+      },
+      {
+        "name": "skills: tree_nodes[with UI position]",
+        "expected": 4577,
+        "op": "=",
+        "actual": 4577,
+        "ok": true
+      },
+      {
+        "name": "skills: tree_node_requirements",
+        "expected": 4928,
+        "op": "=",
+        "actual": 4928,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[skill_node]",
+        "expected": 6528,
+        "op": "=",
+        "actual": 6528,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[passive_node]",
+        "expected": 1440,
+        "op": "=",
+        "actual": 1440,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[weaver_node]",
+        "expected": 70,
+        "op": "=",
+        "actual": 70,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[ailment_buff]",
+        "expected": 161,
+        "op": "=",
+        "actual": 161,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[ability_attribute_scaling]",
+        "expected": 885,
+        "op": "=",
+        "actual": 885,
+        "ok": true
+      },
+      {
+        "name": "skills: mods[ability_level_scaling]",
+        "expected": 179,
+        "op": "=",
+        "actual": 179,
+        "ok": true
+      },
+      {
+        "name": "skills: relations[tree nodes]",
+        "expected": 3236,
+        "op": "=",
+        "actual": 3236,
+        "ok": true
+      }
+    ]
+  },
+  "warnings": [],
+  "crosscheck_mismatches": 1
+}

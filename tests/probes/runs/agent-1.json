@@ -1,0 +1,198 @@
+[
+ {
+  "id": "Q01",
+  "answer": "Gloves (sub type Gluttonous Gloves)",
+  "reasoning": "uniques.unique_id=208 has base_type_id 4 (Gloves), sub_type_id 8 Gluttonous Gloves.",
+  "tool_calls": [
+   {
+    "tool": "lookup",
+    "args": "{\"name\":\"Ravenous Void\"}",
+    "result_summary": "unique 208 hint Gloves / Gluttonous Gloves"
+   },
+   {
+    "tool": "get",
+    "args": "{\"kind\":\"unique\",\"id\":208}",
+    "result_summary": "base_type_id 4, subtypes Gluttonous Gloves/Gloves"
+   }
+  ],
+  "confidence": "high",
+  "problems": []
+ },
+ {
+  "id": "Q02",
+  "answer": [
+   "Endurance Threshold +60 to +100 (flat)",
+   "Physical Damage Taken as Void: 10% to 15%",
+   "Void Damage Taken: -15% to -10% (more/multiplicative, i.e. 10-15% less void damage taken)",
+   "Hidden SP98 line: Gain a stack of Void Barrier every 3s (5s per tooltip) while above endurance threshold (value 1, no range)"
+  ],
+  "reasoning": "get unique 208 mods rows: ord1 prop 76 60-100; ord2 prop 36 tags Physical 0.1-0.15; ord3 prop 6 tags Void modtype 2 -0.15..-0.10; ord0 hidden special effect. Tooltips describe Void Barrier/Mimic Feast drawback.",
+  "tool_calls": [
+   {
+    "tool": "get",
+    "args": "{\"kind\":\"unique\",\"id\":208}",
+    "result_summary": "4 mods + 3 tooltips"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "Hidden mod property_name holds a sentence saying every 3 seconds but tooltip text says every 5 seconds (data inconsistency)",
+   "Unclear whether 'Damage Taken as Void' tag Physical means physical taken as void; assumed."
+  ]
+ },
+ {
+  "id": "Q03",
+  "answer": {
+   "set": "Isadora's (set_id 1, 3 pieces: Isadora's Revenge, Tomb Binding, Gravechill)",
+   "bonuses": [
+    "2 pieces: +100% chance to apply Damned on hit with Necrotic Spells",
+    "3 pieces: +30% Mana Efficiency with Necrotic Spells",
+    "3 pieces: +30% increased Ailment Effect (Damned, special_tag 39; hidden=0 but no tooltip line)"
+   ]
+  },
+  "reasoning": "get set 1 lists unique 5 Isadora's Revenge as member; bonus_mods and tooltips give requirements.",
+  "tool_calls": [
+   {
+    "tool": "lookup",
+    "args": "{\"name\":\"Isadora's Revenge\"}",
+    "result_summary": "unique 5, set 1 Isadora's"
+   },
+   {
+    "tool": "get",
+    "args": "{\"kind\":\"set\",\"id\":1}",
+    "result_summary": "3 bonus mods, 2 tooltips, 3 members"
+   }
+  ],
+  "confidence": "medium",
+  "problems": [
+   "Third bonus (Increased Ailment Effect 0.3 at 3 pieces for ailment 39) has no tooltip; ailment id 39 not verified as Damned"
+  ]
+ },
+ {
+  "id": "Q04",
+  "answer": {
+   "affix": "Minion Damage (affix_id 26, title Commander's)",
+   "type": "prefix",
+   "rolls_on": [
+    "Belt",
+    "Gloves",
+    "Quiver",
+    "Off-Hand Catalyst",
+    "Amulet",
+    "Ring",
+    "Relic"
+   ]
+  },
+  "reasoning": "affixes row 26 affix_type_name prefix; affix_can_roll_on has 7 base types. Stat: increased Damage tag Minion, T1 6-12%.",
+  "tool_calls": [
+   {
+    "tool": "lookup",
+    "args": "{\"name\":\"Minion Damage\",\"kinds\":[\"affix\"]}",
+    "result_summary": "affix 26 exact match"
+   },
+   {
+    "tool": "get",
+    "args": "{\"kind\":\"affix\",\"id\":26}",
+    "result_summary": "prefix, 8 tiers"
+   },
+   {
+    "tool": "sql",
+    "args": "affix_can_roll_on join item_base_types where affix_id=26",
+    "result_summary": "7 base types"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "get affix output does not list can_roll_on base types; needed sql"
+  ]
+ },
+ {
+  "id": "Q05",
+  "answer": {
+   "mana_cost": 3,
+   "base_fire_damage": 25,
+   "added_damage_effectiveness": "125% (1.25)"
+  },
+  "reasoning": "abilities fi9 mana_cost 3; DamageEnemyOnHit damage [0,25,0,...] = fire slot 25; addedDamageScaling 1.25, matches description.",
+  "tool_calls": [
+   {
+    "tool": "get",
+    "args": "{\"kind\":\"ability\",\"id\":\"fi9\"}",
+    "result_summary": "mana_cost 3, desc says 125% effectiveness"
+   },
+   {
+    "tool": "sql",
+    "args": "ability_components fi9 damage",
+    "result_summary": "dmg [0,25,0,0,0,0,0] ade 1.25"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "get ability does not show component base damage; needed sql on raw_json; damage array order only in docs/data-sources/enums.md, not in SKILL.md"
+  ]
+ },
+ {
+  "id": "Q06",
+  "answer": {
+   "fire": 8,
+   "cold": 8,
+   "lightning": 8,
+   "added_damage_effectiveness": "120% (1.2)"
+  },
+  "reasoning": "en6 component damage [0,8,8,8,0,0,0] with order [phys,fire,cold,lightning,...]; addedDamageScaling 1.2.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "ability_components en6 damage",
+    "result_summary": "[0,8,8,8,0,0,0] ade 1.2"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "Damage array order not in SKILL.md"
+  ]
+ },
+ {
+  "id": "Q07",
+  "answer": {
+   "max_charges": 1,
+   "cooldown_seconds": 14
+  },
+  "reasoning": "bh2 max_charges 1, charges_gained_per_second 0.07143 -> 1/0.07143 = 14.0s per charge.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "abilities bh2",
+    "result_summary": "max_charges 1, charges_gained_per_second 0.07143"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "No explicit cooldown column; derived from charges_gained_per_second"
+  ]
+ },
+ {
+  "id": "Q08",
+  "answer": {
+   "ailment": "Poison",
+   "chance": "100% (1.0)"
+  },
+  "reasoning": "vn53 ChanceToApplyAilmentsOnHit ailment 7 chance 1; ailments id 7 = Poison.",
+  "tool_calls": [
+   {
+    "tool": "sql",
+    "args": "ability_components vn53 ailment",
+    "result_summary": "ailment 7 chance 1"
+   },
+   {
+    "tool": "sql",
+    "args": "ailments id 7",
+    "result_summary": "Poison"
+   }
+  ],
+  "confidence": "high",
+  "problems": [
+   "get ability does not expose ailment component data; needed raw_json"
+  ]
+ }
+]

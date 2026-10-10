@@ -1,0 +1,122 @@
+{
+  "fetchedAt": "2026-10-08T22:01:15.276Z",
+  "letools": {
+    "versionFolder": "version152",
+    "plannerUrl": "https://www.lastepochtools.com/planner/",
+    "files": [
+      {
+        "section": "planner",
+        "url": "https://www.lastepochtools.com/data/version152/planner/js/f7a1497b3bf199db6f5b2499da7747a2.js",
+        "sha256": "b56cc30e252857a497d8901c9d837e561fa8555d70e5c39ed8e3df9422d37959",
+        "bytes": 5831685,
+        "globals": [
+          "LEAbilities",
+          "LECharTrees",
+          "LECharTreesUI",
+          "LESkillTrees",
+          "LESkillTreesUI",
+          "LEWeaverTree",
+          "LEWeaverTreeUI",
+          "LEHUD",
+          "LETooltipIcons",
+          "passiveBonuses",
+          "skillBonuses",
+          "LocalSP",
+          "partialSkillBonuses",
+          "UIBuffs",
+          "UIBuffIds",
+          "BuffId",
+          "BuffPropId",
+          "CustomConditionType"
+        ]
+      },
+      {
+        "section": "db",
+        "url": "https://www.lastepochtools.com/data/version152/db/js/8e688d145b13a6e9719c917369f90558.js",
+        "sha256": "8a0293233b168b1eb425d7a9490bf7ad26f0d33f445fe2f5a3f0704432ee4cc5",
+        "bytes": 3124396,
+        "globals": [
+          "itemDB",
+          "gameVersion",
+          "AT",
+          "SP",
+          "AilmentID",
+          "LocalSP"
+        ]
+      },
+      {
+        "section": "db",
+        "url": "https://www.lastepochtools.com/data/version152/db/js/9d545bd4db57e5107f2f89cc0caef27c.js",
+        "sha256": "be5b892aabc539b7a3046f98f3b48599d91eeed1fa75a5afaa199db39f34af13",
+        "bytes": 1049597,
+        "globals": [
+          "coreDB"
+        ]
+      },
+      {
+        "section": "endgame",
+        "url": "https://www.lastepochtools.com/data/version152/endgame/js/16c34242d7f7f6f084a12be298a8eb29.js",
+        "sha256": "6b1cef94180d4c00dcafc8c4197678d02aa0795d2b292bf660e1563cab0c4962",
+        "bytes": 592554,
+        "globals": [
+          "monsterMods",
+          "monolithRewards",
+          "timelineData",
+          "arenaData",
+          "dungeonData",
+          "vaultsOfUncertainFate",
+          "dropBossLoot",
+          "wovenEchoList"
+        ]
+      },
+      {
+        "section": "checklist",
+        "url": "https://www.lastepochtools.com/data/version152/checklist/js/5375ff60b6ceae3e33b048008f7ca0eb.js",
+        "sha256": "c0009c3acac79aa60ee331e25ede506498056a4ec630a5e1d247c24299c46e25",
+        "bytes": 20533,
+        "globals": [
+          "checklist",
+          "gameVersion"
+        ]
+      },
+      {
+        "section": "factions",
+        "url": "https://www.lastepochtools.com/data/version152/factions/js/f5bb42e841ce979654460cd7a3f8e612.js",
+        "sha256": "d0fff28ca4000dc6bb2991d399dcc48dbc2df51276bc2ef95ce906679ceeccfb",
+        "bytes": 9026,
+        "globals": [
+          "factionList",
+          "prophecyData",
+          "merchantsGuildBagData"
+        ]
+      },
+      {
+        "section": "loot-filters",
+        "url": "https://www.lastepochtools.com/data/version152/loot-filters/js/5a3e67d79ddb7bd88126a54ab6f4c6c3.js",
+        "sha256": "a782182f6ced790897543756392060edb54303a9a79ae3801cd9491057b995bf",
+        "bytes": 41208,
+        "globals": [
+          "lootFilterIcons",
+          "lootFilterIconColors",
+          "lootFilterRuleColors",
+          "lootFilterBeamColors",
+          "masterColors"
+        ]
+      }
+    ],
+    "i18n": {
+      "url": "https://www.lastepochtools.com/data/version152/i18n/full/en.json",
+      "sha256": "38555002a9774ba173fbea033bc6b4cef46b60509e7b45283dc20edb0d854f8a",
+      "bytes": 3155578
+    }
+  },
+  "maxroll": {
+    "plannerJsUrl": "https://assets-ng.maxroll.gg/leplanner/static/js/planner.js",
+    "dataHash": "1b325e38",
+    "dataUrl": "https://assets-ng.maxroll.gg/leplanner/game/data.json?1b325e38",
+    "etag": "W/\"1b325e3819f59f0f0c2b1b240cda92ec\"",
+    "lastModified": "Wed, 30 Sep 2026 11:34:57 GMT",
+    "sha256": "500b44e8aa4dde319a1aecda948ae30a25fbec67b8b1df3ed7b61c0dddf2f5f1",
+    "bytes": 10089878
+  }
+}

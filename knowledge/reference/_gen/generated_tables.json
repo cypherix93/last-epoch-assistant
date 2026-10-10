@@ -1,0 +1,394 @@
+[
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.classes_overview",
+  "script": "gen_classes.cjs",
+  "source": "classes.json",
+  "rows": 5
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.mastery_bonuses",
+  "script": "gen_classes.cjs",
+  "source": "passive_node_effects.json (mastery_bonuses), classes.json (masteries)",
+  "rows": 15
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.base_stats",
+  "script": "gen_classes.cjs",
+  "source": "classes.json (levelMods)",
+  "rows": 9
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.class_diff",
+  "script": "gen_classes.cjs",
+  "source": "classes.json (base)",
+  "rows": 5
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.minion_hidden",
+  "script": "gen_classes.cjs",
+  "source": "classes.json (minionScaling, hiddenBaseMods)",
+  "rows": 9
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.starting_items",
+  "script": "gen_classes.cjs",
+  "source": "classes.json (startingItems), items.json",
+  "rows": 5
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "misc.passive_thresholds",
+  "script": "gen_misc.cjs",
+  "source": "trees.json (kind = passive; nodes[].mastery, requiredMastery, masteryRequirement)",
+  "rows": 20
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.skill_counts",
+  "script": "gen_classes.cjs",
+  "source": "classes.json",
+  "rows": 6
+ },
+ {
+  "page": "classes-and-masteries",
+  "table": "classes.skills",
+  "script": "gen_classes.cjs",
+  "source": "classes.json (defaultAbilities/unlockableAbilities/masteries[].abilities), abilities.json, trees.json",
+  "rows": 136
+ },
+ {
+  "page": "endgame-systems",
+  "table": "misc.timelines",
+  "script": "gen_misc.cjs",
+  "source": "monster_mods.json (timelines[], formulas)",
+  "rows": 10
+ },
+ {
+  "page": "endgame-systems",
+  "table": "misc.corruption_curve",
+  "script": "gen_misc.cjs",
+  "source": "monster_mods.json (formulas.corruption, formulas.statScale); computed",
+  "rows": 10
+ },
+ {
+  "page": "endgame-systems",
+  "table": "misc.monster_mod_counts",
+  "script": "gen_misc.cjs",
+  "source": "monster_mods.json (data[].modType)",
+  "rows": 6
+ },
+ {
+  "page": "glossary",
+  "table": "glossary.glossary",
+  "script": "gen_glossary.cjs",
+  "source": "hand-written entries (labels per entry); [SP id] from sp_enum.json",
+  "rows": 212
+ },
+ {
+  "page": "glossary",
+  "table": "glossary.ailment_ids",
+  "script": "gen_glossary.cjs",
+  "source": "stat_tag_enums.json (AilmentID, 151 values)",
+  "rows": 151
+ },
+ {
+  "page": "glossary",
+  "table": "glossary.sp_ids",
+  "script": "gen_glossary.cjs",
+  "source": "sp_enum.json (134 SP ids)",
+  "rows": 134
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.idol_bases",
+  "script": "gen_idols.cjs",
+  "source": "items.json (baseTypeID 25-33, 41), idols.json",
+  "rows": 9
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.idol_subtypes",
+  "script": "gen_idols.cjs",
+  "source": "items.json (subItems of baseTypeID 25-33)",
+  "rows": 9
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.idol_affix_totals",
+  "script": "gen_idols.cjs",
+  "source": "affixes.json (rollsOn = Idols), idols.json (idolAffixIds)",
+  "rows": 9
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.idol_affix_counts",
+  "script": "gen_idols.cjs",
+  "source": "affixes.json (rollsOn = Idols; canRollOn contains baseTypeID)",
+  "rows": 9
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.altars",
+  "script": "gen_idols.cjs",
+  "source": "items.json (baseTypeID 41 subItems), idols.json (containerGrids.data), global_player_properties.json (idolAltarProperties)",
+  "rows": 13
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.altar_grids",
+  "script": "gen_idols.cjs",
+  "source": "idols.json (containerGrids.defaultData, containerGrids.data); base 41 subtype names from items.json",
+  "rows": 14
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.altar_affixes",
+  "script": "gen_idols.cjs",
+  "source": "affixes.json (canRollOn contains 41), global_player_properties.json (idolAltarProperties)",
+  "rows": 20
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.blessing_summary",
+  "script": "gen_idols.cjs",
+  "source": "blessings.json (timelines[], data[])",
+  "rows": 11
+ },
+ {
+  "page": "idols-and-blessings",
+  "table": "idols.blessing_tables",
+  "script": "gen_idols.cjs",
+  "source": "blessings.json (timelines[].pairs, data[] implicits, timelines[].difficulties slot pools)",
+  "rows": 224
+ },
+ {
+  "page": "item-system",
+  "table": "items.base_types",
+  "script": "gen_items.cjs",
+  "source": "items.json (data[], equipmentTypeEnum, disabledBaseTypesToRoll); slot column = X/G (gear walkthrough)",
+  "rows": 42
+ },
+ {
+  "page": "item-system",
+  "table": "items.nonequip",
+  "script": "gen_items.cjs",
+  "source": "items.json (nonEquippable, globals)",
+  "rows": 9
+ },
+ {
+  "page": "item-system",
+  "table": "items.weapon_attack_rate",
+  "script": "gen_items.cjs",
+  "source": "items.json (subItems[].attackRate)",
+  "rows": 12
+ },
+ {
+  "page": "item-system",
+  "table": "items.subtype_flags",
+  "script": "gen_items.cjs",
+  "source": "items.json (subItems flags)",
+  "rows": 7
+ },
+ {
+  "page": "item-system",
+  "table": "items.corrupted_subtypes",
+  "script": "gen_items.cjs",
+  "source": "items.json (subItems[].isCorruptedSubtype = 1)",
+  "rows": 12
+ },
+ {
+  "page": "item-system",
+  "table": "items.tier_example",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (affixId 25 Added Health, affixId 0 Void Penetration)",
+  "rows": 2
+ },
+ {
+  "page": "item-system",
+  "table": "items.aem",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (standardAffixEffectModifier), items.json (affixEffectModifier)",
+  "rows": 10
+ },
+ {
+  "page": "item-system",
+  "table": "items.aem_vectors",
+  "script": "gen_items.cjs",
+  "source": "computed with formula from affixes.json valueModel (A); affix tiers from affixes.json",
+  "rows": 4
+ },
+ {
+  "page": "item-system",
+  "table": "items.affix_composition",
+  "script": "gen_items.cjs",
+  "source": "affixes.json",
+  "rows": 12
+ },
+ {
+  "page": "item-system",
+  "table": "items.experimental",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (specialAffixType = Experimental)",
+  "rows": 12
+ },
+ {
+  "page": "item-system",
+  "table": "items.personal",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (specialAffixType = Personal)",
+  "rows": 12
+ },
+ {
+  "page": "item-system",
+  "table": "items.corrupted_affixes",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (specialAffixType = Corrupted)",
+  "rows": 88
+ },
+ {
+  "page": "item-system",
+  "table": "items.class_affixes",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (classSpecificity)",
+  "rows": 14
+ },
+ {
+  "page": "item-system",
+  "table": "items.affix_groups",
+  "script": "gen_items.cjs",
+  "source": "affixes.json",
+  "rows": 51
+ },
+ {
+  "page": "item-system",
+  "table": "items.t6_compat",
+  "script": "gen_items.cjs",
+  "source": "affixes.json (t6Compatibility)",
+  "rows": 9
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.ability_categories",
+  "script": "gen_misc.cjs",
+  "source": "abilities.json",
+  "rows": 6
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.ability_examples",
+  "script": "gen_misc.cjs",
+  "source": "abilities.json (category = player; playerAbilityID fi9, sm87r4, vo54, javeli, mush9, dig5, fs3e3, sw43, ra1an)",
+  "rows": 11
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.at_tags",
+  "script": "gen_misc.cjs",
+  "source": "stat_tag_enums.json (AT)",
+  "rows": 30
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.small_enums",
+  "script": "gen_misc.cjs",
+  "source": "stat_tag_enums.json (ETag, ModType, DamageType, NodeStatApplication, NodeStatScaling, HitEventTag, SpecificityType, MinionOrSituationTag, Attribute)",
+  "rows": 10
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.tree_overview",
+  "script": "gen_misc.cjs",
+  "source": "trees.json",
+  "rows": 3
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.node_stats",
+  "script": "gen_misc.cjs",
+  "source": "trees.json (nodes[].maxPoints, noScalingType, requiredMastery, masteryRequirement, abilityGrantedByNode)",
+  "rows": 3
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.skill_tree_sizes",
+  "script": "gen_misc.cjs",
+  "source": "trees.json (kind = skill)",
+  "rows": 4
+ },
+ {
+  "page": "skills-and-trees",
+  "table": "misc.weaver_nodes",
+  "script": "gen_misc.cjs",
+  "source": "trees.json (kind = weaver), weaver_node_effects.json",
+  "rows": 79
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.unique_mod_example",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (uniqueID 5 Isadora's Revenge)",
+  "rows": 4
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.mod_stats",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (mods[], tooltipDescriptions[])",
+  "rows": 8
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.uniques_per_base",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (baseType, isSetItem, isPrimordialItem, isCocoonedItem, legendaryType, canDropRandomly, hideFromPlayers)",
+  "rows": 29
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.special_flag_uniques",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (isPreCorrupted, dropsSpecificLegendaryAffixes, unifiedType, hideFromPlayers, droppableLegendaryAffixCount)",
+  "rows": 14
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.lp_effective_levels",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (overrideEffectiveLevelForLegendaryPotential, effectiveLevelForLegendaryPotential)",
+  "rows": 27
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.ww_uniques",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (legendaryType = WeaversWill)",
+  "rows": 18
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.primordial",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (isPrimordialItem, primordialCosts)",
+  "rows": 25
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.cocooned",
+  "script": "gen_uniques.cjs",
+  "source": "uniques.json (isCocoonedItem)",
+  "rows": 23
+ },
+ {
+  "page": "uniques-sets-legendary",
+  "table": "uniques.sets",
+  "script": "gen_uniques.cjs",
+  "source": "sets.json (setID, setName, items[], bonuses[], tooltipDescriptions[])",
+  "rows": 24
+ }
+]
