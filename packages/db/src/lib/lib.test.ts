@@ -219,6 +219,9 @@ describe("insertMod / insertStatBlock", () => {
     expect(isIndirectTags(104, 0)).toBe(true);
     expect(isIndirectTags(105, 0)).toBe(true);
     expect((get(insertMod(db, { ...base, sourceOrd: 15, property: 104, tags: 3 }, namer)) as { tag_names: string | null }).tag_names).toBeNull();
+    // ailment conversion: tags is the target ailment id (2 = Bleed), not the Lightning bit
+    expect(isIndirectTags(100, 1)).toBe(true);
+    expect((get(insertMod(db, { ...base, sourceOrd: 16, property: 100, tags: 2, specialTag: 1 }, namer)) as { tag_names: string | null }).tag_names).toBeNull();
   });
 
   it("cleans float noise and mirrors a lone bound", () => {

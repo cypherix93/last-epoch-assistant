@@ -59,9 +59,11 @@ export const INDIRECT_PROPERTIES = {
  * with specialTag 0 `tags` is an item BASE TYPE id, e.g. 1 = Body Armor, 33 = Adorned Idol; specialTags 1-4 select other
  * drop categories whose tags values are not decoded; never an AT mask), and 88 LevelOfSkills with specialTag 1
  * (single-skill level: tags = ability index; with specialTag 0 tags is an AT mask, e.g. 32 = Necrotic skills).
+ * 100 AilmentConversion: specialTag = the ailment converted FROM, tags = the ailment id converted TO (Carrion of
+ * Creation: tags 2 = Bleed), never an AT mask.
  */
 export function isIndirectTags(property: number | null | undefined, specialTag = 0): boolean {
-  if (property === 58 || property === 98 || property === 104 || property === 105 || property === 130) return true;
+  if (property === 58 || property === 98 || property === 100 || property === 104 || property === 105 || property === 130) return true;
   return property === 88 && specialTag === 1;
 }
 

@@ -275,6 +275,78 @@ describe.skipIf(!have)("@le/mcp tools (real data/le.sqlite)", () => {
     expect(phys.rows.some((x: R) => x.property === 104)).toBe(false);
   });
 
+  it("in-game display names: nodes with their tree, uniques with their slot, affix stat lines", () => {
+    // tree nodes: skill name or mastery (class name for the base tree)
+    expect((getTool(ctx, "passive_node", "mg-1:88") as R).display).toBe("Circle of Elements (Runemaster passive)");
+    expect((getTool(ctx, "passive_node", "mg-1:8") as R).display).toBe("Warden (Mage passive)");
+    expect((getTool(ctx, "skill_node", "en6:27") as R).display).toBe("Melting Nova (Elemental Nova node)");
+    expect((skillTree(ctx, "lb23il", { filter: "Innate Conduit" }) as R).nodes[0].display).toBe("Innate Conduit (Lightning Blast node)");
+    expect((passiveTree(ctx, "weaver", { filter: "Shifted Knowledge" }) as R).nodes[0].display).toBe("Shifted Knowledge (Weaver tree)");
+    // lookup carries the display name
+    expect((lookup(ctx, "Circle of Elements", ["passive_node"]) as R).results[0].display).toBe("Circle of Elements (Runemaster passive)");
+    expect((lookup(ctx, "Crest of Unity", ["unique"]) as R).results[0].display).toBe("Crest of Unity (unique helmet)");
+    // uniques: slot, base, class requirement and the tooltip effects in order
+    const crest = getTool(ctx, "unique", 307) as R;
+    expect(crest.display).toMatchObject({ name: "Crest of Unity (unique helmet)", slot: "helmet", base_item: "Runed Visage", class_requirement: "Mage" });
+    expect(crest.display.effects).toContain("+3-6 Level of Elemental Nova");
+    expect(crest.display.effects).toContain("Elemental Nova is always Tri-Elemental");
+    expect(crest.display.effects).toContain("9-18% less Damage Taken from Ignited Shocked or Chilled Enemies");
+    expect(crest.mods.find((m: R) => m.property === 88)).toMatchObject({ ability: "Elemental Nova", ability_id: "en6" });
+    const cul = getTool(ctx, "unique", 33) as R;
+    expect(cul.mods.map((m: R) => m.stat_line)).toEqual([
+      "+90% increased Lightning Spell Damage",
+      "+90% increased Lightning Spell Critical Strike Chance",
+      "+16-24% increased Mana Regen",
+      "+16-24 Lightning Spell Damage",
+    ]);
+    // affixes: the item line wording per tier, prefix / suffix, class restriction, slots
+    const af = getTool(ctx, "affix", 392) as R;
+    expect(af.display).toMatchObject({ line_names: ["Chance to Shock on Lightning Hit"], type: "prefix", class_restriction: "Mage", rolls_on: ["Helmet", "Body Armor"] });
+    expect(af.display.tier_lines.T7).toBe("+116-140% Chance to Shock on Lightning Hit");
+    // find_mods: the owner's in-game name
+    const fm = findMods(ctx, { source_kinds: ["passive_node"], source_id: "mg-1:88" }) as R;
+    expect(fm.rows[0].source_display).toBe("Circle of Elements (Runemaster passive)");
+    const um = findMods(ctx, { source_kinds: ["unique_mod"], source_id: "307" }) as R;
+    expect(um.rows[0].source_display).toBe("Crest of Unity (unique helmet)");
+    const bl = findMods(ctx, { source_kinds: ["blessing"], source_id: "34:73" }) as R;
+    expect(bl.rows[0].source_display).toBe("Grand Bastion of Divinity (Ending the Storm blessing)");
+  });
+
+  it("special tags are resolved: ailments, conditional damage, ailment conversion", () => {
+    // SP 1 ailment chance on a passive: the ailment name is part of the stat
+    const coe = (getTool(ctx, "passive_node", "mg-1:88") as R).mods;
+    expect(coe.map((m: R) => m.stat_line)).toContain("+10% Shock Chance with Lightning Skills");
+    // SP 117 GlobalConditionalDamage: special_tag is a ConditionalDamageProperty
+    const cond = (findMods(ctx, { property: 117, special_tag: 16, source_kinds: ["unique_mod"] }) as R).rows[0];
+    expect(cond.condition).toBe("to Moving Enemies");
+    expect(cond.stat_line).toMatch(/more .*Damage to Moving Enemies$/);
+    // SP 100: special_tag = from, tags = to (Carrion of Creation converts to Bleed); tags is not a Lightning mask
+    const conv = (getTool(ctx, "unique", 431) as R).mods.filter((m: R) => m.property === 100);
+    expect(conv.length).toBe(6);
+    expect(conv.every((m: R) => m.converts_to === "Bleed" && m.tag_names === undefined)).toBe(true);
+    expect(conv.map((m: R) => m.converts_from)).toContain("Shock");
+    expect(conv[0].stat_line).toBe("100% Ignite Chance Converted to Bleed Chance");
+    expect((findMods(ctx, { tags_any: ["Lightning"], property: 100, include_untagged: false }) as R).total_matching).toBe(0);
+  });
+
+  it("community build tools carry display names", () => {
+    const b = build(ctx, { slug: ES_SLUG, sections: ["gear", "passives", "skills"] }) as R;
+    const weapon = b.gear.find((g: R) => g.slot === "weapon");
+    expect(weapon.display).toBe("World Splitter (unique two-handed axe)");
+    expect(weapon.affixes[0].display).toMatch(/^\+\d+ Melee Void Damage \(T7\)$/);
+    expect(b.passives[0].nodes[0].display).toMatch(/ \((Sentinel|Void Knight|Forge Guard|Paladin) passive\)$/);
+    const es = b.skills.find((s: R) => s.ability_id === "es6ai");
+    expect(es.nodes[0].display).toMatch(/ \(Erasing Strike node\)$/);
+    const sm = slotMeta(ctx, { slot: "helmet", mastery: "Void Knight" }) as R;
+    const mask = sm.items.find((i: R) => i.unique_id === 434);
+    expect(mask.display).toBe("Mask of Indifference (unique helmet)");
+    expect(sm.affixes[0]).toHaveProperty("line_names");
+    expect(sm.affixes[0]).toHaveProperty("rolls_on");
+    expect(sm.affixes[0].typical_tier_lines.length).toBeGreaterThan(0);
+    const iu = itemUsage(ctx, { unique_id: 365 }) as R;
+    expect(iu.item.display).toBe("World Splitter (unique two-handed axe)");
+  });
+
   it("find_mods ignores indirect-property rows in tag filters", () => {
     const rows = (findMods(ctx, { tags_any: ["Minion"] }, 2000) as R).rows;
     expect(rows.some((x: R) => [58, 98, 130].includes(x.property) && (x.tags & 8192) !== 0 && x.tags !== 0)).toBe(false);
