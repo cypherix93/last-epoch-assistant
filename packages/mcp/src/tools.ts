@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { all, clean, cleanAll, one, tagMask, ToolError, type Ctx, type Row } from "./context.js";
 import { applyNodeScaling, classIdOf, decorateMod, decorateNodeMod, dropNulls, getTool, GETTERS, MOD_COLS, modsFor, type Id } from "./get.js";
+import { affixDisplay, blessingDisplay, nodeDisplay, nodeKeyDisplay, sourceDisplay, uniqueDisplay } from "./display.js";
 
 export { getTool };
 
@@ -312,8 +313,32 @@ export function lookup(ctx: Ctx, name: string, kinds?: string[], limit = 10): Ro
       }
     }
   }
-  const results = [...hits.values()].sort((a, b) => (b.score as number) - (a.score as number)).slice(0, Math.max(1, limit));
+  const results = [...hits.values()]
+    .sort((a, b) => (b.score as number) - (a.score as number))
+    .slice(0, Math.max(1, limit))
+    .map((r) => {
+      const d = lookupDisplay(ctx, r.kind as string, r.id as string);
+      return d ? { ...r, display: d } : r;
+    });
   return { query: q, count: results.length, results };
+}
+
+/** In-game display name of a lookup hit (nodes with their tree, uniques with their slot, affixes, blessings). */
+function lookupDisplay(ctx: Ctx, kind: string, id: string): string | undefined {
+  switch (kind) {
+    case "skill_node":
+    case "passive_node":
+    case "weaver_node":
+      return nodeKeyDisplay(ctx, id);
+    case "unique":
+      return uniqueDisplay(ctx, Number(id));
+    case "affix":
+      return affixDisplay(ctx, Number(id));
+    case "blessing":
+      return blessingDisplay(ctx, Number(id));
+    default:
+      return undefined;
+  }
 }
 
 // ---------------------------------------------------------------- find_mods
@@ -332,7 +357,8 @@ export interface ModFilters {
   include_indirect?: boolean;
 }
 
-const INDIRECT_PROPS = "(58, 98, 104, 105, 130)";
+/** `tags` is an index, not an AT mask: 58, 98, 104, 105, 130, and 100 Ailment Conversion (tags = target ailment id). */
+const INDIRECT_PROPS = "(58, 98, 100, 104, 105, 130)";
 
 /**
  * The join logic of find_mods: every `mods` row plus a human source name.
@@ -408,7 +434,11 @@ export function findMods(ctx: Ctx, f: ModFilters = {}, limit = 100): Row {
   const total = (one(ctx, `SELECT count(*) n ${MODS_JOIN_SQL}${w}`, ...params) as Row).n as number;
   const rows = all(ctx, `${MODS_SELECT_SQL} ${MODS_JOIN_SQL}${w} ORDER BY m.id LIMIT ?`, ...params, lim)
     .map(dropNulls)
-    .map((m) => decorateNodeMod(ctx, decorateMod(ctx, m)));
+    .map((m) => {
+      const d = decorateNodeMod(ctx, decorateMod(ctx, m));
+      const sd = sourceDisplay(ctx, m.source_kind as string, String(m.source_id), m.source_name as string | undefined, m.tier as number | undefined);
+      return sd ? { ...d, source_display: sd } : d;
+    });
   return { total_matching: total, count: rows.length, truncated: total > rows.length, rows };
 }
 
@@ -489,6 +519,7 @@ function treePayload(ctx: Ctx, tree: Row, opts: TreeOpts = {}): Row {
       }
       return dropNulls({
         ...n,
+        display: nodeDisplay(ctx, treeId, id),
         mods: modsByNode.get(id) ?? [],
         // Semantics (docs/schema.md, tree_node_requirements): the node can be taken when ANY ONE listed node has the given points.
         unlocked_by: req,

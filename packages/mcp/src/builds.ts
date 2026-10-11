@@ -13,6 +13,7 @@
  */
 import { all, one, ToolError, type Ctx, type Row } from "./context.js";
 import { classIdOf, dropNulls } from "./get.js";
+import { affixSummary, nodeDisplay, statLine, uniqueDisplay } from "./display.js";
 
 // ---------------------------------------------------------------- shared lookups
 
@@ -431,11 +432,12 @@ function modValue(m: Row, roll: number | null | undefined, factor = 1): number {
   }
   return round(lo + (hi - lo) * (roll ?? 1));
 }
-function modLine(m: Row, roll: number | null | undefined, factor = 1): Row {
+function modLine(ctx: Ctx, m: Row, roll: number | null | undefined, factor = 1): Row {
   const value = modValue(m, roll, factor);
   const stored = factor !== 1 ? modValue(m, roll) : undefined;
   return dropNulls({
     stat: (m.label as string | null) ?? [m.tag_names, m.property_name].filter(Boolean).join(" "),
+    line: statLine(ctx, { ...m, value_min: value, value_max: value }),
     value,
     stored_value: stored !== undefined && stored !== value ? stored : undefined,
     modifier: m.modifier_type === null || m.modifier_type === undefined ? undefined : MODIFIER[m.modifier_type as number],
@@ -463,7 +465,7 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
   if (keys.length) {
     for (const m of all(
       ctx,
-      `SELECT m.source_id, m.tier, m.label, m.property_name, m.tag_names, m.modifier_type, m.value_min, m.value_max, s.rounding_scale
+      `SELECT m.source_id, m.tier, m.label, m.property, m.special_tag, m.tags, m.property_name, m.tag_names, m.modifier_type, m.value_min, m.value_max, s.rounding_scale
          FROM mods m LEFT JOIN affix_stats s ON s.affix_id = CAST(m.source_id AS INTEGER) AND s.ord = m.source_ord
         WHERE m.source_kind = 'affix_tier' AND m.source_id IN ${inList(keys.length)} ORDER BY m.source_id, m.tier, m.source_ord, m.sub_ord`,
       ...keys,
@@ -474,15 +476,18 @@ function affixesFor(ctx: Ctx, itemIds: number[]): Map<number, Row[]> {
   }
   for (const l of lines) {
     const factor = affixScaleFactor(l.item_aem as number | null, l.std_aem as number | null);
+    const values = (mods.get(`${l.affix_id}:${l.tier}`) ?? []).map((m) => modLine(ctx, m, l.roll, factor));
     const row = dropNulls({
       affix_id: l.affix_id,
       name: l.name ?? `affix ${l.affix_id}`,
+      // the affix as the item tooltip shows it, with the rolled value(s) and tier
+      display: values.length ? `${values.map((v) => v.line ?? v.stat).join("; ")} (T${l.tier})` : undefined,
       tier: l.tier,
       type: l.is_prefix === null ? undefined : l.is_prefix ? "prefix" : "suffix",
       origin: l.origin,
       roll: l.roll,
       scale_factor: factor !== 1 ? round(factor, 4) : undefined,
-      values: (mods.get(`${l.affix_id}:${l.tier}`) ?? []).map((m) => modLine(m, l.roll, factor)),
+      values,
     });
     (out.get(l.item_row_id) ?? out.set(l.item_row_id, []).get(l.item_row_id)!).push(row);
   }
@@ -505,7 +510,7 @@ function itemsDoc(ctx: Ctx, profileId: number, idols: boolean): Row[] {
   );
   const affixes = affixesFor(ctx, items.map((i) => i.item_row_id as number));
   const implicitStmt = ctx.db.prepare(
-    "SELECT source_ord, label, property_name, tag_names, modifier_type, value_min, value_max FROM mods WHERE source_kind = 'implicit' AND source_id = ? ORDER BY source_ord, sub_ord",
+    "SELECT source_ord, label, property, special_tag, tags, property_name, tag_names, modifier_type, value_min, value_max FROM mods WHERE source_kind = 'implicit' AND source_id = ? ORDER BY source_ord, sub_ord",
   );
   return items.map((i) => {
     let rolls: number[] = [];
@@ -514,13 +519,14 @@ function itemsDoc(ctx: Ctx, profileId: number, idols: boolean): Row[] {
     } catch {
       rolls = [];
     }
-    const implicits = (implicitStmt.all(`${i.base_type_id}:${i.sub_type_id}`) as Row[]).map((m) => modLine(m, rolls[m.source_ord as number]));
+    const implicits = (implicitStmt.all(`${i.base_type_id}:${i.sub_type_id}`) as Row[]).map((m) => modLine(ctx, m, rolls[m.source_ord as number]));
     return dropNulls({
       slot: idols ? undefined : i.slot,
       grid_x: idols ? i.grid_x : undefined,
       grid_y: idols ? i.grid_y : undefined,
       size: idols && i.size_x ? `${i.size_x}x${i.size_y}` : undefined,
       name: (i.unique_name as string | null) ?? i.base,
+      display: i.unique_id !== null ? uniqueDisplay(ctx, i.unique_id as number) : i.base ? `${i.kind ?? "rare"} ${i.base}` : undefined,
       kind: i.kind,
       unique_id: i.unique_id,
       set: i.set_id !== null ? { set_id: i.set_id, name: i.set_name } : undefined,
@@ -535,8 +541,16 @@ function itemsDoc(ctx: Ctx, profileId: number, idols: boolean): Row[] {
   });
 }
 
-function nodeList(rows: Row[]): Row[] {
-  return rows.map((n) => dropNulls({ node_id: n.node_id, name: n.node_name ?? `node ${n.node_id}`, points: n.points, max_points: n.max_points }));
+function nodeList(ctx: Ctx, rows: Row[]): Row[] {
+  return rows.map((n) =>
+    dropNulls({
+      node_id: n.node_id,
+      name: n.node_name ?? `node ${n.node_id}`,
+      display: n.tree_id ? nodeDisplay(ctx, n.tree_id as string, n.node_id as number) : undefined,
+      points: n.points,
+      max_points: n.max_points,
+    }),
+  );
 }
 
 function parseJson<T>(s: unknown): T | undefined {
@@ -613,7 +627,7 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
       g.points = (g.points as number) + (n.points as number);
       g.nodes.push(n);
     }
-    out.passives = [...groups.values()].map((g) => dropNulls({ ...g, nodes: nodeList(g.nodes) }));
+    out.passives = [...groups.values()].map((g) => dropNulls({ ...g, nodes: nodeList(ctx, g.nodes) }));
   }
   if (sections.has("skills")) {
     const skillNodes = all(
@@ -641,7 +655,7 @@ export function build(ctx: Ctx, a: BuildArgs = {}): Row {
         points: s.points,
         node_count: s.node_count,
         // trees of non-specialized skills are planner leftovers with no in-game effect: listed only for specialized skills
-        nodes: s.is_specialized === 1 && s.tree_id ? nodeList(skillNodes.filter((n) => n.tree_id === s.tree_id)) : undefined,
+        nodes: s.is_specialized === 1 && s.tree_id ? nodeList(ctx, skillNodes.filter((n) => n.tree_id === s.tree_id)) : undefined,
         note: s.is_specialized !== 1 && (s.points as number) > 0 ? `not specialized: its ${s.node_count} allocated tree nodes (${s.points} points) are a planner leftover (no effect in game)` : undefined,
       }),
     );
@@ -742,7 +756,7 @@ export function itemUsage(ctx: Ctx, a: ItemUsageArgs = {}): Row {
       bySlot[e.item.slot as string] = (bySlot[e.item.slot as string] ?? 0) + 1;
       const mn = mName(b) ?? "?";
       byMastery[mn] = (byMastery[mn] ?? 0) + 1;
-      const ex = (extras.get(e.item.item_row_id as number) ?? []).map((x) => dropNulls({ affix_id: x.affix_id, name: x.name, tier: x.tier, origin: x.origin }));
+      const ex = (extras.get(e.item.item_row_id as number) ?? []).map((x) => dropNulls({ affix_id: x.affix_id, name: x.name, display: x.display, tier: x.tier, origin: x.origin }));
       for (const x of ex) {
         const k = String(x.affix_id);
         const c = extraCount.get(k) ?? extraCount.set(k, { affix_id: x.affix_id as number, name: x.name as string, builds: new Set(), tiers: [] }).get(k)!;
@@ -765,7 +779,7 @@ export function itemUsage(ctx: Ctx, a: ItemUsageArgs = {}): Row {
       );
     }
     return {
-      item: dropNulls({ kind: "unique", name: u.name, unique_ids: u.ids }),
+      item: dropNulls({ kind: "unique", name: u.name, unique_ids: u.ids, display: u.ids.length === 1 ? uniqueDisplay(ctx, u.ids[0]!) : undefined }),
       total_builds: perBuild.size,
       matched_builds: rows.length,
       by_slot: bySlot,
@@ -773,7 +787,10 @@ export function itemUsage(ctx: Ctx, a: ItemUsageArgs = {}): Row {
       common_extra_affixes: [...extraCount.values()]
         .sort((x, y) => y.builds.size - x.builds.size || x.affix_id - y.affix_id)
         .slice(0, 15)
-        .map((c) => ({ affix_id: c.affix_id, name: c.name, builds: c.builds.size, typical_tier: typicalTier(c.tiers) })),
+        .map((c) => {
+          const tt = typicalTier(c.tiers);
+          return dropNulls({ affix_id: c.affix_id, name: c.name, builds: c.builds.size, typical_tier: tt, ...affixSummary(ctx, c.affix_id, tt ?? undefined) });
+        }),
       builds: list.slice(0, lim),
       truncated: list.length > lim,
       source: SOURCE_NOTE,
@@ -833,7 +850,7 @@ export function itemUsage(ctx: Ctx, a: ItemUsageArgs = {}): Row {
     });
   const types = all(ctx, `SELECT affix_id, affix_type_name AS type, name FROM affixes WHERE affix_id IN ${inList(af.ids.length)} ORDER BY affix_id`, ...af.ids);
   return {
-    item: { kind: "affix", name: af.name, affix_ids: af.ids, affixes: types.map(dropNulls) },
+    item: { kind: "affix", name: af.name, affix_ids: af.ids, affixes: types.map((t) => dropNulls({ ...t, ...affixSummary(ctx, t.affix_id as number) })) },
     total_builds: builds.size,
     matched_builds: rows.length,
     by_slot: Object.fromEntries(
@@ -916,6 +933,7 @@ export function slotMeta(ctx: Ctx, a: SlotMetaArgs): Row {
     .map((g) =>
       dropNulls({
         name: g.name,
+        display: g.unique_id !== null ? uniqueDisplay(ctx, g.unique_id) : undefined,
         kind: [...g.kind].sort().join("|"),
         unique_id: g.unique_id ?? undefined,
         base: g.unique_id === null ? g.name : undefined,
@@ -947,17 +965,24 @@ export function slotMeta(ctx: Ctx, a: SlotMetaArgs): Row {
   const affixList = [...affAgg.entries()]
     .sort((x, y) => y[1].builds.size - x[1].builds.size || x[0] - y[0])
     .slice(0, lim)
-    .map(([id, g]) =>
-      dropNulls({
+    .map(([id, g]) => {
+      const tt = typicalTier(g.tiers);
+      const info = affixSummary(ctx, id, tt ?? undefined) ?? {};
+      return dropNulls({
         affix_id: id,
         affix: g.name,
         count: g.builds.size,
         pct: pct(g.builds.size, n),
-        typical_tier: typicalTier(g.tiers),
+        typical_tier: tt,
         type: g.is_prefix === null ? undefined : g.is_prefix ? "prefix" : "suffix",
         origins: [...g.origins].sort(),
-      }),
-    );
+        display: info.display,
+        line_names: info.line_names,
+        class_restriction: info.class_restriction,
+        rolls_on: info.rolls_on,
+        typical_tier_lines: info.tier_lines,
+      });
+    });
   return {
     slot: slots.length > 1 ? slots : slots[0],
     tab: tabSpec,

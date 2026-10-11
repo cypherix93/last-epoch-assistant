@@ -27,6 +27,19 @@
  */
 import { build as buildDoc } from "./builds.js";
 import { all, clean, cleanAll, one, ToolError, type Ctx, type Row } from "./context.js";
+import {
+  abilityOfIndex,
+  affixSummary,
+  affixTierLines,
+  blessingDisplay,
+  conditionOf,
+  fillPlaceholders,
+  nodeDisplay,
+  statLine,
+  statName,
+  uniqueDisplay,
+  uniqueInfo,
+} from "./display.js";
 
 export const MOD_COLS =
   "source_ord, sub_ord, tier, property, property_name, special_tag, tags, tag_names, modifier_type, value_min, value_max, display, label, context, set_requirement, hidden, is_downside, no_scaling, property_kind, stat_kind, modifier_source, label_mismatch, code_ref";
@@ -69,7 +82,16 @@ function baseTypeName(ctx: Ctx, id: number): string | undefined {
   return m.get(id);
 }
 
-/** Add special_tag_name (ailment properties) and property_kind (indirect properties) to a mod row. */
+/**
+ * Add readable fields to a mod row (all additive):
+ *   special_tag_name  ailment name for ailment-keyed properties (SP 1, 42, 43, 100, 115, 120, 128)
+ *   condition         the ConditionalDamageProperty description for SP 117 / 131-133 ("to Moving Enemies")
+ *   converts_from / converts_to   SP 100 Ailment Conversion (special_tag = from, tags = to ailment id); tag_names is
+ *                     dropped there because `tags` is an ailment id, not a tag mask
+ *   ability / ability_id  the ability of an SP 58 AbilityProperty or SP 88 single-skill line (tags = ability index)
+ *   property_kind     indirect properties (98, 58, 130, 104, 105)
+ *   stat_name / stat_line  the stat in in-game words, and the full line with its value ("+116-140% Chance to Shock on Lightning Hit")
+ */
 export function decorateMod<T extends Row>(ctx: Ctx, m: T): T {
   const p = m.property as number | undefined;
   if (p === undefined) return m;
@@ -78,6 +100,26 @@ export function decorateMod<T extends Row>(ctx: Ctx, m: T): T {
     const n = ailmentName(ctx, m.special_tag);
     if (n) out.special_tag_name = n;
   }
+  if (p === 100) {
+    delete out.tag_names;
+    const from = typeof m.special_tag === "number" ? ailmentName(ctx, m.special_tag) : undefined;
+    const to = typeof m.tags === "number" ? ailmentName(ctx, m.tags) : undefined;
+    if (from) out.converts_from = from;
+    if (to) out.converts_to = to;
+  }
+  const cond = conditionOf(ctx, m);
+  if (cond) out.condition = cond;
+  if ((p === 58 || (p === 88 && m.special_tag === 1)) && typeof m.tags === "number") {
+    const a = abilityOfIndex(ctx, m.tags);
+    if (a) {
+      out.ability = a.name ?? undefined;
+      out.ability_id = a.ability_id;
+    }
+  }
+  const sn = statName(ctx, out);
+  if (sn) out.stat_name = sn;
+  const sl = statLine(ctx, out);
+  if (sl) out.stat_line = sl;
   if (INDIRECT_PROP_KIND[p]) out.property_kind = INDIRECT_PROP_KIND[p];
   // 104/105: with special_tag 0, tags is an item base type id (e.g. 1 = Body Armor); other special tags are undecoded categories.
   if ((p === 104 || p === 105) && !m.special_tag && typeof m.tags === "number") {
@@ -293,6 +335,7 @@ function nodeGetter(treeKind: string): Getter {
     }
     const t = one(ctx, "SELECT tree_id, tree_kind, name, ability_id, class_id FROM trees WHERE tree_id = ?", tree);
     return {
+      display: nodeDisplay(ctx, tree, Number(node)),
       node: clean(n, raw),
       tree: t,
       mods: modsFor(ctx, `${treeKind}_node`, `${tree}:${node}`).map((m) => decorateNodeMod(ctx, applyNodeScaling(m, n))),
@@ -328,6 +371,44 @@ function dropSources(ctx: Ctx, uniqueId: number): Row[] {
   }
 }
 
+/**
+ * What the player sees for a unique: its name with the slot ("Crest of Unity (unique helmet)"), slot, base item, class
+ * requirement and the tooltip effect lines in tooltip order (unique_tooltip_entries: stat lines rendered from the mods,
+ * special effects from the tooltip text with roll placeholders filled in).
+ */
+export function uniqueSummary(ctx: Ctx, uniqueId: number, mods: Row[], tooltips: Row[]): Row {
+  const info = uniqueInfo(ctx, uniqueId);
+  const modLine = (ord: number) =>
+    mods
+      .filter((m) => m.source_ord === ord && !m.hidden)
+      .map((m) => m.stat_line as string | undefined)
+      .filter((s): s is string => !!s)
+      .join("; ");
+  const tipLine = (ord: number) => {
+    const t = tooltips.find((x) => x.ord === ord);
+    return typeof t?.text === "string" ? fillPlaceholders(t.text) : "";
+  };
+  let effects: string[] = [];
+  try {
+    effects = all(ctx, "SELECT ref_kind, ref_index FROM unique_tooltip_entries WHERE unique_id = ? ORDER BY ord", uniqueId)
+      .map((e) => (e.ref_kind === "mod" ? modLine(e.ref_index as number) : tipLine(e.ref_index as number)))
+      .filter(Boolean);
+  } catch {
+    effects = [];
+  }
+  if (!effects.length) {
+    const ords = [...new Set(mods.map((m) => m.source_ord as number))];
+    effects = [...ords.map(modLine), ...tooltips.map((t) => tipLine(t.ord as number))].filter(Boolean);
+  }
+  return dropNulls({
+    name: uniqueDisplay(ctx, uniqueId),
+    slot: info?.base_type ? info.base_type.toLowerCase() : undefined,
+    base_item: info?.sub_type ?? undefined,
+    class_requirement: info?.class_requirement ?? "any class",
+    effects,
+  });
+}
+
 /** How a unique is obtained, in one line: random drops (can_drop_randomly) and the content-specific sources. */
 function obtainNote(u: Row): string {
   const random = u.can_drop_randomly === 1 ? "drops randomly (can_drop_randomly = 1)" : "does NOT drop randomly (can_drop_randomly = 0)";
@@ -341,15 +422,18 @@ export const GETTERS: Record<string, Getter> = {
     const bt = u.base_type_id == null ? undefined : one(ctx, "SELECT name FROM item_base_types WHERE base_type_id = ?", u.base_type_id);
     const st = u.sub_type_id == null ? undefined : one(ctx, "SELECT name FROM item_subtypes WHERE base_type_id = ? AND sub_type_id = ?", u.base_type_id, u.sub_type_id);
     const sn = u.set_id == null ? undefined : one(ctx, "SELECT name FROM sets WHERE set_id = ?", u.set_id);
+    const mods = modsFor(ctx, "unique_mod", u.unique_id as number);
+    const tooltips = all(ctx, "SELECT ord, text, alt_text, set_mod, set_requirement FROM unique_tooltips WHERE unique_id = ? ORDER BY ord", u.unique_id).map(dropNulls);
     return {
+      display: uniqueSummary(ctx, u.unique_id as number, mods, tooltips),
       unique: {
         ...clean(u, raw),
         ...(bt ? { base_type_name: bt.name } : {}),
         ...(st ? { sub_type_name: st.name } : {}),
         ...(sn ? { set_name: sn.name } : {}),
       },
-      mods: modsFor(ctx, "unique_mod", u.unique_id as number),
-      tooltips: all(ctx, "SELECT ord, text, alt_text, set_mod, set_requirement FROM unique_tooltips WHERE unique_id = ? ORDER BY ord", u.unique_id).map(dropNulls),
+      mods,
+      tooltips,
       subtypes: all(
         ctx,
         "SELECT us.ord, us.base_type_id, us.sub_type_id, s.name AS sub_name, b.name AS base_name FROM unique_subtypes us LEFT JOIN item_subtypes s ON s.base_type_id = us.base_type_id AND s.sub_type_id = us.sub_type_id LEFT JOIN item_base_types b ON b.base_type_id = us.base_type_id WHERE us.unique_id = ? ORDER BY us.ord",
@@ -375,7 +459,14 @@ export const GETTERS: Record<string, Getter> = {
       const { tier: _t, source_ord: _o, sub_ord: _s, hidden, is_downside, ...rest } = m;
       return { ...rest, ...(hidden ? { hidden } : {}), ...(is_downside ? { is_downside } : {}) };
     };
+    const top = tiers.length ? (tiers[tiers.length - 1]!.tier as number) : undefined;
     return {
+      display: {
+        ...affixSummary(ctx, a.affix_id as number),
+        tier_lines: Object.fromEntries(tiers.map((t) => [`T${t.tier}`, affixTierLines(ctx, a.affix_id as number, t.tier as number).join("; ")])),
+        top_tier: top,
+        note: "tier_lines are the stored ranges (a base with the affix's standard affix effect modifier); the range on another base is scaled: read it from v_affix_values / v_idol_affix_values.",
+      },
       affix: { ...clean(a, raw), type_name: a.affix_type_name },
       stats: all(ctx, "SELECT * FROM affix_stats WHERE affix_id = ? ORDER BY ord", a.affix_id).map(dropNulls),
       tiers: tiers.map((t) => ({
@@ -422,6 +513,7 @@ export const GETTERS: Record<string, Getter> = {
     const sub = typeof id === "string" && id.includes(":") ? Number(id.split(":")[1]) : int(id, "blessing");
     const b = need(one(ctx, "SELECT * FROM blessings WHERE sub_type_id = ?", sub), "blessing", id);
     return {
+      display: blessingDisplay(ctx, sub),
       blessing: clean(b, raw),
       mods: modsFor(ctx, "blessing", `34:${sub}`),
       timeline: one(ctx, "SELECT timeline_id, name, boss_name FROM timelines WHERE timeline_id = ?", b.timeline_id),
@@ -547,7 +639,9 @@ export const GETTERS: Record<string, Getter> = {
   },
   ability_property(ctx, id, raw) {
     const [a, p] = pair(id, "ability_index", "prop_index", "ability_property");
+    const ab = abilityOfIndex(ctx, Number(a));
     return {
+      ...(ab ? { ability: ab } : {}),
       ability_property: clean(
         need(one(ctx, "SELECT * FROM ability_properties WHERE ability_index = ? AND prop_index = ?", Number(a), Number(p)), "ability_property", id),
         raw,
