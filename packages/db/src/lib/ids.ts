@@ -5,7 +5,7 @@
  * decimal string:
  *   'MIzDMQ'       -> { kind: 'M', value: '113' }            monster mod 113
  *   'AKwDgnEA'     -> { kind: 'A', value: '589' }            affix 589
- *   'UAzCMwZgJiA'  -> { kind: 'U', value: '001032' }         unique 32, line digits 001
+ *   'UAzCMwZgJiA'  -> { kind: 'U', value: '001032' }         unique 32 on sub type 1
  *   'SAzDMQ'       -> { kind: 'S', value: '003' }            set 3
  *   'IIwBjIVnEg'   -> { kind: 'I', value: '1000050000' }     base 0, sub 50 (Falconry Helm), implicit 0
  * Encoding is deterministic, so encode(decode(id)) == id for every id in the data.
@@ -28,7 +28,7 @@ export interface DecodedCompactId {
   targetTable: "affixes" | "uniques" | "sets" | "item_subtypes" | "monster_mods";
   /** Key in targetTable: affix_id / unique_id / set_id / '<base>:<sub>' / mod_id (as text). */
   targetKey: string;
-  /** U: leading 3 digits (line index; meaning partly unknown). I: trailing 3 digits (implicit index). */
+  /** U: leading 3 digits = the unique's base sub type id (uniques.sub_type_id). I: trailing 3 digits (implicit index). */
   subIndex: number | null;
   /** I: base type id. */
   baseTypeId?: number;
@@ -58,7 +58,7 @@ export function decodeCompactId(id: string): DecodedCompactId {
     case "S":
       return { id, kind, value, targetTable: "sets", targetKey: String(Number(value)), subIndex: null };
     case "U": {
-      // <NNN><uuu>: last 3 digits = uniqueId, leading digits = line index (not always a mods[] index).
+      // <sss><uuu>: last 3 digits = uniqueId, leading digits = the unique's sub type id (333 of 333 in 1.5.2).
       const uniqueId = Number(value.slice(-3));
       const sub = value.length > 3 ? Number(value.slice(0, -3)) : null;
       return { id, kind, value, targetTable: "uniques", targetKey: String(uniqueId), subIndex: sub };
@@ -100,6 +100,6 @@ export const setCompactId = (setId: number): string => encodeCompactId("S", pad3
 /** 'I' id of a sub type implicit (e.g. (0, 50, 0) -> 'IIwBjIVnEg'). */
 export const implicitCompactId = (baseTypeId: number, subTypeId: number, implicitIndex = 0): string =>
   encodeCompactId("I", `1${pad3(baseTypeId)}${pad3(subTypeId)}${pad3(implicitIndex)}`);
-/** 'U' id of a unique line (line digits + 3-digit unique id, e.g. (1, 32) -> 'UAzCMwZgJiA'). */
-export const uniqueLineCompactId = (lineIndex: number, uniqueId: number): string =>
-  encodeCompactId("U", `${pad3(lineIndex)}${pad3(uniqueId)}`);
+/** 'U' id of a unique (3-digit sub type id + 3-digit unique id, e.g. (1, 32) -> 'UAzCMwZgJiA'). */
+export const uniqueLineCompactId = (subTypeId: number, uniqueId: number): string =>
+  encodeCompactId("U", `${pad3(subTypeId)}${pad3(uniqueId)}`);
