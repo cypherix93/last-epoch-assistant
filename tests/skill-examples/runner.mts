@@ -19,14 +19,15 @@ function count(res: any) {
   return "keys=" + Object.keys(res).slice(1, 5).join(",");
 }
 const isPlaceholder = (src: string, sql: boolean) => (/<[A-Za-z][A-Za-z_ -]*>/.test(src) && !/<b>/.test(src)) || (!sql && src.includes("..."));
-function exec(file: string, line: number, tool: string, args: any, src: string, sql = false, expectZero = false) {
+const pending: Promise<void>[] = [];
+async function exec(file: string, line: number, tool: string, args: any, src: string, sql = false, expectZero = false) {
   total++;
   if (isPlaceholder(src, sql)) { ph++; console.log(`PLACEHOLDER ${file}:${line} ${tool}`); return; }
   const d = defs[tool];
   if (!d) { bad++; console.log(`BAD ${file}:${line} unknown tool ${tool}`); return; }
   const p = z.object(d.shape).strict().safeParse(args);
   if (!p.success) { bad++; console.log(`BAD ${file}:${line} ${tool} args: ${p.error.issues.map((i: any) => i.path.join(".") + " " + i.message).join("; ")}`); return; }
-  const res: any = runTool(ctx, d, p.data);
+  const res: any = await runTool(ctx, d, p.data);
   if (!res.ok) { bad++; console.log(`ERR ${file}:${line} ${tool} ${res.error}`); return; }
   const c = count(res);
   if (/=0$/.test(c) || /=0 /.test(c)) { if (expectZero) { ok++; if (verbose) console.log(`ok ${file}:${line} ${tool} ${c} (expected zero)`); return; } if (!/total=[1-9]/.test(c)) { bad++; console.log(`ZERO ${file}:${line} ${tool} ${c}`); return; } }
@@ -37,11 +38,11 @@ function tryJson(file: string, line: number, tool: string, text: string, src: st
   if (!sql && src.includes("?")) { console.log(`SIGNATURE ${file}:${line} ${src.slice(0, 60)}`); return; }
   let args: any;
   try { args = JSON.parse(text); } catch { total++; bad++; console.log(`BAD json ${file}:${line} ${src.slice(0, 90)}`); return; }
-  exec(file, line, tool, args, src, sql, expectZero);
+  pending.push(exec(file, line, tool, args, src, sql, expectZero));
 }
 // a line carrying `expect-zero` (e.g. an HTML comment) may legitimately return an empty list
 const EZ = /expect-zero/;
-const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge|builds|build|item_usage|slot_meta";
+const TOOLS = "version|schema|search|get|lookup|find_mods|skill_tree|passive_tree|sql|knowledge|builds|build|item_usage|slot_meta|planner";
 for (const f of files) {
   const rel = relative(R + "/.claude/skills", f).split(BS).join("/");
   // strip a blockquote prefix so fenced examples inside "> " callouts are run too
@@ -58,7 +59,7 @@ for (const f of files) {
           const q: any = { query: body };
           const pm = /<!-- params: (.*) -->/.exec(prev);
           if (pm) q.params = JSON.parse(pm[1]);
-          exec(rel, start, "sql", q, body, true);
+          pending.push(exec(rel, start, "sql", q, body, true));
         } else {
           for (let j = 0; j < buf.length; j++) {
             const b = buf[j];
@@ -83,4 +84,5 @@ for (const f of files) {
     function continue_() {}
   });
 }
+await Promise.all(pending);
 console.log(`\nTOTAL ${total}  OK ${ok}  BAD/ZERO ${bad}  PLACEHOLDER ${ph}`);

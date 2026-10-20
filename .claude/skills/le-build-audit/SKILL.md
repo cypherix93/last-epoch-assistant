@@ -19,6 +19,14 @@ REQUIRED BACKGROUND: `le-data-query` (finding records), `le-damage-reasoning`, `
 
 ### Step 1: normalise the build into a ledger
 
+**Planner link first.** When the user gives an LE Tools planner link (`https://www.lastepochtools.com/planner/<id>`), a build id, or the planner JSON, start with `planner`: it returns the whole ledger already resolved (gear with tiers, origins and rolled values, idols with grid position and size, blessings, passives per mastery, skill and Weaver nodes) plus `warnings` (class-restricted affixes, points above a node's maximum, unresolved ids). Do not write decoding scripts. Use the tool's rolled values (labelled **D**: decompiled roll formula, `docs/planner-import.md`), check `planner.from_save_file` (2 = imported from a game save, otherwise the author typed the items) and carry every warning into "Ledger problems". The rest of this step then only covers what the planner does not hold (rolls the user corrects, buffs, the content they run).
+
+```
+planner({"file": "packages/mcp/src/__fixtures__/planner-oYEPpxWw.json", "sections": ["gear", "skills"]})
+```
+
+(With a live link: `planner({"url": "https://www.lastepochtools.com/planner/<id>"})`. The first call loads the page in a local headless browser, about 1-3 s; later calls read `data/planner-cache/`.)
+
 Resolve every piece to ids before judging anything. Ask once for missing pieces (rolled values, tiers, point allocations); mark guesses **U**. Give every ledger row a status: **resolved** (id found), **substituted** (closest match used, say which), **invalid** (does not exist, or the class cannot use it).
 
 | Piece | How to resolve | Record |

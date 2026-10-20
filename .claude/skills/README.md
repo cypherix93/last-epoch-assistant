@@ -21,7 +21,7 @@ Skills that teach an agent to use this repository's game database (`data/le.sqli
 
 ## Tool quick reference
 
-The `le-data` MCP server has 14 tools (`yarn mcp:list` prints them). Arguments are one JSON object; `?` marks optional keys, defaults in parentheses. Every reply is `{"ok": true, ...}` or `{"ok": false, "error": "..."}`.
+The `le-data` MCP server has 15 tools (`yarn mcp:list` prints them). Arguments are one JSON object; `?` marks optional keys, defaults in parentheses. Every reply is `{"ok": true, ...}` or `{"ok": false, "error": "..."}`.
 
 | Tool | Arguments |
 |---|---|
@@ -38,6 +38,7 @@ The `le-data` MCP server has 14 tools (`yarn mcp:list` prints them). Arguments a
 | `builds` | `{"class"?, "mastery"?, "ability"?, "any_skill"?: boolean, "item"?, "affix"?, "tab"?, "tier"?, "tier_list"?: "corruption" \| "speed" \| "bossing", "playstyle"?, "season"?, "limit"? (50)}` (list / filter Maxroll community guides; each row: slug, title, class, mastery, main_skill, tiers, tabs) |
 | `build` | `{"id"?: build_id, "slug"?: string, "tab"?: string (default tab), "sections"?: ("gear" \| "idols" \| "blessings" \| "passives" \| "skills" \| "notes")[]}` (one guide fully named: gear with affix tiers and rolled values, idols on the grid, blessings, passives per mastery, skills with nodes, notes; `get` kind `build` is an alias) |
 | `item_usage` | `{"name"?: string, "unique_id"?: int, "affix"?: id \| name, "slot"?, "tab"?, "class"?, "mastery"?, "limit"? (100)}` (which guides use a unique / set item (with their extra affixes) or an affix (per slot, typical tier)) |
+| `planner` | `{"url"?: string, "json"?: object \| string, "file"?: string, "refresh"?: boolean (false), "sections"?: ("gear" \| "idols" \| "blessings" \| "passives" \| "skills" \| "weaver")[]}` (exactly one of url / json / file: an LE Tools planner build fully named, with rolled affix / implicit / unique values, tiers, origins, idols on the grid, blessings, passives per mastery, skill and Weaver nodes, plus `character.summary` and `warnings`; a link is loaded once in a local headless browser and cached, `docs/planner-import.md`) |
 | `slot_meta` | `{"slot": string, "class"?, "mastery"?, "ability"?, "tab"? ("Endgame"), "kind"?: "unique" \| "rare" \| "all", "limit"? (25)}` (what guides wear in a slot: items with count / pct / example slugs, affixes with typical tier and prefix / suffix) |
 
 **In-game names in replies.** Alongside the ids, replies carry the names the game UI shows: `display` on tree nodes ("Circle of Elements (Runemaster passive)"), uniques (name with slot, base item, class requirement, tooltip `effects`), affixes (line names, prefix / suffix, class restriction, slots, `tier_lines`), blessings, `lookup` hits and the community tools' gear, affix lines and nodes; `stat_name` / `stat_line` on every mod row ("+116-140% Chance to Shock on Lightning Hit"), `source_display` on `find_mods` rows, `special_tag_name` / `condition` / `converts_from` / `converts_to` for ailment, conditional and conversion lines. Quote those in answers (see "Player-facing names" below).
