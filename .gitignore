@@ -60,3 +60,6 @@ data/*.sqlite-journal
 
 # Build temp file
 data/*.sqlite.tmp
+
+# Planner builds fetched by the le-data planner tool (one JSON per LE Tools build id)
+data/planner-cache/

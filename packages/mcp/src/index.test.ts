@@ -574,8 +574,8 @@ describe.skipIf(!have)("@le/mcp over stdio (SDK client)", () => {
     await client.connect(transport);
     try {
       const tools = (await client.listTools()).tools.map((t) => t.name);
-      expect(tools).toHaveLength(14);
-      expect(tools).toEqual(expect.arrayContaining(["builds", "build", "item_usage", "slot_meta"]));
+      expect(tools).toHaveLength(15);
+      expect(tools).toEqual(expect.arrayContaining(["builds", "build", "item_usage", "slot_meta", "planner"]));
       const call = async (n: string, a: object) => {
         const res = await client.callTool({ name: n, arguments: a });
         return JSON.parse((res.content as { text: string }[])[0].text) as R;

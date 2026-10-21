@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createContext, ToolError, type Ctx, type Row } from "./context.js";
 import * as bt from "./builds.js";
 import * as t from "./tools.js";
+import * as pl from "./planner.js";
 
 export const SERVER_NAME = "le-data";
 
@@ -19,7 +20,7 @@ export interface ToolDef {
   description: string;
   shape: z.ZodRawShape;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  run: (ctx: Ctx, args: any) => Row;
+  run: (ctx: Ctx, args: any) => Row | Promise<Row>;
 }
 
 export const TOOL_DEFS: ToolDef[] = [
@@ -166,6 +167,19 @@ export const TOOL_DEFS: ToolDef[] = [
     run: (ctx, a) => bt.slotMeta(ctx, a),
   },
   {
+    name: "planner",
+    description:
+      "An LE Tools planner build, fully named and with every rolled value: pass url (a share link https://www.lastepochtools.com/planner/<id>, or the bare id), json (the planner build JSON, or the {data} planner_data response), or file (a path to either). A link is loaded once in a local headless Chromium (the site is behind Cloudflare) and cached in data/planner-cache/<id>.json; refresh=true reloads it. Returns planner (id, url, page title, LE Tools data version, from = cache | network | json | file), character (class, mastery, level, passive / skill points, skills, uniques, one-line summary), gear (per slot: item name, kind, base, implicits, unique effects + unique_mods, affixes with name / tier / prefix|suffix / origin / roll byte / rolled values and tooltip line), idols (grid_x / grid_y, size, affixes), blessings (timeline, name, rolled lines), passives (grouped by mastery: node name, points, max), skills (tree nodes with points), weaver, warnings (unresolved ids, class-restricted affixes, points above a node's max, data-version mismatch). sections limits the output (gear, idols, blessings, passives, skills, weaver).",
+    shape: {
+      url: z.string().optional().describe("LE Tools planner link or build id, e.g. https://www.lastepochtools.com/planner/oYEPpxWw"),
+      json: z.union([z.string(), z.record(z.any())]).optional().describe("planner build JSON (object or string), or the {data: ...} planner_data response"),
+      file: z.string().optional().describe("path to a planner build JSON file (or a data/planner-cache file)"),
+      refresh: z.boolean().optional().describe("reload a link even when it is cached (default false)"),
+      sections: z.array(z.enum(pl.PLANNER_SECTIONS)).optional().describe("subset of gear, idols, blessings, passives, skills, weaver (default all)"),
+    },
+    run: (ctx, a) => pl.planner(ctx, a),
+  },
+  {
     name: "knowledge",
     description:
       "Without `page`: list knowledge/**/*.md and .claude/skills/*/SKILL.md (path, title, lines). With `page`: its text (repo-relative path, or a unique basename such as damage-pipeline.md).",
@@ -179,9 +193,9 @@ function text(obj: unknown, isError = false) {
 }
 
 /** Run a tool and wrap the outcome in the {ok} envelope. */
-export function runTool(ctx: Ctx, def: ToolDef, args: unknown): { ok: boolean; [k: string]: unknown } {
+export async function runTool(ctx: Ctx, def: ToolDef, args: unknown): Promise<{ ok: boolean; [k: string]: unknown }> {
   try {
-    return { ok: true, ...def.run(ctx, args ?? {}) };
+    return { ok: true, ...(await def.run(ctx, args ?? {})) };
   } catch (e) {
     const msg = e instanceof ToolError ? e.message : `${(e as Error).name}: ${(e as Error).message}`;
     return { ok: false, error: msg };
@@ -193,7 +207,7 @@ export function createServer(dbPath?: string): McpServer {
   const server = new McpServer({ name: SERVER_NAME, version: "0.1.0" });
   for (const def of TOOL_DEFS) {
     server.registerTool(def.name, { description: def.description, inputSchema: def.shape }, async (args: unknown) => {
-      const res = runTool(ctx, def, args);
+      const res = await runTool(ctx, def, args);
       return text(res, !res.ok);
     });
   }

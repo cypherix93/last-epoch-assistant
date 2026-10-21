@@ -29,7 +29,7 @@ Without MCP, every tool is also reachable from the shell: `yarn mcp:call lookup 
 packages/
   fetch/      @le/fetch  download LE Tools + Maxroll data to data/raw/<version>/
   db/         @le/db     build data/le.sqlite (70 tables, unified `mods` table, FTS5 `search`)
-  mcp/        @le/mcp    MCP server "le-data" (14 tools, 4 of them over the community builds) + CLI (yarn mcp:call / mcp:list)
+  mcp/        @le/mcp    MCP server "le-data" (15 tools: 4 over the community builds, 1 LE Tools planner import) + CLI (yarn mcp:call / mcp:list)
 data/
   raw/<ver>/            raw downloads per game version (committed), raw/CURRENT = latest
   le.sqlite             generated database (gitignored)
@@ -101,5 +101,4 @@ Review `git diff --stat data/raw data/*.json`, commit the raw refresh as its own
 ## Roadmap ideas
 
 - A build calculator: sum a build's `mods` rows through the damage and defense pipelines in code, using the knowledge-base formulas, so skills can call it instead of doing arithmetic by hand.
-- Planner import: decode LE Tools build links through the compact ids (`compact_ids` table, `letools_compact_id` columns) so a user can paste a planner URL instead of describing the build.
 - An own .NET extractor reading the game's assets directly, used as an independent verifier of the community data and of the vendored 1.5.0 research.
